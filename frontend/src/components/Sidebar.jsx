@@ -13,6 +13,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import SettingsIcon from "@mui/icons-material/Settings";
 import IconButton from "@mui/material/IconButton";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import logo from "../public/assets/icons/logo-no-background.svg";
 
 const Sidebar = () => {
@@ -84,6 +85,19 @@ const Sidebar = () => {
               </ListItemIcon>
               <ListItemText
                 primary={"Market"}
+                sx={{ display: collapsed ? "none" : "inline-block" }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={4} disablePadding>
+            <ListItemButton
+              onClick={() => navigate("/upload", { replace: true })}
+            >
+              <ListItemIcon>
+                <FileUploadIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={"Upload"}
                 sx={{ display: collapsed ? "none" : "inline-block" }}
               />
             </ListItemButton>
