@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -16,88 +17,97 @@ import logo from "../public/assets/icons/logo-no-background.svg";
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <Box sx={{ width: 250 }}>
-      <Box
-        sx={{ m: 1, mb: 2, display: "flex", justifyContent: "space-around" }}
-      >
-        <img src={logo} width={50} height={50} alt="OrcaNet Logo" />
-
-        <Typography
-          variant="h6"
-          noWrap
-          component="a"
-          sx={{
-            mt: 1,
-            display: { xs: "none", md: "flex" },
-            justifyContent: "right",
-            fontFamily: "monospace",
-            fontWeight: 700,
-            letterSpacing: ".3rem",
-            color: "inherit",
-            textDecoration: "none",
-          }}
-        >
-          OtterNet
-        </Typography>
-      </Box>
-      <List>
-        <ListItem key={1} disablePadding>
-          <ListItemButton onClick={() => navigate("/", { replace: true })}>
-            <ListItemIcon>
-              <FolderIcon />
-            </ListItemIcon>
-            <ListItemText primary={"Dashboard"} />
-          </ListItemButton>
-        </ListItem>
-        <ListItem key={2} disablePadding>
-          <ListItemButton
-            onClick={() => navigate("/wallet", { replace: true })}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        width: collapsed ? 75 : 200,
+      }}
+    >
+      <Box>
+        <Box sx={{ m: 1, display: "flex" }}>
+          <img src={logo} width={50} height={50} alt="OrcaNet Logo" />
+          <Typography
+            variant="h6"
+            noWrap
+            component="a"
+            sx={{
+              ml: 2,
+              mt: 1,
+              display: { xs: "none", md: "flex" },
+              justifyContent: "right",
+              fontFamily: "monospace",
+              fontWeight: 700,
+              letterSpacing: ".3rem",
+              color: "inherit",
+              textDecoration: "none",
+            }}
           >
-            <ListItemIcon>
-              <AttachMoneyIcon />
-            </ListItemIcon>
-            <ListItemText primary={"Wallet/Mining"} />
-          </ListItemButton>
-        </ListItem>
-        <ListItem key={3} disablePadding>
-          <ListItemButton href="/market">
-            <ListItemIcon>
-              <ShoppingCartIcon />
-            </ListItemIcon>
-            <ListItemText primary={"Market"} />
-          </ListItemButton>
-        </ListItem>
-        <ListItem key={4} disablePadding>
-          <ListItemButton href="/settings">
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary={"Settings"} />
-          </ListItemButton>
-        </ListItem>
-      </List>
+            OtterNet
+          </Typography>
+        </Box>
+        <List>
+          <ListItem key={1} disablePadding>
+            <ListItemButton onClick={() => navigate("/", { replace: true })}>
+              <ListItemIcon>
+                <FolderIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={"Dashboard"}
+                sx={{ display: collapsed ? "none" : "inline-block" }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={2} disablePadding>
+            <ListItemButton
+              onClick={() => navigate("/wallet", { replace: true })}
+            >
+              <ListItemIcon>
+                <AttachMoneyIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={"Wallet/Mining"}
+                sx={{ display: collapsed ? "none" : "inline-block" }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={3} disablePadding>
+            <ListItemButton
+              onClick={() => navigate("/market", { replace: true })}
+            >
+              <ListItemIcon>
+                <ShoppingCartIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={"Market"}
+                sx={{ display: collapsed ? "none" : "inline-block" }}
+              />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+
       <Box
         sx={{
-          m: 1,
           position: "fixed",
           bottom: 0,
+          display: "flex",
+          flexDirection: collapsed ? "column" : "row",
+          width: collapsed ? "50px" : "200px",
+          justifyContent: "space-between",
+          px: 1,
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-around",
-          }}
-        >
-          <IconButton>
-            <SettingsIcon />
-          </IconButton>
-          <IconButton>
-            <NavigateBeforeIcon />
-          </IconButton>
-        </Box>
+        <IconButton>
+          <SettingsIcon />
+        </IconButton>
+        <IconButton onClick={() => setCollapsed(!collapsed)}>
+          <NavigateBeforeIcon />
+        </IconButton>
       </Box>
     </Box>
   );
