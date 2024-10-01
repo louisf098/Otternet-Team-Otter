@@ -46,7 +46,7 @@ const Sidebar = () => {
               textDecoration: "none",
             }}
           >
-            tterNet
+            {collapsed ? "" : "tterNet"}
           </Typography>
         </Box>
         <List>
