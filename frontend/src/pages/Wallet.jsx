@@ -1,6 +1,5 @@
 import React from "react";
 import Grid from "@mui/material/Grid2";
-import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
@@ -9,7 +8,6 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Sidebar from "../components/Sidebar";
 
 function createData(transactionID, dateTime, cost, status) {
   return { transactionID, dateTime, cost, status };
@@ -23,34 +21,48 @@ const rows = [
 
 const Wallet = () => {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column" }}>
-      <Box sx={{ display: "flex", justifyContent: "space-around", m: 1 }}>
-        <Paper sx={{ width: "300px", p: 1 }}>
-          <Typography variant="h5">Wallet</Typography>
+    <Grid container spacing={1} sx={{ m: 1, p: 1 }}>
+      <Grid size={12}>
+        <Typography variant="h3" sx={{ mb: 1 }}>
+          Wallet
+        </Typography>
+      </Grid>
+      <Grid size={3}>
+        <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
+          <Typography variant="h5">Wallet ID:</Typography>
           <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
             qsfjlkwjf923urjfwoijfjefipjwfiu2fjiwejfjwfwf3rfw238238723f
           </Typography>
         </Paper>
-
-        <Paper sx={{ width: "300px", p: 1 }}>
+      </Grid>
+      <Grid size={3}>
+        <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
           <Typography variant="h5">Balance (OTTC)</Typography>
           <Typography variant="body1">555 Ottercoins</Typography>
         </Paper>
+      </Grid>
 
-        <Paper sx={{ width: "300px", p: 1 }}>
+      <Grid size={3}>
+        <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
           <Typography variant="h5">Revenue</Typography>
           <Typography variant="body1">Mining: 555 OtterCoins</Typography>
           <Typography variant="body1">Peers: 555 OtterCoins</Typography>
         </Paper>
-
-        <Paper sx={{ width: "300px", p: 1 }}>
+      </Grid>
+      <Grid size={3}>
+        <Paper sx={{ p: 1, height: "100px" }}>
           <Typography variant="h5">Spendings</Typography>
           <Typography variant="body1">555 OtterCoins</Typography>
         </Paper>
-      </Box>
-      <Box sx={{ display: "flex", justifyContent: "space-evenly" }}>
-        {" "}
-        <Paper sx={{ p: 1, width: "600px" }}>
+      </Grid>
+      <Grid size={12}>
+        <Paper sx={{ p: 1 }}>
+          <Typography variant="h5">Miner</Typography>
+          <Typography variant="body1">555 OtterCoins</Typography>
+        </Paper>
+      </Grid>
+      <Grid size={12}>
+        <Paper sx={{ p: 1 }}>
           <Typography variant="h5">Transactions</Typography>
           <TableContainer sx={{ mt: 1 }}>
             <Table sx={{ minWidth: 500 }} aria-label="simple table">
@@ -64,26 +76,23 @@ const Wallet = () => {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow
-                    key={row.name}
+                    key={row.transactionID}
                     sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                   >
                     <TableCell component="th" scope="row">
-                      {row.name}
+                      {row.transactionID}
                     </TableCell>
-                    <TableCell>{row.size}</TableCell>
-                    <TableCell>{row.peerCount}</TableCell>
+                    <TableCell>{row.dateTime}</TableCell>
+                    <TableCell>{row.cost}</TableCell>
+                    <TableCell>{row.status}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
-        <Paper sx={{ p: 1, width: "600px" }}>
-          <Typography variant="h5">Miner</Typography>
-          <Typography variant="body1">555 OtterCoins</Typography>
-        </Paper>
-      </Box>
-    </Box>
+      </Grid>
+    </Grid>
   );
 };
 

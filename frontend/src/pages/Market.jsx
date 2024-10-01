@@ -4,8 +4,10 @@ import Typography from "@mui/material/Typography";
 
 const Market = () => {
   return (
-    <Box sx={{ p: 1 }}>
-      <Typography variant="h4">Market</Typography>
+    <Box sx={{ m: 1, p: 1 }}>
+      <Typography variant="h3" sx={{ mb: 1 }}>
+        Market
+      </Typography>
     </Box>
   );
 };

@@ -6,14 +6,16 @@ import FileDragDrop from "../components/FileDragDrop";
 
 const Upload = () => {
   return (
-    <div>
-    <Box sx={{ p: 1 }}>
-      <Typography variant="h4">Upload</Typography>
+    <Box sx={{ m: 1, p: 1 }}>
+      <Typography variant="h3" sx={{ mb: 1 }}>
+        Upload
+      </Typography>
+      <FileDragDrop />
+      <Button variant="contained" component="label" sx={{ mt: 1 }}>
+        Upload File <input type="file" hidden />
+      </Button>
     </Box>
-    <FileDragDrop/>
-    <Button variant="contained" component="label"> Upload File <input type="file" hidden/></Button>
-  </div>
-  )
-}
+  );
+};
 
 export default Upload;

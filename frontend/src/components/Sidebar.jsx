@@ -13,7 +13,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import SettingsIcon from "@mui/icons-material/Settings";
 import IconButton from "@mui/material/IconButton";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import FileUploadIcon from '@mui/icons-material/FileUpload';
+import FileUploadIcon from "@mui/icons-material/FileUpload";
 import logo from "../public/assets/icons/logo-no-background.svg";
 
 const Sidebar = () => {
@@ -26,7 +26,7 @@ const Sidebar = () => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        width: collapsed ? 75 : 200,
+        width: collapsed ? "55px" : "205px",
       }}
     >
       <Box>
@@ -111,7 +111,7 @@ const Sidebar = () => {
           bottom: 0,
           display: "flex",
           flexDirection: collapsed ? "column" : "row",
-          width: collapsed ? "50px" : "200px",
+          width: collapsed ? "50px" : "170px",
           justifyContent: "space-between",
           px: 1,
         }}
