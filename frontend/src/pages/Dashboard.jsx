@@ -71,7 +71,7 @@ const Dashboard = () => {
             </Box>
             <Box sx={{ display: "flex" }}>
               <Typography variant="body1" sx={{ mr: 1 }}>
-                Recent Revenue: {99} OTC
+                Recent Revenue: {99} OTTC
               </Typography>
             </Box>
             <Box sx={{ display: "flex" }}>

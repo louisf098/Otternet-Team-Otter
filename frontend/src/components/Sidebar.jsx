@@ -26,15 +26,13 @@ const Sidebar = () => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        width: collapsed ? "55px" : "205px",
       }}
     >
-      <Box>
+      <Box sx={{ width: collapsed ? "55px" : "205px" }}>
         <Box sx={{ m: 1, display: "flex" }}>
           <img src={logo} width={50} height={50} alt="OrcaNet Logo" />
           <Typography
             variant="h6"
-            noWrap
             component="a"
             sx={{
               ml: 2,
@@ -48,7 +46,7 @@ const Sidebar = () => {
               textDecoration: "none",
             }}
           >
-            OtterNet
+            tterNet
           </Typography>
         </Box>
         <List>
