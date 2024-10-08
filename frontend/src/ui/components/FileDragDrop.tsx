@@ -1,6 +1,6 @@
-import { useDropzone } from 'react-dropzone';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import '../stylesheets/FileDragDrop.css'; 
+import { useDropzone } from "react-dropzone";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import "../stylesheets/FileDragDrop.css";
 
 function FileDragDrop() {
   const { getRootProps, getInputProps, acceptedFiles } = useDropzone();
@@ -13,7 +13,7 @@ function FileDragDrop() {
         <p>Drag and drop some files here, or click to select files</p>
       </div>
       <ul>
-        {acceptedFiles.map((file) => (
+        {acceptedFiles.map((file: File) => (
           <li key={file.name}>{file.name}</li>
         ))}
       </ul>
