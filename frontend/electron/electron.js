@@ -5,10 +5,11 @@ const isDev = process.env.IS_DEV == "true" ? true : false;
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1024,
-    height: 650,
+    width: 1600,
+    height: 900,
     autoHideMenuBar: true,
-    resizable: false,
+    resizable: true,
+    fullscreenable: true,
     frame: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
