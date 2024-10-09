@@ -1,12 +1,12 @@
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import Upload from "./pages/Upload.jsx";
-import Wallet from "./pages/Wallet.jsx";
-import Market from "./pages/Market.jsx";
+import MainLayout from "./layouts/MainLayout";
+import Dashboard from "./pages/Dashboard";
+import Upload from "./pages/Upload";
+import Wallet from "./pages/Wallet";
+import Market from "./pages/Market";
 import "./App.css";
 
-function App() {
+const App: React.FC = () => {
   return (
     <>
       <Router>
