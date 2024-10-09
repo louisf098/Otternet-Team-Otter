@@ -11,17 +11,33 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Button from "@mui/material/Button";
 
-function createData(transactionID, dateTime, cost, status) {
+// function createData(transactionID, dateTime, cost, status) {
+//   return { transactionID, dateTime, cost, status };
+// }
+interface TransactionData {
+  transactionID: string,
+  dateTime: number;
+  cost: number;
+  status?: String;
+}
+
+function createData(
+  transactionID: string,
+  dateTime: number,
+  cost: number,
+  status?: string
+): TransactionData {
   return { transactionID, dateTime, cost, status };
 }
 
-const rows = [
+const rows: TransactionData[] = [
   createData("1d123er131fd1f", 10000000, 13),
   createData("d1211df131df1", 10000, 12321),
   createData("1d12d1221d11d", 321323, 123213),
 ];
 
-const Wallet = () => {
+interface WalletProps{}
+const Wallet: React.FC<WalletProps> = () => {
   const [mining, toggleMining] = useState(false);
   return (
     <Grid container spacing={1} sx={{ m: 1, p: 1 }}>

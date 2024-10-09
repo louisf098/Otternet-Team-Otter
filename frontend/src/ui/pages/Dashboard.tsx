@@ -11,7 +11,12 @@ import Typography from "@mui/material/Typography";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 
-function createData(name, size, peerCount) {
+interface DashboardData {
+  name: string,
+  size: number,
+  peerCount: number
+}
+function createData(name: string, size: number, peerCount: number): DashboardData {
   return { name, size, peerCount };
 }
 
@@ -21,7 +26,8 @@ const rows = [
   createData("essay1.pdf", 321323, 123213),
 ];
 
-const Dashboard = () => {
+interface DashboardProps{}
+const Dashboard: React.FC<DashboardProps> = () => {
   return (
     <Box
       sx={{

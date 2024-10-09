@@ -3,7 +3,8 @@ import { Outlet } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Sidebar from "../components/Sidebar";
 
-const MainLayout = () => {
+interface MainLayoutProps {}
+const MainLayout: React.FC<MainLayoutProps> = () => {
   return (
     <Box sx={{ display: "flex" }}>
       <Sidebar />

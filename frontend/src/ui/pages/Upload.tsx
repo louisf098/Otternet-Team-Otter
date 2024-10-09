@@ -4,7 +4,9 @@ import Typography from "@mui/material/Typography";
 import { Button } from "@mui/material";
 import FileDragDrop from "../components/FileDragDrop";
 
-const Upload = () => {
+
+interface UploadProps{}
+const Upload: React.FC<UploadProps> = () => {
   return (
     <Box sx={{ m: 1, p: 1 }}>
       <Typography variant="h3" sx={{ mb: 1 }}>

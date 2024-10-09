@@ -6,5 +6,5 @@ app.on("ready", () => {
     // disables default system frame (dont do this if you want a proper working menu bar)
     // frame: false,
   });
-  mainWindow.loadURL("http://localhost:5174");
+  mainWindow.loadURL("http://localhost:5173");
 });
