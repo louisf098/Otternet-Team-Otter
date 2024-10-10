@@ -1,11 +1,19 @@
-import axios from "axios";
 import { useDropzone } from "react-dropzone";
-import { useForm } from "react-hook-form";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import "../stylesheets/FileDragDrop.css";
+import React from "react";
 
-function FileDragDrop() {
-  const { getRootProps, getInputProps, acceptedFiles } = useDropzone();
+interface FileDragDropProps {
+  onFileDrop: (file: File) => void;
+}
+const FileDragDrop: React.FC<FileDragDropProps> = ({ onFileDrop }) => {
+  const { getRootProps, getInputProps, acceptedFiles } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles && acceptedFiles.length > 0) {
+        onFileDrop(acceptedFiles[0]); // Send the first file to the parent
+      }
+    },
+  });
 
   return (
     <div {...getRootProps()} className="dropzone-box">
@@ -22,5 +30,6 @@ function FileDragDrop() {
     </div>
   );
 }
+
 
 export default FileDragDrop;
