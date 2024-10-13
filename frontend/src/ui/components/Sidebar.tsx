@@ -51,7 +51,9 @@ const Sidebar = () => {
         </Box>
         <List>
           <ListItem key={1} disablePadding>
-            <ListItemButton onClick={() => navigate("/", { replace: true })}>
+            <ListItemButton
+              onClick={() => navigate("/dashboard", { replace: true })}
+            >
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
@@ -114,7 +116,7 @@ const Sidebar = () => {
           px: 1,
         }}
       >
-        <IconButton>
+        <IconButton onClick={() => navigate("/settings", { replace: true })}>
           <SettingsIcon />
         </IconButton>
         <IconButton onClick={() => setCollapsed(!collapsed)}>
