@@ -60,32 +60,56 @@ const Upload: React.FC<UploadProps> = () => {
 
   }
   return (
-    <div>
-      <Box sx={{ m: 1, p: 1 }}>
-        <Typography variant="h3" sx={{ mb: 1 }}>
+    <Box
+    sx={{
+      width: '100%',             
+      maxWidth: '500px',         
+      m: '0 auto',               
+      p: 2,                      
+      textAlign: 'center', 
+      }}
+    >
+      <Box sx={{ m: 1, p: 2, width: '100%', maxWidth: '500px' }}>  {/* Adjust form size here */}
+        <Typography variant="h3" sx={{ mb: 2, textAlign: 'center' }}>
           Upload a File
         </Typography>
-          <form onSubmit={handleFormSubmit}>
-          <TextField id="outlined-basic" label="Price" variant="outlined" fullWidth sx={{ display: 'block', width: '400px', mb: 2}}/>
-          <FormControl fullWidth sx={{ mb: 2}}>
-            <FormLabel id="demo-radio-buttons-group-label">Bundle Mode</FormLabel>
+        <form onSubmit={handleFormSubmit}>
+          <TextField
+            id="outlined-price"
+            label="Price"
+            variant="outlined"
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <FormLabel id="bundle-mode-label">Bundle Mode</FormLabel>
             <RadioGroup
-                aria-labelledby="demo-radio-buttons-group-label"
-                defaultValue="No bundle"
-                name="radio-buttons-group"
-              >
-                <FormControlLabel value="Bundled" control={<Radio />} label="Bundle" />
-                <FormControlLabel value="No bundle" control={<Radio />} label="No bundle" />
-              </RadioGroup>
+              aria-labelledby="bundle-mode-label"
+              defaultValue="No bundle"
+              name="radio-buttons-group"
+            >
+              <FormControlLabel value="Bundled" control={<Radio />} label="Bundle" />
+              <FormControlLabel value="No bundle" control={<Radio />} label="No bundle" />
+            </RadioGroup>
           </FormControl>
-          <FileDragDrop onFileDrop={handleFileDrop}/>
-          <TextField id="outlined-basic" label="File Name"sx={{ display: 'block', mb: 2, mt: 2}} fullWidth value={fileName} onChange={(e) => setFileName(e.target.value)}/>
-          <Button variant="contained" sx={{ mt: 1 }} type="submit" fullWidth>
+
+          <FileDragDrop onFileDrop={handleFileDrop} />
+
+          <TextField
+            id="outlined-file-name"
+            label="File Name"
+            fullWidth
+            sx={{ mb: 2, mt: 2 }}
+            value={fileName}
+            onChange={(e) => setFileName(e.target.value)}
+          />
+
+          <Button variant="contained" sx={{ mt: 2 }} type="submit" fullWidth>
             Submit
           </Button>
         </form>
       </Box>
-    </div>
+    </Box>
   );
 };
 
