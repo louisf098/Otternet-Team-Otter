@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import "./App.css";
 import Signup from "./pages/Signup";
+import Proxy from "./pages/Proxy";
 
 const App: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ const App: React.FC = () => {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/market" element={<Market />} />
             <Route path="/upload" element={<Upload />} />
+            <Route path="/proxy" element={<Proxy />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
