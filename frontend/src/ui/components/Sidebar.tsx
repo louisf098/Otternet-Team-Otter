@@ -14,6 +14,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import IconButton from "@mui/material/IconButton";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
+import PublicIcon from "@mui/icons-material/Public";
 import logo from "../public/assets/icons/logo-no-background.svg";
 
 const Sidebar = () => {
@@ -98,6 +99,19 @@ const Sidebar = () => {
               </ListItemIcon>
               <ListItemText
                 primary={"Upload"}
+                sx={{ display: collapsed ? "none" : "inline-block" }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={5} disablePadding>
+            <ListItemButton
+              onClick={() => navigate("/proxy", { replace: true })}
+            >
+              <ListItemIcon>
+                <PublicIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={"Proxy"}
                 sx={{ display: collapsed ? "none" : "inline-block" }}
               />
             </ListItemButton>
