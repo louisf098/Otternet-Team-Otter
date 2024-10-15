@@ -4,7 +4,7 @@ import { Box } from "@mui/material";
 
 const Proxy = () => {
   return (
-    <Box>
+    <Box sx={{ width: "85%" }}>
       <ProxyPref />
       <ProxyList />
     </Box>
