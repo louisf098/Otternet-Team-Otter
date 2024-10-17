@@ -37,13 +37,13 @@ export const ProxyProvider: React.FC<ProxyProviderProps> = ({ children }) => {
   const [port, setPort] = useState<number | string>("");
 
   const { seconds, minutes, hours, start, pause, reset } = useStopwatch({
-    autoStart: false, // The stopwatch will not start automatically
+    autoStart: false,
   });
 
   useEffect(() => {
     if (proxyEnabled) {
       reset();
-      start(); // Start the timer when proxy is enabled
+      start(); // Reset and start the timer when proxy is enabled
     } else {
       pause(); // Pause the timer when proxy is disabled
     }
@@ -51,25 +51,25 @@ export const ProxyProvider: React.FC<ProxyProviderProps> = ({ children }) => {
 
   const elapsedTime = hours * 3600 + minutes * 60 + seconds;
 
-  // useEffect(() => {
-  //   const prevSelectedNode = localStorage.getItem("selectedNode");
-  //   const savedProxyEnabled = localStorage.getItem("proxyEnabled");
-  //   const savedRate = localStorage.getItem("rate");
-  //   const savedPort = localStorage.getItem("port");
+  useEffect(() => {
+    const prevSelectedNode = localStorage.getItem("selectedNode");
+    const savedProxyEnabled = localStorage.getItem("proxyEnabled");
+    const savedRate = localStorage.getItem("rate");
+    const savedPort = localStorage.getItem("port");
 
-  //   if (prevSelectedNode) {
-  //     setSelectedNode(JSON.parse(prevSelectedNode));
-  //   }
-  //   if (savedProxyEnabled) {
-  //     setProxyEnabled(JSON.parse(savedProxyEnabled));
-  //   }
-  //   if (savedRate) {
-  //     setRate(Number(savedRate));
-  //   }
-  //   if (savedPort) {
-  //     setPort(Number(savedPort));
-  //   }
-  // }, []);
+    if (prevSelectedNode) {
+      setSelectedNode(JSON.parse(prevSelectedNode));
+    }
+    if (savedProxyEnabled) {
+      setProxyEnabled(JSON.parse(savedProxyEnabled));
+    }
+    if (savedRate) {
+      setRate(Number(savedRate));
+    }
+    if (savedPort) {
+      setPort(Number(savedPort));
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedNode) {
@@ -81,21 +81,6 @@ export const ProxyProvider: React.FC<ProxyProviderProps> = ({ children }) => {
     }
   }, [selectedNode]);
 
-  //   useEffect(() => {
-  //     localStorage.setItem("proxyEnabled", JSON.stringify(proxyEnabled));
-  //   }, [proxyEnabled]);
-
-  //   useEffect(() => {
-  //     localStorage.setItem("rate", rate.toString());
-  //   }, [rate]);
-
-  //   useEffect(() => {
-  //     localStorage.setItem("port", port.toString());
-  //   }, [port]);
-
-  //   useEffect(() => {
-  //     localStorage.setItem("elapsedTime", elapsedTime.toString());
-  //   }, [elapsedTime]);
   useEffect(() => {
     localStorage.setItem("proxyEnabled", JSON.stringify(proxyEnabled));
     localStorage.setItem("rate", rate.toString());
