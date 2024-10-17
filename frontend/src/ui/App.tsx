@@ -2,6 +2,7 @@ import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
+import Download from "./pages/Download";
 import Wallet from "./pages/Wallet";
 import Market from "./pages/Market";
 import Login from "./pages/Login";
@@ -22,8 +23,9 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/market" element={<Market />} />
-            <Route path="/upload" element={<Upload />} />
             <Route path="/proxy" element={<Proxy />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/download" element={<Download />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
