@@ -9,10 +9,12 @@ import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import "./App.css";
 import Signup from "./pages/Signup";
+import Proxy from "./pages/Proxy";
+import { ProxyProvider } from "./contexts/ProxyContext";
 
 const App: React.FC = () => {
   return (
-    <>
+    <ProxyProvider>
       <Router>
         <Routes>
           <Route path="/" element={<MainLayout />}>
@@ -21,13 +23,14 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/market" element={<Market />} />
+            <Route path="/proxy" element={<Proxy />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/download" element={<Download />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
       </Router>
-    </>
+    </ProxyProvider>
   );
 };
 
