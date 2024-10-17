@@ -51,29 +51,25 @@ export const ProxyProvider: React.FC<ProxyProviderProps> = ({ children }) => {
 
   const elapsedTime = hours * 3600 + minutes * 60 + seconds;
 
-  //   useEffect(() => {
-  //     const prevSelectedNode = localStorage.getItem("selectedNode");
-  //     const savedProxyEnabled = localStorage.getItem("proxyEnabled");
-  //     const savedRate = localStorage.getItem("rate");
-  //     const savedPort = localStorage.getItem("port");
-  //     const savedElapsedTime = localStorage.getItem("elapsedTime");
+  // useEffect(() => {
+  //   const prevSelectedNode = localStorage.getItem("selectedNode");
+  //   const savedProxyEnabled = localStorage.getItem("proxyEnabled");
+  //   const savedRate = localStorage.getItem("rate");
+  //   const savedPort = localStorage.getItem("port");
 
-  //     if (prevSelectedNode) {
-  //       setSelectedNode(JSON.parse(prevSelectedNode));
-  //     }
-  //     if (savedProxyEnabled) {
-  //       setProxyEnabled(JSON.parse(savedProxyEnabled));
-  //     }
-  //     if (savedRate) {
-  //       setRate(Number(savedRate));
-  //     }
-  //     if (savedPort) {
-  //       setPort(Number(savedPort));
-  //     }
-  //     if (savedElapsedTime) {
-  //       setElapsedTime(Number(savedElapsedTime));
-  //     }
-  //   }, []);
+  //   if (prevSelectedNode) {
+  //     setSelectedNode(JSON.parse(prevSelectedNode));
+  //   }
+  //   if (savedProxyEnabled) {
+  //     setProxyEnabled(JSON.parse(savedProxyEnabled));
+  //   }
+  //   if (savedRate) {
+  //     setRate(Number(savedRate));
+  //   }
+  //   if (savedPort) {
+  //     setPort(Number(savedPort));
+  //   }
+  // }, []);
 
   useEffect(() => {
     if (selectedNode) {
