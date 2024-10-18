@@ -76,7 +76,7 @@ const Upload: React.FC<UploadProps> = () => {
         <form onSubmit={handleFormSubmit}>
           <TextField
             id="outlined-price"
-            label="Price"
+            label="Price (OTTC)"
             variant="outlined"
             fullWidth
             sx={{ mb: 2 }}
