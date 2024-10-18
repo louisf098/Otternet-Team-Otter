@@ -1,8 +1,15 @@
 import { Box } from "@mui/material";
 import {TextField} from "@mui/material";
-import {Typography} from "@mui/material";
+import {Typography, Card, Grid, CardContent, CardActions} from "@mui/material";
 import {Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions} from "@mui/material";
 import { useState } from "react";
+
+// dummy data for download demo
+const dummyProviders = [
+  {walletID: 'Provider1', price: '12 OTTC'}, 
+  {walletID: 'Provider2', price: '15 OTTC'}, 
+  {walletID: 'Provider3', price: '19 OTTC'}]
+
 
 const Download = () => {
 
@@ -10,34 +17,29 @@ const Download = () => {
     const [openModal, setOpenModal] = useState(false);  // Track modal visibility
     const [modalMessage, setModalMessage] = useState("");  // Set Modal Message
     const [modalTitle, setModalTitle] = useState("");  // Set Modal Title
-    const [fileHash, setFileHash] = useState("") // Capture file hash from textfield
+    const [fileHash, setFileHash] = useState(""); // Capture file hash from textfield
+    const [providers, setProviders] = useState<{walletID: string; price: string;}[]>([]);
 
 
-    const handleDownloadClick = () => {
-        setIsLoading(true); // Set loading state to true when button is clicked
-        
-        // Simulate a download or async action (e.g., API call)
-        setTimeout(() => {
-          setIsLoading(false);
+    const handleSearchClick = () => {
+      setIsLoading(true)
 
-          let validHash = Math.random() < 0.5
-          if (validHash){
-            setModalMessage("File " + fileHash + " has succesfully been downloaded")
-            setModalTitle("DOWNLOAD SUCCESS")
-          }
-          else{
-            setModalMessage('Invalid file hash. Please check your input and try again.')
-            setModalTitle("DOWNLOAD FAILURE")
-          }
+      setTimeout(() => {
+        setProviders(dummyProviders);
+        setIsLoading(false);
+      }, 2000);
+    }
 
-          setOpenModal(true);
-          // Add download logic here
-        }, 3000);
-      };
-    
-      const handleCloseModal = () => {
-        setOpenModal(false);
-      }
+    const handleDownloadClick = (providerID: string) => {
+      // Add download logic here
+      setModalMessage("File: " + fileHash)
+      setModalTitle("Download should begin shortly...")
+      setOpenModal(true);
+    };
+
+    const handleCloseModal = () => {
+      setOpenModal(false);
+    }
 
     return (
         <Box
@@ -63,16 +65,46 @@ const Download = () => {
             sx={{ mb: 2 }}
           />
 
-        <Button variant="contained" sx={{ mt: 2 }} type="submit" onClick={handleDownloadClick}
+        <Button variant="contained" sx={{ mt: 2 }} type="submit" onClick={handleSearchClick}
             disabled={isLoading}>
                 {isLoading ? (
             <CircularProgress size={24} /> 
           ) : (
-            "Download"
+            "Search Providers"
           )}
         </Button>
 
+        <Box sx={{ mt: 4 }}>
+        <Grid container spacing={2}>
+          {providers.map((provider) => (
+              <Grid item xs={12} sm={6} key={provider.walletID}>
+                <Card>
+                  <CardContent>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box display="flex" flexDirection="column">
+                    <Typography variant="h6">WalletID: {provider.walletID}</Typography>
+                    <Typography variant="body1">Price: {provider.price}</Typography>
+                    </Box>
+                    <CardActions>
+                    <Button 
+                      size="small" 
+                      variant="contained" 
+                      onClick={() => handleDownloadClick(provider.walletID)}
+                    >
+                      Download
+                    </Button>
+                  </CardActions>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+        </Grid>
+      </Box>
+
         </Box>
+
+        
 
         <Dialog
         open={openModal}
