@@ -1,13 +1,24 @@
 package main
 
 import (
-	"Otternet/backend/api"
+	files "Otternet/backend/api/files"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+)
+
+var corsOptions = handlers.CORS(
+	handlers.AllowedOrigins([]string{"*"}),
+	handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+	handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 )
 
 type TestJSON struct {
@@ -53,9 +64,36 @@ func main() {
 	r.HandleFunc("/hello/{name}", nameReader)
 	r.HandleFunc("/json", jsonResponse)
 	r.HandleFunc("/", baseHandler)
-	r.HandleFunc("/uploadFile", api.UploadFile)
-	println("Preparing to listen on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
-}
+	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 
-// Test
+	// Apply CORS to all routes
+	handlerWithCORS := corsOptions(r)
+
+	server := &http.Server{
+		Addr:    ":9378",
+		Handler: handlerWithCORS,
+	}
+
+	// Listen for shutdown signals to gracefully shutdown the server
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTSTP)
+	shutdownComplete := make(chan bool)
+	go func() {
+		println("Preparing to listen on port 9378")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServer error: %s\n", err)
+		}
+	}()
+
+	// goroutine to listen for shutdown signals and call server.Shutdown
+	go func() {
+		sig := <-signalChan
+		fmt.Printf("Received signal: %s\n", sig)
+		if err := server.Shutdown(context.TODO()); err != nil {
+			log.Fatalf("Error during shutdown: %v", err)
+		}
+		shutdownComplete <- true
+	}()
+	<-shutdownComplete
+	log.Println("Server stopped")
+}
