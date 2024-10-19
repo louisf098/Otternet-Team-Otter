@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Otternet/backend/api"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -52,6 +53,7 @@ func main() {
 	r.HandleFunc("/hello/{name}", nameReader)
 	r.HandleFunc("/json", jsonResponse)
 	r.HandleFunc("/", baseHandler)
+	r.HandleFunc("/uploadFile", api.UploadFile)
 	println("Preparing to listen on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
