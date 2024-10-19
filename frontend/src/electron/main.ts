@@ -38,6 +38,7 @@ interface FileMetadata {
   file_name: string;
   file_size: number;
   file_path: string;
+  file_type: string;
   file_hash: string;
   timestamp: string;
 }
@@ -59,6 +60,7 @@ ipcMain.handle("select-file", async () => {
       file_name: path.basename(filePath),
       file_size: fs.statSync(filePath).size,
       file_path: filePath,
+      file_type: path.extname(filePath),
       file_hash: hash,
       timestamp: new Date().toISOString(),
     }
@@ -78,6 +80,7 @@ ipcMain.handle("handle-drag-drop", async (event, file) => {
       file_name: path.basename(file.path),
       file_size: fs.statSync(file.path).size,
       file_path: file.path,
+      file_type: path.extname(file.path),
       file_hash: hash,
       timestamp: new Date().toISOString(),
     };

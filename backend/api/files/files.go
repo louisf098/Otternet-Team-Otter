@@ -1,4 +1,4 @@
-package api
+package files
 
 import (
 	"encoding/json"
@@ -18,6 +18,7 @@ type FormData struct {
 	FileName   string  `json:"fileName"`
 	FilePath   string  `json:"filePath"`
 	FileSize   int64   `json:"fileSize"`
+	FileType   string  `json:"fileType"`
 	Timestamp  string  `json:"timestamp"`
 	FileHash   string  `json:"fileHash"`
 	BundleMode bool    `json:"bundleMode"`
@@ -27,7 +28,7 @@ var mutex = &sync.Mutex{}
 
 const jsonFilePath = "./api/files/files.json"
 
-// Upload file as single chunk
+// Handles uploading new file or updating existing file metadata
 func UploadFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
