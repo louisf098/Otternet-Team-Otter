@@ -2,6 +2,7 @@ package main
 
 import (
 	files "Otternet/backend/api/files"
+	"Otternet/backend/api/proxy"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -67,6 +68,8 @@ func main() {
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/getAllFiles", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
+	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
 
 	// Apply CORS to all routes
 	handlerWithCORS := corsOptions(r)
