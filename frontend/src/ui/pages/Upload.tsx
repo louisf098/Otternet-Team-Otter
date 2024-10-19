@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { Button, CircularProgress, Snackbar, Alert, SnackbarCloseReason } from "@mui/material";
+import { Button, CircularProgress, Snackbar, Alert, SnackbarCloseReason, Tooltip, IconButton } from "@mui/material";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import FileDragDrop from "../components/FileDragDrop";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -136,20 +137,22 @@ const Upload: React.FC<UploadProps> = () => {
             fileHash: fileMetadata.file_hash,
             bundleMode
         }
-
+        console.log("PostData: ", postData);
         try {
-        const response = await fetch("http://localhost:8080/uploadFile", {
+        const response = await fetch("http://localhost:9378/uploadFile", {
             method: 'POST',
             body: JSON.stringify(postData),
         });
-        const ret = await response.json();
-        if (!ret) {
-            throw new Error('The POST request to the backend failed.')
-        }
-        console.log("Successfully uploaded file to DHT.", ret);
+        console.log("Response: ", response);
+        setSnackbarMessage("File uploaded successfully");
+        setSnackbarColor('success');
+        setSnackbarOpen(true);
 
         } catch(err) {
-        console.error("An error occurred when attempting to upload the file.")
+            console.error("An error occurred when attempting to upload the file.")
+            setSnackbarMessage("The following error occurred when attempting to upload the file: " + (err as Error).message);
+            setSnackbarColor('error');
+            setSnackbarOpen(true);
         }
 
     }
@@ -168,15 +171,21 @@ const Upload: React.FC<UploadProps> = () => {
                 Upload a File
                 </Typography>
                 <form onSubmit={handleFormSubmit}>
-                <TextField
-                    id="outlined-price"
-                    name="price"
-                    label="Price"
-                    variant="outlined"
-                    fullWidth
-                    required
-                    sx={{ mb: 2 }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <TextField
+                        id="outlined-price"
+                        name="price"
+                        label="Price (OTTC)"
+                        variant="outlined"
+                        fullWidth
+                        required
+                    />
+                    <Tooltip title="Whenever someone downloads your file, you will receive the price you set." arrow>
+                        <IconButton>
+                            <HelpOutlineIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                     <FormLabel id="bundle-mode-label">Bundle Mode</FormLabel>
                     <RadioGroup

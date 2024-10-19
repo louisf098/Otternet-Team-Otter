@@ -1,6 +1,6 @@
 "use strict";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
-import { ElectronAPI } from "@electron-toolkit/preload";
+// import { ElectronAPI } from "@electron-toolkit/preload";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import path from "path";
