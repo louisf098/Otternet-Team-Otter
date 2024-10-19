@@ -80,8 +80,20 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Append new file metadata to existing file metadata
-	postDatas = append(postDatas, postData)
+	// Check if file already exists. If it does, replace it with this new entry
+	found := false
+	for i, data := range postDatas {
+		if data.FileHash == postData.FileHash {
+			postDatas[i] = postData // Replace existing file metadata with new file metadata
+			found = true
+			break
+		}
+	}
+	if !found {
+		// Append new file metadata to existing file metadata
+		postDatas = append(postDatas, postData)
+	}
+
 	newData, err := json.MarshalIndent(postDatas, "", " ")
 	if err != nil {
 		http.Error(w, "Error marshalling new file data", http.StatusInternalServerError)
