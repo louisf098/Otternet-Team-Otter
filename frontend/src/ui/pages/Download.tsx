@@ -5,16 +5,28 @@ import {Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogCont
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
+interface FormData {
+  userID: string,
+  price: number,
+  fileName: string,
+  filePath: string,
+  fileSize: number,
+  fileType: string,
+  timestamp: string,
+  fileHash: string,
+  bundleMode: boolean
+}
+
 // dummy data for download demo
 const dummyProviders = [
-  {walletID: 'e0d123e5f316bef78bfdf5a008837577', price: '12 OTTC'}, 
-  {walletID: '95982461e7db28fb0d0ea25bd2fc9d7f', price: '15 OTTC'}, 
-  {walletID: '06adac43bac94634b3773f13296cf6d9', price: '19 OTTC'}]
+  {walletID: 'e0d123e5f316bef78bfdf5a008837577', price: 12}, 
+  {walletID: '95982461e7db28fb0d0ea25bd2fc9d7f', price: 15}, 
+  {walletID: '06adac43bac94634b3773f13296cf6d9', price: 19}]
 
   const dummyFileDetails = {
     name: "Cookie_Monster_Script",
     type: "Text Document(.txt)",
-    size: "17.4 MB"
+    size: 174
   };
 
 const Download = () => {
@@ -25,8 +37,8 @@ const Download = () => {
     const [modalTitle, setModalTitle] = useState("");  // Set Modal Title
     const [fileHash, setFileHash] = useState(""); // Capture file hash from textfield
     const [searchedHash, setSearchedHash] = useState(""); // Store file hash from textfield
-    const [providers, setProviders] = useState<{walletID: string; price: string;}[]>([]);
-    const [fileDetails, setFileDetails] = useState<{name: string; type: string; size: string;} | null >(null);
+    const [providers, setProviders] = useState<{walletID: string; price: number;}[]>([]);
+    const [fileDetails, setFileDetails] = useState<{name: string; type: string; size: number;} | null >(null);
 
     const handleSearchClick = () => {
       setIsLoading(true)
@@ -39,11 +51,36 @@ const Download = () => {
       }, 2000);
     }
 
-    const handleDownloadClick = () => {
-      // Add download logic here
-      setModalMessage("Download should begin shortly...")
-      setModalTitle("Transaction successful!")
-      setOpenModal(true);
+    const handleDownloadClick = async (phash: string, pprice: number) => {
+      try {
+        const postData: FormData = {
+          userID: phash, 
+          price: pprice,
+          fileName: dummyFileDetails.name,
+          filePath: "/user/Downloads",  // This can be modified to actual download path
+          fileSize: dummyFileDetails.size,
+          fileType: dummyFileDetails.type,
+          timestamp: new Date().toISOString(),
+          fileHash: searchedHash,
+          bundleMode: false
+        };
+        
+        const response = await fetch("http://localhost:9378/download", {
+          method: 'POST',
+          body: JSON.stringify(postData),
+        });
+        
+        console.log("Response: ", response);
+        setModalMessage("Download should begin shortly...");
+        setModalTitle("Transaction successful!");
+        setOpenModal(true);
+  
+      } catch (err: any) {
+        console.error("An error occurred during download:", err);
+        setModalMessage(`Download failed: ${err.message}`);
+        setModalTitle("Error");
+        setOpenModal(true);
+      }
     };
 
     const handleCloseModal = () => {
@@ -108,13 +145,13 @@ const Download = () => {
                     <Box display="flex" justifyContent="space-between">
                     <Box display="flex" flexDirection="column" alignItems="flex-start">
                     <Typography variant="body2">WalletID: {provider.walletID}</Typography>
-                    <Typography variant="body2">Price: {provider.price}</Typography>
+                    <Typography variant="body2">Price: {provider.price} OTTC</Typography>
                     </Box>
                     <CardActions>
                     <Button 
                       size="small" 
                       variant="contained" 
-                      onClick={() => handleDownloadClick()}
+                      onClick={() => handleDownloadClick(provider.walletID, provider.price)}
                     >
                       Download
                     </Button>
