@@ -45,25 +45,56 @@ const Upload: React.FC<UploadProps> = () => {
         setSnackbarOpen(false);
     }
 
-    const handleFileDrop = useCallback(async (file: FileWithPath) => {
-        if (!file.path) {
-            console.error("Problem with file drop");
-            setSnackbarMessage("Problem with file drop");
-            setSnackbarColor('error');
-            setSnackbarOpen(true);
-            return;
-        }
+    // const handleFileDrop = useCallback(async (file: File) => {
+    //     if (!file.path) {
+    //         console.error("Problem with file drop");
+    //         setSnackbarMessage("Problem with file drop");
+    //         setSnackbarColor('error');
+    //         setSnackbarOpen(true);
+    //         return;
+    //     }
+    //     setFileMetadata(null);
+    //     try {
+    //         if (!window.electronAPI || !window.electronAPI.handleDragDrop) {
+    //             throw new Error("Electron API not available");
+    //         }
+    //         console.log("This is file: ", file);
+    //         const result = await window.electronAPI.handleDragDrop(file);
+    //         console.log("File path: ", file.path);
+    //         console.log("Result: ", result);
+    //         if (!result) {
+    //             throw new Error("Problem with file drop");
+    //         }
+    //         if (result.fileMetadata) {
+    //             console.log("hi");
+    //             console.log("File metadata: ", result.fileMetadata);
+    //             setFileMetadata(result.fileMetadata);
+    //             setSnackbarMessage("File ready for upload");
+    //             setSnackbarColor('success');
+    //             setSnackbarOpen(true);
+    //         }
+    //     } catch (err: any) {
+    //         console.error("Error with electron API: ", err);
+    //         setSnackbarMessage(err.message);
+    //         setSnackbarColor('error');
+    //         setSnackbarOpen(true);
+    //         return;
+    //     }
+    // }, []);
+    
+    const handleFileUpload = async () => {
         setFileMetadata(null);
         try {
-            if (!window.electronAPI || !window.electronAPI.handleDragDrop) {
+            if (!window.electronAPI || !window.electronAPI.selectFile) {
                 throw new Error("Electron API not available");
             }
-            
-            const result = await window.electronAPI.handleDragDrop(file.path);
+            const result = await window.electronAPI.selectFile();
             if (!result) {
-                throw new Error("Problem with file drop");
+                throw new Error("Problem with file selection");
             }
             if (result.fileMetadata) {
+                console.log("file path: ", result.fileMetadata.file_path);
+                console.log("File metadata: ", result.fileMetadata);
                 setFileMetadata(result.fileMetadata);
                 setSnackbarMessage("File ready for upload");
                 setSnackbarColor('success');
@@ -76,8 +107,7 @@ const Upload: React.FC<UploadProps> = () => {
             setSnackbarOpen(true);
             return;
         }
-    }, []);
-    
+    }
 
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -107,15 +137,6 @@ const Upload: React.FC<UploadProps> = () => {
             bundleMode
         }
 
-        // // Check if a file was selected
-        // if (file) {
-        // formData.append('file', file);
-        // } else {
-        // console.error("No file was selected");
-        // return;
-        // }
-
-        // Axios request
         try {
         const response = await fetch("http://localhost:8080/uploadFile", {
             method: 'POST',
@@ -169,7 +190,11 @@ const Upload: React.FC<UploadProps> = () => {
                     </RadioGroup>
                 </FormControl>
 
-                <FileDragDrop onFileDrop={handleFileDrop} />
+                {/* <FileDragDrop onFileDrop={handleFileDrop} /> */}
+
+                <Button variant="contained" sx={{ mt: 2 }} onClick={handleFileUpload} fullWidth>
+                    Select File
+                </Button>
 
                 <TextField
                     id="outlined-file-name"

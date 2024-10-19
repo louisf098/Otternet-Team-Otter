@@ -7,12 +7,13 @@ import { FileWithPath } from "react-dropzone";
 import React from "react";
 
 interface FileDragDropProps {
-  onFileDrop: (file: FileWithPath) => void;
+  onFileDrop: (file: File) => void;
 }
 const FileDragDrop: React.FC<FileDragDropProps> = ({ onFileDrop }) => {
   const { getRootProps, getInputProps, acceptedFiles } = useDropzone({
     onDrop: (acceptedFiles: File[]) => {
       if (acceptedFiles && acceptedFiles.length > 0) {
+        console.log("Path: ", acceptedFiles[0].path);
         onFileDrop(acceptedFiles[0]); // Send the first file to the parent
       }
     },

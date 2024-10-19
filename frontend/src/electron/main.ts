@@ -1,4 +1,6 @@
+"use strict";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { ElectronAPI } from "@electron-toolkit/preload";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import path from "path";
@@ -15,19 +17,22 @@ function createWindow() {
     resizable: true,
     fullscreenable: true,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      sandbox: false,
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.mjs"),
     },
     // disables default system frame (dont do this if you want a proper working menu bar)
     // frame: false,
   });
+  console.log("This is __dirname: ", __dirname);
+  console.log("Preload path: ", path.join(__dirname, "preload.js"));
   mainWindow.loadURL("http://localhost:5173");
 }
 
-app.on("ready", () => {
+app.whenReady().then(() => {
   createWindow();
-});
+})
 
 interface FileMetadata {
   file_name: string;
@@ -50,34 +55,33 @@ ipcMain.handle("select-file", async () => {
 
     const hash = await createFileHash(filePath);
 
-    const fileMetaData: FileMetadata = {
+    const fileMetadata: FileMetadata = {
       file_name: path.basename(filePath),
       file_size: fs.statSync(filePath).size,
       file_path: filePath,
       file_hash: hash,
       timestamp: new Date().toISOString(),
     }
-    return { fileMetaData };
+    return { fileMetadata };
   } catch (err) {
     console.error("Error with select-file: ", err);
     return null;
   }
 });
 
-ipcMain.handle("handle-drag-drop", async (event, filePath) => {
+ipcMain.handle("handle-drag-drop", async (event, file) => {
+  console.log("File: ", file);
+  console.log("File path: ", file.path);
   try {
-    if (!fs.existsSync(filePath)) {
-      throw new Error("File does not exist");
-    }
-    const hash = await createFileHash(filePath);
-    const fileMetaData: FileMetadata = {
-      file_name: path.basename(filePath),
-      file_size: fs.statSync(filePath).size,
-      file_path: filePath,
+    const hash = await createFileHash(file.path);
+    const fileMetadata: FileMetadata = {
+      file_name: path.basename(file.path),
+      file_size: fs.statSync(file.path).size,
+      file_path: file.path,
       file_hash: hash,
       timestamp: new Date().toISOString(),
     };
-    return { fileMetaData };
+    return { fileMetadata };
   }catch (err) {
     console.error("Error with handle-drag-drop: ", err);
     return null;
@@ -91,10 +95,11 @@ function createFileHash(filePath: string): Promise<string> {
 
     stream.on("data", (data) => hash.update(data));
     stream.on("end", () => {
-      console.log(hash.digest("hex"));
+      resolve(hash.digest("hex"));
     })
     stream.on("error", (err) => {
       console.error(err);
+      reject(err);
     });
   });
 }
