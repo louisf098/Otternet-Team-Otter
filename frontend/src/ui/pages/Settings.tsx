@@ -1,13 +1,34 @@
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import React from "react";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import { useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
 
 const Settings = () => {
   const navigate = useNavigate();
+
+  const { publicKey, setPublicKey } = useContext(AuthContext);
+
+  const handleSignOut = () => {
+    navigate("/", { replace: true });
+    setPublicKey("");
+  };
   return (
-    <div>
-      <Button onClick={() => navigate("/", { replace: true })}>Logout</Button>
-    </div>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+        m: 1,
+      }}
+    >
+      <Typography variant="h3" sx={{ mb: 1 }}>
+        Settings
+      </Typography>
+      <Button onClick={handleSignOut}>Logout</Button>
+    </Box>
   );
 };
 

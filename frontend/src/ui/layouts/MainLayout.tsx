@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 
 interface MainLayoutProps {}
 const MainLayout: React.FC<MainLayoutProps> = () => {
+  
   return (
     <Box sx={{ display: "flex" }}>
       <Sidebar />
