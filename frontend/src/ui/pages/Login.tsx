@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
+import { AuthContext } from "../contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,12 +17,16 @@ const Login = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
+  const { publicKey, setPublicKey } = React.useContext(AuthContext);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (error) {
       event.preventDefault();
       return;
     }
+    const walletId = document.getElementById("walletID") as HTMLInputElement;
 
+    setPublicKey(walletId.value);
     navigate("/dashboard", { replace: true });
   };
 
@@ -121,14 +126,6 @@ const Login = () => {
           <FormControl>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <FormLabel htmlFor="privateKey">Private Key</FormLabel> {}
-              <Link
-                component="button"
-                type="button"
-                variant="body2"
-                sx={{ alignSelf: "baseline" }}
-              >
-                {} Forgot your private key?
-              </Link>
             </Box>
             <TextField
               error={error}
@@ -150,17 +147,17 @@ const Login = () => {
             variant="contained"
             onClick={validateInputs}
           >
-            Sign in
+            Sign In
           </Button>
           <Typography sx={{ textAlign: "center" }}>
             Don&apos;t have a wallet?{" "}
             <span>
               <Link
-                onClick={() => navigate("/signup", { replace: true })}
+                onClick={() => navigate("/createwallet", { replace: true })}
                 variant="body2"
                 sx={{ alignSelf: "center", cursor: "pointer" }}
               >
-                Sign up
+                Create Wallet
               </Link>
             </span>
           </Typography>
