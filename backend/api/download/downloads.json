@@ -1,0 +1,12 @@
+[
+ {
+  "userID": "user12345",
+  "price": 123,
+  "fileName": "hi.txt",
+  "filePath": "/hi/wow",
+  "fileSize": 134,
+  "timestamp": "hi",
+  "fileHash": "sdlkfjsldkfjlsdfj20",
+  "bundleMode": true
+ }
+]

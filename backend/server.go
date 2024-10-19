@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
 	"context"
@@ -68,6 +69,8 @@ func main() {
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/getAllFiles", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
+	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
 	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
 
