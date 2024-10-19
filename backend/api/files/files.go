@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type FormData struct {
@@ -45,7 +47,6 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("PostData: ", postData)
 
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -104,7 +105,6 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error writing new file data", http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("File metadata written to file")
 	response := map[string]string{"message": "File uploaded successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -117,7 +117,75 @@ func DeleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println("File Delete API Hit")
+	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	fileHash, exists := vars["fileHash"]
+	if !exists || fileHash == "" {
+		http.Error(w, "Invalid file hash", http.StatusBadRequest)
+		return
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+	existingData, err := os.ReadFile(jsonFilePath)
+	if err != nil {
+		http.Error(w, "Error reading existing file data", http.StatusInternalServerError)
+		return
+	}
+	var postDatas []FormData
+	err = json.Unmarshal(existingData, &postDatas)
+	if err != nil {
+		http.Error(w, "Error unmarshalling existing file data", http.StatusInternalServerError)
+		return
+	}
+	found := false
+	for i, data := range postDatas {
+		if data.FileHash == fileHash {
+			postDatas = append(postDatas[:i], postDatas[i+1:]...)
+			found = true
+			break
+		}
+	}
+	if !found {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	newData, err := json.MarshalIndent(postDatas, "", " ")
+	if err != nil {
+		http.Error(w, "Error marshalling new file data", http.StatusInternalServerError)
+		return
+	}
+	err = os.WriteFile(jsonFilePath, newData, 0644)
+	if err != nil {
+		http.Error(w, "Error writing new file data", http.StatusInternalServerError)
+		return
+	}
+	response := map[string]string{"message": "File deleted successfully", "status": "success"}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+	fmt.Println("File Delete API Response Sent")
+}
 
+func GetAllFiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Println("Get All Files API Hit")
+	w.Header().Set("Content-Type", "application/json")
+	mutex.Lock()
+	defer mutex.Unlock()
+	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
+		http.Error(w, "No files uploaded yet", http.StatusNotFound)
+		return
+	}
+	fileData, err := os.ReadFile(jsonFilePath)
+	if err != nil {
+		http.Error(w, "Error reading file data", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(fileData)
+	fmt.Println("Get All Files API Response Sent")
 }
 
 func insertFileinDHT(hashFile string) {
