@@ -61,39 +61,31 @@ const ProxyPref = () => {
   return (
     <Box
       sx={{
-        display: "block",
+        display: "flex",
+        flexDirection: "column",
         justifyContent: "space-between",
-        alignItems: "center",
-        height: "10vh",
-        paddingBottom: 5,
-        // borderBottom: "1px solid #ccc", // Optional divider for the top half to remove later
+        alignItems: "start",
+        paddingBottom: 2,
       }}
     >
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          // justifyContent: "space-between",
+          flexWrap: "wrap",
+          width: "100%",
+          marginBottom: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
           <Typography variant="body1" sx={{ marginRight: 1 }}>
-            Enable Proxy
+            Enable Your Proxy
           </Typography>
           <Switch
             checked={proxyEnabled}
             onChange={handleProxyChange}
             name="proxyEnabled"
           />
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "60%",
-          }}
-        >
           <Tooltip
             title="Enable this option to allow others to use your node as a proxy. Set the rate and port for how others will connect through your node below."
             arrow
@@ -102,38 +94,65 @@ const ProxyPref = () => {
               <HelpOutlineIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            flexGrow: 1,
+            flexBasis: "50%",
+          }}
+        >
           <Typography>
-            Your Proxy Service Time: {getElapsedTimeString(elapsedTime)}
+            Your Proxy Service Time:{" "}
+            <span style={{ fontWeight: "bold", color: "blue" }}>
+              {getElapsedTimeString(elapsedTime)}
+            </span>
           </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ display: "flex", gap: 2, marginTop: 2 }}>
-        <Typography variant="body1" sx={{ marginRight: 1 }}>
-          Rate:
-        </Typography>
-        <TextField
-          variant="outlined"
-          type="text"
-          value={rate}
-          onChange={handleRateChange}
-          name="proxy-rate"
-          placeholder="OTTC/KB"
-          size="small"
-          error={Boolean(rateError)}
-          helperText={rateError}
-        />
-        <Typography variant="body1" sx={{ marginRight: 1 }}>
-          Port:
-        </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 2,
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            width: "50%",
           }}
         >
+          <Typography variant="body1" sx={{ marginRight: 1 }}>
+            Rate:
+          </Typography>
+          <TextField
+            variant="outlined"
+            type="text"
+            value={rate}
+            onChange={handleRateChange}
+            name="proxy-rate"
+            placeholder="1234"
+            size="small"
+            sx={{ width: "130px" }}
+            error={Boolean(rateError)}
+            helperText={rateError}
+          />
+          <Typography variant="body2" sx={{ marginLeft: 1, marginRight: 6 }}>
+            OTTC/KB
+          </Typography>
+
+          {/* <Typography variant="body1" sx={{ marginRight: 1 }}>
+            Port:
+          </Typography>
           <TextField
             variant="outlined"
             type="text"
@@ -142,14 +161,15 @@ const ProxyPref = () => {
             name="proxy-port"
             placeholder="1234"
             size="small"
+            sx={{ width: "130px" }}
             error={Boolean(portError)}
             helperText={portError}
-          />
-          <Typography>
-            Nodes connected to proxy:{" "}
-            <span style={{ fontWeight: "bold" }}>21 </span>
-          </Typography>
+          /> */}
         </Box>
+        <Typography>
+          Nodes connected to proxy:{" "}
+          <span style={{ fontWeight: "bold", color: "blue" }}>21 </span>
+        </Typography>
       </Box>
     </Box>
   );
