@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import {
   Box,
   Switch,
@@ -21,6 +21,9 @@ const ProxyPref = () => {
     elapsedTime,
   } = useContext(ProxyContext);
 
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [portError, setPortError] = useState<string | null>(null);
+
   const handleProxyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setProxyEnabled(event.target.checked);
     console.log(`proxy: ${proxyEnabled}`);
@@ -28,17 +31,21 @@ const ProxyPref = () => {
 
   const handleRateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    // setRate(value === "" ? "" : Number(value));
     if (!isNaN(Number(value)) || value === "") {
       setRate(value); // Store as string, don't convert to number immediately
+      setRateError(null);
+    } else {
+      setRateError("Rate must be a valid number.");
     }
   };
 
   const handlePortChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    // setPort(value === "" ? "" : Number(value));
     if (!isNaN(Number(value)) || value === "") {
       setPort(value); // Store as string, don't convert to number immediately
+      setPortError(null);
+    } else {
+      setPortError("Invalid port.");
     }
   };
 
@@ -58,7 +65,7 @@ const ProxyPref = () => {
         justifyContent: "space-between",
         alignItems: "center",
         height: "10vh",
-        padding: 2,
+        paddingBottom: 5,
         // borderBottom: "1px solid #ccc", // Optional divider for the top half to remove later
       }}
     >
@@ -96,7 +103,7 @@ const ProxyPref = () => {
             </IconButton>
           </Tooltip>
           <Typography>
-            Elapsed Time: {getElapsedTimeString(elapsedTime)}
+            Your Proxy Service Time: {getElapsedTimeString(elapsedTime)}
           </Typography>
         </Box>
       </Box>
@@ -113,6 +120,8 @@ const ProxyPref = () => {
           name="proxy-rate"
           placeholder="OTTC/KB"
           size="small"
+          error={Boolean(rateError)}
+          helperText={rateError}
         />
         <Typography variant="body1" sx={{ marginRight: 1 }}>
           Port:
@@ -133,6 +142,8 @@ const ProxyPref = () => {
             name="proxy-port"
             placeholder="1234"
             size="small"
+            error={Boolean(portError)}
+            helperText={portError}
           />
           <Typography>
             Nodes connected to proxy:{" "}

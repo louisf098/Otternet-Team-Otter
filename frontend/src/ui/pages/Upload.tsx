@@ -207,7 +207,6 @@ const Upload: React.FC<UploadProps> = () => {
                     onChange={(e) => setFileName(e.target.value)}
 
                 />
-
                 <Button variant="contained" sx={{ mt: 2 }} type="submit" fullWidth>
                     Submit
                 </Button>
@@ -217,6 +216,7 @@ const Upload: React.FC<UploadProps> = () => {
                 open={snackbarOpen}
                 autoHideDuration={6000}
                 onClose={handleCloseSnackbar}
+
             >
                 <Alert onClose={handleCloseSnackbar} severity={snackbarColor}>
                     {snackbarMessage}
