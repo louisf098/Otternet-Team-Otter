@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 interface FileMetadata {
     file_name: string;
     file_size: number;
@@ -10,6 +9,10 @@ interface FileMetadata {
   interface ElectronAPI {
     selectFile: () => Promise<{fileMetadata: FileMetadata} | null>;
     handleDragDrop: (filePath: string) => Promise<{ fileMetadata: FileMetadata } | null>;
+  }
+  
+  interface FileWithPath extends File {
+    path: string;
   }
   
   declare global {
