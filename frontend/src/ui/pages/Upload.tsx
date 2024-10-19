@@ -11,8 +11,6 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import { FileMetadata } from "../interfaces/File";
-import { FileWithPath } from "react-dropzone";
-import { set } from "react-hook-form";
 
 
 interface FormData {
@@ -21,6 +19,7 @@ interface FormData {
   fileName: string,
   filePath: string,
   fileSize: number,
+  fileType: string,
   timestamp: string,
   fileHash: string,
   bundleMode: boolean
@@ -133,6 +132,7 @@ const Upload: React.FC<UploadProps> = () => {
             fileName,
             filePath: fileMetadata.file_path,
             fileSize: fileMetadata.file_size,
+            fileType: fileMetadata.file_type,
             timestamp: fileMetadata.timestamp,
             fileHash: fileMetadata.file_hash,
             bundleMode
