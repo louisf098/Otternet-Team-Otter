@@ -1,12 +1,13 @@
 .nodes-section {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    padding: 20px;
-    gap: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 20px;
+  padding-top: 1px;
 }
 
 .node-box {
-    width: calc(33.333% - 20px);
-    margin: 10px 0;
+  width: calc(33.333% - 20px);
+  margin: 10px 0;
 }
