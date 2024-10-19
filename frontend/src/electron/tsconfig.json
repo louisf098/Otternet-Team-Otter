@@ -12,5 +12,10 @@
     "skipLibCheck": true,
     // add global types
     // "types": ["../../types"]
-  }
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+  },
+  "include": ["src/**/*", "main.ts", "preload.mts"],
+  "exclude": ["node_modules"]
 }
