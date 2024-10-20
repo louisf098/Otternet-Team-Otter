@@ -195,6 +195,16 @@ const Market: React.FC = () => {
         setCurrentPage(page);
     };
 
+    const calculateTotalCost = () => {
+        const total = selectedFiles.reduce((sum, fileId) => {
+            const file = allFiles.find((f) => f.id === fileId);
+            return file ? sum + parseFloat(file.price) : sum;
+        }, 0);
+        const discountRate = Math.min(selectedFiles.length * 1, 5); // 1% per file, max 5%
+        const discountedTotal = total * (1 - discountRate / 100);
+        return discountedTotal.toFixed(2);
+    };
+
     const currentFiles = files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
@@ -397,7 +407,7 @@ const Market: React.FC = () => {
                         })}
                     </List>
                     <Box>
-                        <Box sx={{ display:"flex" }}>
+                        <Box sx={{ display: "flex" }}>
                             <Typography sx={{ fontWeight: "bold" }}>
                                 Download Location:
                             </Typography>
@@ -409,6 +419,14 @@ const Market: React.FC = () => {
                             <Button onClick={handleSelectDownloadLocation}>
                                 Select Download Location
                             </Button>
+                        </Box>
+                        <Box sx={{ mt: 2 }}>
+                            <Typography sx={{ fontWeight: "bold" }}>
+                                Total Cost (after discount):
+                            </Typography>
+                            <Typography>
+                                {calculateTotalCost()} OTTC
+                            </Typography>
                         </Box>
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
