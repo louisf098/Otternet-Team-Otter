@@ -248,7 +248,7 @@ const CreateWallet = () => {
             Already have a wallet?{" "}
             <span>
               <Link
-                onClick={() => navigate("/dashboard", { replace: true })}
+                onClick={() => navigate("/", { replace: true })}
                 variant="body2"
                 sx={{ alignSelf: "center", cursor: "pointer" }}
               >
