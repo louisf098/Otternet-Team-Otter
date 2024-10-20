@@ -10,8 +10,9 @@ interface FileMetadata {
 }
 
 interface ElectronAPI {
-    selectFile: () => Promise<{fileMetaData: FileMetadata | null}>;
-    handleDragDrop: (file: File) => Promise<{ fileMetaData: FileMetadata | null}>;
+    selectFile: () => Promise<{ fileMetaData: FileMetadata | null }>;
+    handleDragDrop: (file: File) => Promise<{ fileMetaData: FileMetadata | null }>;
+    selectDownloadPath: () => Promise<string | null>;
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -21,5 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     handleDragDrop: async (file: File): Promise<{ fileMetaData: FileMetadata | null }> => {
         return ipcRenderer.invoke('handle-drag-drop', file);
     },
+    selectDownloadPath: async (): Promise<string | null> => {
+        return ipcRenderer.invoke('select-download-path');
+    },
 });
-

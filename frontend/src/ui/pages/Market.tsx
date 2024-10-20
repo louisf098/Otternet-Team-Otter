@@ -45,13 +45,6 @@ const dummyData: { [walletId: string]: FileItem[] } = {
         { id: 9, name: "Video.mp4", size: "10MB", type: "Video", dateUploaded: "2024-07-10", price: "20", bundlable: false },
         { id: 10, name: "Ebook.epub", size: "2MB", type: "Ebook", dateUploaded: "2024-08-20", price: "4", bundlable: true },
     ],
-    wallet3: [
-        { id: 11, name: "Archive.zip", size: "12MB", type: "Archive", dateUploaded: "2024-09-10", price: "25", bundlable: true },
-        { id: 12, name: "Script.js", size: "500KB", type: "JavaScript File", dateUploaded: "2024-08-01", price: "3", bundlable: true },
-        { id: 13, name: "Stylesheet.css", size: "250KB", type: "CSS File", dateUploaded: "2024-08-05", price: "2", bundlable: false },
-        { id: 14, name: "Vector.ai", size: "6MB", type: "Adobe File", dateUploaded: "2024-09-15", price: "30", bundlable: true },
-        { id: 15, name: "CodeSnippet.py", size: "100KB", type: "Python Script", dateUploaded: "2024-09-20", price: "5", bundlable: true },
-    ],
 };
 
 const Market: React.FC = () => {
@@ -65,6 +58,7 @@ const Market: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
     const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+    const [downloadLocation, setDownloadLocation] = useState<string>("");
 
     const allFiles: FileItem[] = Object.values(dummyData).flat();
 
@@ -100,17 +94,26 @@ const Market: React.FC = () => {
         setDownloadModalOpen(true);
     };
 
+    const handleSelectDownloadLocation = async () => {
+        const location = await window.electronAPI.selectDownloadPath();
+        if (location) {
+            setDownloadLocation(location);
+        }
+    };
+
     const handleDownloadConfirm = () => {
-        if (selectedFile) {
-            console.log(`Downloading file: ${selectedFile.name}`);
+        if (selectedFile && downloadLocation) {
+            console.log(`Downloading file: ${selectedFile.name} to ${downloadLocation}`);
         }
         setDownloadModalOpen(false);
         setSelectedFile(null);
+        setDownloadLocation("");
     };
 
     const handleDownloadModalClose = () => {
         setDownloadModalOpen(false);
         setSelectedFile(null);
+        setDownloadLocation("");
     };
 
     const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -308,15 +311,26 @@ const Market: React.FC = () => {
                                 <strong>Size:</strong> {selectedFile.size} <br />
                                 <strong>Type:</strong> {selectedFile.type} <br />
                                 <strong>Uploaded:</strong> {selectedFile.dateUploaded} <br />
-                                <strong>Price:</strong> {selectedFile.price} OTTC
+                                <strong>Price:</strong> {selectedFile.price} OTTC <br />
+                                <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
                             </>
                         )}
                     </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "flex-start", mt: 3 }}>
+                        <Button onClick={handleSelectDownloadLocation} sx={{ mr: 2 }}>
+                            Select Download Location
+                        </Button>
+                    </Box>
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
                         <Button onClick={handleDownloadModalClose} sx={{ mr: 2 }}>
                             Cancel
                         </Button>
-                        <Button onClick={handleDownloadConfirm} variant="contained" color="primary">
+                        <Button
+                            onClick={handleDownloadConfirm}
+                            variant="contained"
+                            color="primary"
+                            disabled={!downloadLocation} // Disable if download location is not selected
+                        >
                             Confirm
                         </Button>
                     </Box>

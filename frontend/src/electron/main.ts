@@ -32,7 +32,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-})
+});
 
 interface FileMetadata {
   file_name: string;
@@ -53,7 +53,6 @@ ipcMain.handle("select-file", async () => {
     }
 
     const filePath = filePaths[0];
-
     const hash = await createFileHash(filePath);
 
     const fileMetadata: FileMetadata = {
@@ -63,10 +62,25 @@ ipcMain.handle("select-file", async () => {
       file_type: path.extname(filePath),
       file_hash: hash,
       timestamp: new Date().toISOString(),
-    }
+    };
     return { fileMetadata };
   } catch (err) {
     console.error("Error with select-file: ", err);
+    return null;
+  }
+});
+
+ipcMain.handle("select-download-path", async () => {
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+    if (canceled || !filePaths.length) {
+      return null;
+    }
+    return filePaths[0]; // Return the selected directory path
+  } catch (err) {
+    console.error("Error with select-download-path: ", err);
     return null;
   }
 });
@@ -99,7 +113,7 @@ function createFileHash(filePath: string): Promise<string> {
     stream.on("data", (data) => hash.update(data));
     stream.on("end", () => {
       resolve(hash.digest("hex"));
-    })
+    });
     stream.on("error", (err) => {
       console.error(err);
       reject(err);
