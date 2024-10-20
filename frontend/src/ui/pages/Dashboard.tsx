@@ -40,6 +40,18 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setSnackbarOpen(false);
   }
 
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSnackbarMessage("Text copied to clipboard");
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error("Error copying text: ", err);
+      setSnackbarMessage("Error copying text");
+      setSnackbarOpen(true);
+    }
+  }
+
   return (
     <>
       <Box
@@ -69,8 +81,16 @@ const Dashboard: React.FC<DashboardProps> = () => {
               Filter
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
-              <MenuItem value={1}>Node Downloaded Files</MenuItem>
-              <MenuItem value={2}>Peer Downloaded Files</MenuItem>
+              <MenuItem value={1}>Date (Latest)</MenuItem>
+              <MenuItem value={2}>Date (Earliest)</MenuItem>
+              <MenuItem value={3}>Name (A-Z)</MenuItem>
+              <MenuItem value={4}>Name (Z-A)</MenuItem>
+              <MenuItem value={5}>Size (Largest)</MenuItem>
+              <MenuItem value={6}>Size (Smallest)</MenuItem>
+              <MenuItem value={7}>Cost (Highest)</MenuItem>
+              <MenuItem value={8}>Cost (Lowest)</MenuItem>
+              <MenuItem value={9}>Bundle Mode (On)</MenuItem>
+              <MenuItem value={10}>Bundle Mode (Off)</MenuItem>
             </Select>
           </Box>
           <Box
@@ -119,6 +139,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           <UploadHistoryTable 
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
           />
         </TabSelector>
         <TabSelector value={selectedTab} index={1}>
