@@ -55,14 +55,16 @@ const dummyData: { [walletId: string]: FileItem[] } = {
 };
 
 const Market: React.FC = () => {
-    const [searchInput, setSearchInput] = useState<string>(""); // State for search input
-    const [walletId, setWalletId] = useState<string>(""); // State for searched wallet
+    const [searchInput, setSearchInput] = useState<string>("");
+    const [walletId, setWalletId] = useState<string>("");
     const [files, setFiles] = useState<FileItem[]>(Object.values(dummyData).flat());
     const [error, setError] = useState<string>("");
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
+    const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
 
     const allFiles: FileItem[] = Object.values(dummyData).flat();
 
@@ -93,8 +95,22 @@ const Market: React.FC = () => {
         }
     };
 
-    const handleDownload = (fileName: string) => {
-        console.log(`Downloading file: ${fileName}`);
+    const handleDownload = (file: FileItem) => {
+        setSelectedFile(file);
+        setDownloadModalOpen(true);
+    };
+
+    const handleDownloadConfirm = () => {
+        if (selectedFile) {
+            console.log(`Downloading file: ${selectedFile.name}`);
+        }
+        setDownloadModalOpen(false);
+        setSelectedFile(null);
+    };
+
+    const handleDownloadModalClose = () => {
+        setDownloadModalOpen(false);
+        setSelectedFile(null);
     };
 
     const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -238,7 +254,7 @@ const Market: React.FC = () => {
                                 variant="contained"
                                 startIcon={<DownloadIcon />}
                                 sx={{ ml: 2 }}
-                                onClick={() => handleDownload(file.name)}
+                                onClick={() => handleDownload(file)}
                             >
                                 Download
                             </Button>
@@ -262,6 +278,50 @@ const Market: React.FC = () => {
             >
                 Checkout
             </Button>
+
+            <Modal
+                open={downloadModalOpen}
+                onClose={handleDownloadModalClose}
+                aria-labelledby="download-modal-title"
+                aria-describedby="download-modal-description"
+            >
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: 400,
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                    }}
+                >
+                    <Typography id="download-modal-title" variant="h6" component="h2">
+                        Confirm Download
+                    </Typography>
+                    <Typography id="download-modal-description" sx={{ mt: 2 }}>
+                        {selectedFile && (
+                            <>
+                                <strong>Name:</strong> {selectedFile.name} <br />
+                                <strong>Size:</strong> {selectedFile.size} <br />
+                                <strong>Type:</strong> {selectedFile.type} <br />
+                                <strong>Uploaded:</strong> {selectedFile.dateUploaded} <br />
+                                <strong>Price:</strong> {selectedFile.price} OTTC
+                            </>
+                        )}
+                    </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+                        <Button onClick={handleDownloadModalClose} sx={{ mr: 2 }}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleDownloadConfirm} variant="contained" color="primary">
+                            Confirm
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
 
             <Modal
                 open={checkoutOpen}
