@@ -6,9 +6,16 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
+import TabSelector from "../components/TabSelector";
+import { Tabs, Tab } from "@mui/material";
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
+  const [selectedTab, setSelectedTab] = React.useState(0);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setSelectedTab(newValue);
+  };
   return (
     <Box
       sx={{
@@ -29,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           display: "flex",
           justifyContent: "space-between",
           p: 1,
-          widht: "100%",
+          width: "100%",
         }}
       >
         <Box sx={{ display: "flex", width: "250px" }}>
@@ -39,7 +46,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
           <Select fullWidth size="small" value={1}>
             <MenuItem value={1}>Node Downloaded Files</MenuItem>
             <MenuItem value={2}>Peer Downloaded Files</MenuItem>
-            <MenuItem value={3}>Thirty</MenuItem>
           </Select>
         </Box>
         <Box
@@ -56,36 +62,55 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </Typography>
             <Select fullWidth size="small" variant="standard" value={1}>
               <MenuItem value={1}>Past 24 Hours</MenuItem>
-              <MenuItem value={2}></MenuItem>
-              <MenuItem value={3}></MenuItem>
+              <MenuItem value={2}>Past Week</MenuItem>
+              <MenuItem value={3}>Past Month</MenuItem>
             </Select>
           </Box>
           <Box sx={{ display: "flex" }}>
             <Typography variant="body1" sx={{ mr: 1 }}>
-              Recent Revenue: {99} OTTC
+              Recent Revenue: {Math.floor(Math.random() * 256)} OTTC
             </Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
             <Typography variant="body1">
-              Bytes Uploaded: {1000} bytes
+              Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
             </Typography>
           </Box>
         </Box>
       </Box>
-      <Box sx={{ display: "flex", flexDirection: "column" }}>
+      <Tabs
+        value={selectedTab}
+        onChange={handleTabChange}
+        indicatorColor="primary"
+        textColor="primary"
+        sx={{ margin: -2 }}
+      >
+        <Tab label="Download History" id="dashboard-tab-history"/>
+        <Tab label="Upload History" id="dashboard-tab-upload"/>
+        <Tab label="Proxy History" id="dashboard-tab-proxy"/>
+      </Tabs>
+
+      <TabSelector value={selectedTab} index={0}>
         <Typography variant="h6" component="div">
-          Transaction History
+          Download History
         </Typography>
         <TransactionHistoryTable />
-      </Box>
-      <Box sx={{ display: "flex", flexDirection: "column" }}>
+      </TabSelector>
+      <TabSelector value={selectedTab} index={1}>
         <Typography variant="h6" component="div">
           Upload History
         </Typography>
         <UploadHistoryTable />
-      </Box>
+      </TabSelector>
+      <TabSelector value={selectedTab} index={2}>
+        <Typography variant="h6" component="div">
+          Proxy History
+        </Typography>
+        <UploadHistoryTable />
+      </TabSelector>
     </Box>
   );
 };
 
 export default Dashboard;
+
