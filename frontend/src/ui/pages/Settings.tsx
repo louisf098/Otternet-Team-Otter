@@ -27,7 +27,10 @@ const Settings = () => {
       <Typography variant="h3" sx={{ mb: 1 }}>
         Settings
       </Typography>
-      <Button onClick={handleSignOut}>Logout</Button>
+      <Typography variant="body1" sx={{ mb: 1 }}>
+        Wallet ID: {publicKey}
+      </Typography>
+      <Button onClick={handleSignOut}>Sign Out</Button>
     </Box>
   );
 };
