@@ -11,6 +11,8 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import { FileMetadata } from "../interfaces/File";
+import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 
 interface FormData {
@@ -24,6 +26,11 @@ interface FormData {
   fileHash: string,
   bundleMode: boolean
 }
+interface SubmitData {
+  price: string;  // Assuming the price is input as a string
+  bundleMode: string;
+  fileName: string;
+}
 interface UploadProps{}
 
 const Upload: React.FC<UploadProps> = () => {
@@ -33,8 +40,11 @@ const Upload: React.FC<UploadProps> = () => {
     const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
     const [snackbarMessage, setSnackbarMessage] = useState<string>('');
     const [snackbarColor, setSnackbarColor] = useState<'success' | 'error' | 'info' | 'warning'>('success');
-    const [fileName, setFileName] = useState<string>('');
+    const fileName = '';
+    const navigate = useNavigate();
 
+    //Form validation useStates
+    const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<SubmitData>();
     const handleCloseSnackbar = (
         event: React.SyntheticEvent<any, Event> | Event,
         reason?: SnackbarCloseReason
@@ -81,7 +91,6 @@ const Upload: React.FC<UploadProps> = () => {
     //         return;
     //     }
     // }, []);
-    
     const handleFileUpload = async () => {
         setFileMetadata(null);
         try {
@@ -96,6 +105,7 @@ const Upload: React.FC<UploadProps> = () => {
                 console.log("file path: ", result.fileMetadata.file_path);
                 console.log("File metadata: ", result.fileMetadata);
                 setFileMetadata(result.fileMetadata);
+                setValue("fileName", result.fileMetadata.file_name);
                 setSnackbarMessage("File ready for upload");
                 setSnackbarColor('success');
                 setSnackbarOpen(true);
@@ -109,15 +119,19 @@ const Upload: React.FC<UploadProps> = () => {
         }
     }
 
-    const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleFormSubmit = async (data: SubmitData) => {
+        // event.preventDefault();
 
         // FormData wrap the data
-        const formData = new FormData(event.currentTarget);
+        // const formData = new FormData(event.currentTarget);
+        // const userID = "user12345"; // Hardcoded for now
+        // const price = parseFloat(formData.get('price') as string);
+        // const bundleMode = formData.get('bundleMode') === 'Bundled';
+        // const fileName = formData.get('fileName') as string;
         const userID = "user12345"; // Hardcoded for now
-        const price = parseFloat(formData.get('price') as string);
-        const bundleMode = formData.get('bundleMode') === 'Bundled';
-        const fileName = formData.get('fileName') as string;
+        const price = parseFloat(data.price); // Use `data.price` from React Hook Form
+        const bundleMode = data.bundleMode === 'Bundled'; // Check the bundle mode from data
+        const fileName = data.fileName;
 
         if (!fileMetadata) {
             setSnackbarMessage("No file has been processed");
@@ -144,10 +158,11 @@ const Upload: React.FC<UploadProps> = () => {
             body: JSON.stringify(postData),
         });
         console.log("Response: ", response);
-        setSnackbarMessage("File uploaded successfully");
+        setSnackbarMessage("File uploaded successfully. Redirecting to dashboard...");
         setSnackbarColor('success');
         setSnackbarOpen(true);
-
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        navigate('/dashboard')
         } catch(err) {
             console.error("An error occurred when attempting to upload the file.")
             setSnackbarMessage("The following error occurred when attempting to upload the file: " + (err as Error).message);
@@ -170,16 +185,31 @@ const Upload: React.FC<UploadProps> = () => {
                 <Typography variant="h3" sx={{ mb: 2, textAlign: 'center' }}>
                 Upload a File
                 </Typography>
-                <form onSubmit={handleFormSubmit}>
+                <form onSubmit={handleSubmit(handleFormSubmit)}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <TextField
-                        id="outlined-price"
-                        name="price"
-                        label="Price (OTTC)"
-                        variant="outlined"
-                        fullWidth
-                        required
-                    />
+                    <Controller
+                      name="price"
+                      control={control}
+                      defaultValue=""
+                      rules={{
+                        required: "Price is required.",
+                        pattern: {
+                          value: /^[0-9]+(\.[0-9]{1,2})?$/,
+                          message: "Price must be a valid number (e.g., 10 or 10.99)."
+                        }
+                      }}
+                    render={({ field }) => (
+                      <TextField
+                      {...field}
+                      id="outlined-price"
+                      label="Price (OTTC)"
+                      variant="outlined"
+                      fullWidth
+                      error={!!errors.price}
+                      helperText={errors.price ? errors.price.message : ""}
+                      required
+                  />
+                    )}/>
                     <Tooltip title="Whenever someone downloads your file, you will receive the price you set." arrow>
                         <IconButton>
                             <HelpOutlineIcon fontSize="small" />
@@ -188,15 +218,22 @@ const Upload: React.FC<UploadProps> = () => {
                 </Box>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                     <FormLabel id="bundle-mode-label">Bundle Mode</FormLabel>
-                    <RadioGroup
-                    aria-labelledby="bundle-mode-label"
-                    defaultValue="No bundle"
-                    name="bundleMode"
-                    row
-                    >
-                    <FormControlLabel value="No bundle" control={<Radio />} label="No bundle" />
-                    <FormControlLabel value="Bundled" control={<Radio />} label="Bundle" />
-                    </RadioGroup>
+                    <Controller
+                      name="bundleMode"
+                      control={control}
+                      defaultValue="No bundle"
+                      rules={{required: "A selected bundle mode is required."}}
+                      render={({ field }) => (
+                        <RadioGroup
+                          {...field}
+                          aria-labelledby="bundle-mode-label"
+                          row
+                        >
+                  <FormControlLabel value="No bundle" control={<Radio />} label="No bundle" />
+                  <FormControlLabel value="Bundled" control={<Radio />} label="Bundle" />
+                </RadioGroup>
+              )}
+            />
                 </FormControl>
 
                 {/* <FileDragDrop onFileDrop={handleFileDrop} /> */}
@@ -204,18 +241,30 @@ const Upload: React.FC<UploadProps> = () => {
                 <Button variant="contained" sx={{ mt: 2 }} onClick={handleFileUpload} fullWidth>
                     Select File
                 </Button>
-
-                <TextField
+                
+                <Controller
+                 name="fileName"
+                 control={control}
+                 defaultValue={fileMetadata ? fileMetadata.file_name : fileName}
+                 rules={{
+                  required: "File Name is required.",  // Validation rule for fileName
+                  minLength: {
+                    value: 3,
+                    message: "File Name must be at least 3 characters long."
+                  }}}
+                 render={({ field }) => (
+                    <TextField
+                    {...field}
                     id="outlined-file-name"
-                    name="fileName"
                     label="File Name"
                     fullWidth
                     required
-                    sx={{ mb: 2, mt: 2 }}
-                    value={fileMetadata ? fileMetadata.file_name : fileName}  
-                    onChange={(e) => setFileName(e.target.value)}
-
+                    sx={{ mb: 2, mt: 2 }} 
+                    onChange={(e) => setValue("fileName", e.target.value)}
+                    error={!!errors.fileName}
+                    helperText={errors.fileName ? errors.fileName.message : ""}
                 />
+                 )}/>
                 <Button variant="contained" sx={{ mt: 2 }} type="submit" fullWidth>
                     Submit
                 </Button>
