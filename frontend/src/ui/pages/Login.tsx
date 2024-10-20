@@ -132,7 +132,7 @@ const Login = () => {
               helperText={errorMessage}
               name="privateKey"
               placeholder="••••••"
-              type="privateKey"
+              type="password"
               id="privateKey"
               autoFocus
               required
