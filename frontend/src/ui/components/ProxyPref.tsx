@@ -168,7 +168,7 @@ const ProxyPref = () => {
         </Box>
         <Typography>
           Nodes connected to Your Proxy:{" "}
-          <span style={{ fontWeight: "bold", color: "blue" }}>21 </span>
+          <span style={{ fontWeight: "bold", color: "blue" }}>0 </span>
         </Typography>
       </Box>
     </Box>
