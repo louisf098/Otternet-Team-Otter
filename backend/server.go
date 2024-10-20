@@ -84,7 +84,7 @@ func main() {
 
 	// Listen for shutdown signals to gracefully shutdown the server
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTSTP)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 	shutdownComplete := make(chan bool)
 	go func() {
 		println("Preparing to listen on port 9378")
