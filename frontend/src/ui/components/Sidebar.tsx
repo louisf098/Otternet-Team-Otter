@@ -24,7 +24,7 @@ const Sidebar = () => {
   const [hidden, setHidden] = useState<boolean>(true);
   const [collapsed, setCollapsed] = useState(false);
 
-  const { publicKey, setPublicKey } = useContext(AuthContext);
+  const { publicKey } = useContext(AuthContext);
 
   useEffect(() => {
     setHidden(publicKey != "");
