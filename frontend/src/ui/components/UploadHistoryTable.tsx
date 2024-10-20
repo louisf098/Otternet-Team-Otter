@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -6,6 +6,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import { FormData } from "../interfaces/File";
 
 interface DashboardData {
   time: Date;
@@ -26,6 +27,10 @@ function createData(
   return { time, name, size, cost, peerCount, nodeLocations };
 }
 
+useEffect(() => {
+  
+}, []);
+
 const rows = [
   createData(new Date(), "hw1.zip", 10000000, 1, 13, ["213f3ewf22", "9f3h8yv38yfb8y"]),
   createData(new Date(), "screenshot.png", 10000, 2, 12321, ["4gft43fgf8d37f"]),
@@ -40,10 +45,10 @@ const UploadHistoryTable = () => {
           <TableRow>
             <TableCell>Timestamp</TableCell>
             <TableCell>File Name</TableCell>
-            <TableCell>Size</TableCell>
-            <TableCell>Cost</TableCell>
-            <TableCell>Peers</TableCell>
-            <TableCell>Node Locations</TableCell>
+            <TableCell>Size (KB)</TableCell>
+            <TableCell>Cost (OTTC)</TableCell>
+            <TableCell>Downloads</TableCell>
+            <TableCell>File Hash</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

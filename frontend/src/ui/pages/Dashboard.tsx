@@ -16,7 +16,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [selectedFilter, setSelectedFilter] = React.useState(1);
   const [selectedStats, setSelectedStats] = React.useState(1);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
   const handleFilterChange = (event: SelectChangeEvent<number>) => {

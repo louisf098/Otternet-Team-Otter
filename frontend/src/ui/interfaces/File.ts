@@ -6,3 +6,15 @@ export interface FileMetadata {
     file_hash: string;
     timestamp: string;
 }
+
+export interface FormData {
+    userID: string,
+    price: number,
+    fileName: string,
+    filePath: string,
+    fileSize: number,
+    fileType: string,
+    timestamp: string,
+    fileHash: string,
+    bundleMode: boolean
+  }
