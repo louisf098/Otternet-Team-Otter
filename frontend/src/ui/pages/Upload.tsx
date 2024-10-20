@@ -274,7 +274,7 @@ const Upload: React.FC<UploadProps> = () => {
                 open={snackbarOpen}
                 autoHideDuration={6000}
                 onClose={handleCloseSnackbar}
-
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
                 <Alert onClose={handleCloseSnackbar} severity={snackbarColor}>
                     {snackbarMessage}

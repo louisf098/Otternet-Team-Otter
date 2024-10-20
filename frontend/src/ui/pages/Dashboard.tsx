@@ -8,7 +8,8 @@ import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
 import TabSelector from "../components/TabSelector";
-import { Tabs, Tab } from "@mui/material";
+import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
+import { Snackbar } from "@mui/material";
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
@@ -26,99 +27,116 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setSelectedStats(event.target.value as number);
   }
 
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState("");
+
+  const handleSnackbarClose = (
+    event: React.SyntheticEvent<any, Event> | Event,
+    reason?: SnackbarCloseReason
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbarOpen(false);
+  }
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-        width: "100%",
-        m: 1,
-        p: 1,
-      }}
-    >
-      <Typography variant="h3" sx={{ mb: 1 }}>
-        Dashboard
-      </Typography>
+    <>
       <Box
-        component={Paper}
         sx={{
           display: "flex",
-          justifyContent: "space-between",
-          p: 1,
+          flexDirection: "column",
+          gap: 3,
           width: "100%",
+          m: 1,
+          p: 1,
         }}
       >
-        <Box sx={{ display: "flex", width: "250px" }}>
-          <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-            Filter
-          </Typography>
-          <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
-            <MenuItem value={1}>Node Downloaded Files</MenuItem>
-            <MenuItem value={2}>Peer Downloaded Files</MenuItem>
-          </Select>
-        </Box>
+        <Typography variant="h3" sx={{ mb: 1 }}>
+          Dashboard
+        </Typography>
         <Box
+          component={Paper}
           sx={{
             display: "flex",
             justifyContent: "space-between",
             p: 1,
-            width: "650px",
+            width: "100%",
           }}
         >
-          <Box sx={{ display: "flex" }}>
-            <Typography variant="body1" sx={{ mr: 1 }}>
-              Statistics
+          <Box sx={{ display: "flex", width: "250px" }}>
+            <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
+              Filter
             </Typography>
-            <Select fullWidth size="small" variant="standard" value={selectedStats} onChange={handleStatsChange}>
-              <MenuItem value={1}>Past 24 Hours</MenuItem>
-              <MenuItem value={2}>Past Week</MenuItem>
-              <MenuItem value={3}>Past Month</MenuItem>
+            <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
+              <MenuItem value={1}>Node Downloaded Files</MenuItem>
+              <MenuItem value={2}>Peer Downloaded Files</MenuItem>
             </Select>
           </Box>
-          <Box sx={{ display: "flex" }}>
-            <Typography variant="body1" sx={{ mr: 1 }}>
-              Recent Revenue: {Math.floor(Math.random() * 256)} OTTC
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex" }}>
-            <Typography variant="body1">
-              Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
-            </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              p: 1,
+              width: "650px",
+            }}
+          >
+            <Box sx={{ display: "flex" }}>
+              <Typography variant="body1" sx={{ mr: 1 }}>
+                Statistics
+              </Typography>
+              <Select fullWidth size="small" variant="standard" value={selectedStats} onChange={handleStatsChange}>
+                <MenuItem value={1}>Past 24 Hours</MenuItem>
+                <MenuItem value={2}>Past Week</MenuItem>
+                <MenuItem value={3}>Past Month</MenuItem>
+              </Select>
+            </Box>
+            <Box sx={{ display: "flex" }}>
+              <Typography variant="body1" sx={{ mr: 1 }}>
+                Recent Revenue: {Math.floor(Math.random() * 256)} OTTC
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex" }}>
+              <Typography variant="body1">
+                Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
+              </Typography>
+            </Box>
           </Box>
         </Box>
-      </Box>
-      <Tabs
-        value={selectedTab}
-        onChange={handleTabChange}
-        indicatorColor="primary"
-        textColor="primary"
-        sx={{ margin: -2 }}
-      >
-        <Tab label="Download History" id="dashboard-tab-history"/>
-        <Tab label="Upload History" id="dashboard-tab-upload"/>
-        <Tab label="Proxy History" id="dashboard-tab-proxy"/>
-      </Tabs>
+        <Tabs
+          value={selectedTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          sx={{ margin: -1 }}
+        >
+          <Tab label="Current Uploads" id="dashboard-tab-upload"/>
+          <Tab label="Download History" id="dashboard-tab-history"/>
+          <Tab label="Proxy History" id="dashboard-tab-proxy"/>
+        </Tabs>
 
-      <TabSelector value={selectedTab} index={0}>
-        <Typography variant="h6" component="div">
-          Download History
-        </Typography>
-        <TransactionHistoryTable />
-      </TabSelector>
-      <TabSelector value={selectedTab} index={1}>
-        <Typography variant="h6" component="div">
-          Upload History
-        </Typography>
-        <UploadHistoryTable />
-      </TabSelector>
-      <TabSelector value={selectedTab} index={2}>
-        <Typography variant="h6" component="div">
-          Proxy History
-        </Typography>
-        <ProxyHistoryTable />
-      </TabSelector>
-    </Box>
+        <TabSelector value={selectedTab} index={0}>
+          <UploadHistoryTable 
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+          />
+        </TabSelector>
+        <TabSelector value={selectedTab} index={1}>
+          <TransactionHistoryTable />
+        </TabSelector>
+        <TabSelector value={selectedTab} index={2}>
+          <ProxyHistoryTable />
+        </TabSelector>
+      </Box>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      />
+    </>
   );
 };
 
