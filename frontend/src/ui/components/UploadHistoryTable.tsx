@@ -7,36 +7,13 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import { FormData } from "../interfaces/File";
-import { FormControl, MenuItem, Select, TextField, Tooltip, SelectChangeEvent, IconButton, Menu } from "@mui/material";
+import { FormControl, MenuItem, Select, TextField, Tooltip, SelectChangeEvent, IconButton, Menu,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button, 
+ } from "@mui/material";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-
-// interface DashboardData {
-//   time: Date;
-//   name: string;
-//   size: number;
-//   cost: number;
-//   peerCount: number;
-//   nodeLocations: string[];
-// }
-// function createData(
-//   time: Date,
-//   name: string,
-//   size: number,
-//   cost: number,
-//   peerCount: number,
-//   nodeLocations: string[]
-// ): DashboardData {
-//   return { time, name, size, cost, peerCount, nodeLocations };
-// }
-
-// const rows = [
-//   createData(new Date(), "hw1.zip", 10000000, 1, 13, ["213f3ewf22", "9f3h8yv38yfb8y"]),
-//   createData(new Date(), "screenshot.png", 10000, 2, 12321, ["4gft43fgf8d37f"]),
-//   createData(new Date(), "essay1.pdf", 321323, 3, 123213, ["bd82gf7tg376g7"]),
-// ];
 
 interface UploadHistoryTableProps {
   setSnackbarOpen: (open: boolean) => void;
@@ -186,16 +163,55 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
       setSnackbarOpen(true);
     } catch (err) {
       console.error("Error updating upload: ", err);
-      setSnackbarMessage("Error updating upload");
+      setSnackbarMessage("Error updating upload. Please try again later.");
       setSnackbarOpen(true);
     }
   }
 
   const handleDelete = async (fileHash: string) => {
+    try {
+      const response = await fetch(`http://localhost:9378/deleteFile/${fileHash}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        }
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete file");
+      }
+      setUploads(uploads.filter((upload) => upload.fileHash !== fileHash));
+      setSnackbarMessage("File deleted successfully");
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error("Error deleting file: ", err);
+      setSnackbarMessage("Error deleting file. Please try again later.");
+      setSnackbarOpen(true);
+    } finally {
+      closeDeleteConfirm();
+    }
   };
 
   return (
     <>
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={closeDeleteConfirm}
+      >
+        <DialogTitle id="delete-dialog-title">Delete Confirmation</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this file? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirm} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={() => handleDelete(deleteFileHash!)} color="secondary" autoFocus> {/* ! so that TS doesn't complain!!! */}
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
       <TableContainer 
         component={Paper} 
         sx={{ 
@@ -224,21 +240,6 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* {rows.map((row) => (
-              <TableRow
-                key={row.name}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {row.time.toISOString()}
-                </TableCell>
-                <TableCell>{row.name}</TableCell>
-                <TableCell>{row.size}</TableCell>
-                <TableCell>{row.cost}</TableCell>
-                <TableCell>{row.peerCount}</TableCell>
-                <TableCell>{row.nodeLocations.join(";")}</TableCell>
-              </TableRow>
-            ))} */}
             {uploads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">
