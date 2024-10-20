@@ -12,6 +12,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import { FileMetadata } from "../interfaces/File";
 import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 
 interface FormData {
@@ -39,6 +40,8 @@ const Upload: React.FC<UploadProps> = () => {
     const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
     const [snackbarMessage, setSnackbarMessage] = useState<string>('');
     const [snackbarColor, setSnackbarColor] = useState<'success' | 'error' | 'info' | 'warning'>('success');
+    const fileName = '';
+    const navigate = useNavigate();
 
     //Form validation useStates
     const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<SubmitData>();
@@ -155,10 +158,11 @@ const Upload: React.FC<UploadProps> = () => {
             body: JSON.stringify(postData),
         });
         console.log("Response: ", response);
-        setSnackbarMessage("File uploaded successfully");
+        setSnackbarMessage("File uploaded successfully. Redirecting to dashboard...");
         setSnackbarColor('success');
         setSnackbarOpen(true);
-
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        navigate('/dashboard')
         } catch(err) {
             console.error("An error occurred when attempting to upload the file.")
             setSnackbarMessage("The following error occurred when attempting to upload the file: " + (err as Error).message);
