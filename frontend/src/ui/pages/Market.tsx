@@ -95,11 +95,24 @@ const Market: React.FC = () => {
     };
 
     const handleSelectDownloadLocation = async () => {
-        const location = await window.electronAPI.selectDownloadPath();
-        if (location) {
+        try {
+            if (!window.electronAPI || !window.electronAPI.selectDownloadPath) {
+                throw new Error("Electron API not available");
+            }
+            const location = await window.electronAPI.selectDownloadPath();
+            if (!location) {
+                throw new Error("Problem with selecting download location");
+            }
             setDownloadLocation(location);
+        } catch (err: any) {
+            console.error("Error with selecting download location: ", err);
+            // setSnackbarMessage(err.message);
+            // setSnackbarColor('error');
+            // setSnackbarOpen(true);
+            return;
         }
     };
+    
 
     const handleDownloadConfirm = () => {
         if (selectedFile && downloadLocation) {
