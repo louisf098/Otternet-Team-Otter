@@ -109,7 +109,6 @@ const Market: React.FC = () => {
             return;
         }
     };
-    
 
     const handleDownloadConfirm = () => {
         if (selectedFile && downloadLocation) {
@@ -180,6 +179,16 @@ const Market: React.FC = () => {
 
     const handleCheckoutClose = () => {
         setCheckoutOpen(false);
+        setDownloadLocation(""); // Clear the download location when closing the checkout modal
+    };
+
+    const handleCheckoutConfirm = () => {
+        if (downloadLocation && selectedFiles.length > 0) {
+            console.log(`Downloading selected files to ${downloadLocation}`);
+        }
+        setCheckoutOpen(false);
+        setSelectedFiles([]);
+        setDownloadLocation("");
     };
 
     const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
@@ -369,7 +378,7 @@ const Market: React.FC = () => {
                     <Typography id="checkout-modal-title" variant="h6" component="h2">
                         Checkout
                     </Typography>
-                    <Typography id="checkout-modal-description" sx={{ mt: 2 }}>
+                    <Typography id="checkout-modal-description" sx={{ mt: 2, fontWeight: "bold" }}>
                         Selected Files:
                     </Typography>
                     <List>
@@ -387,11 +396,31 @@ const Market: React.FC = () => {
                             );
                         })}
                     </List>
+                    <Box>
+                        <Box sx={{ display:"flex" }}>
+                            <Typography sx={{ fontWeight: "bold" }}>
+                                Download Location:
+                            </Typography>
+                            <Typography sx={{ mt: 0.01, ml: 1 }}>
+                                {downloadLocation || "Not Selected"}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Button onClick={handleSelectDownloadLocation}>
+                                Select Download Location
+                            </Button>
+                        </Box>
+                    </Box>
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
                         <Button onClick={handleCheckoutClose} sx={{ mr: 2 }}>
                             Cancel
                         </Button>
-                        <Button onClick={handleCheckoutClose} variant="contained" color="primary">
+                        <Button
+                            onClick={handleCheckoutConfirm}
+                            variant="contained"
+                            color="primary"
+                            disabled={!downloadLocation || selectedFiles.length === 0} // Disable if no download location or no files are selected
+                        >
                             Confirm
                         </Button>
                     </Box>
