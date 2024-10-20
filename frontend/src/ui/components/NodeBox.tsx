@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
-import { Button } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
 import "../stylesheets/NodeBox.css";
 
 export interface ProxyNode {
@@ -23,23 +23,71 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   onSelect,
   onDisconnect,
 }) => {
+  const [pConnect, setPConnect] = useState<boolean>(false);
+  const [pDisconnect, setPDisconnect] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false); // Track loading state
+
   const handleSelect = () => {
-    onSelect(node);
+    // onSelect(node);
+    setPConnect(true);
+  };
+  const handlePConnect = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      onSelect(node);
+      setPConnect(false);
+      setIsLoading(false);
+    }, 1000);
+  };
+  const handleCancel = () => {
+    setPConnect(false);
   };
   const handleDisconnect = (e: React.MouseEvent) => {
-    console.log("disconnecting");
-    onDisconnect(node);
+    setPDisconnect(true);
+    setTimeout(() => {
+      console.log("disconnecting");
+      onDisconnect(node);
+      setPDisconnect(false);
+    }, 1000);
   };
 
   return (
     <div className={`${isSelected ? "selected" : ""} node-box`}>
-      <Typography variant="h6">{node.id}</Typography>
+      <Typography variant="h6">
+        <span style={{ fontWeight: "bold" }}>{node.id}</span>
+      </Typography>
       <Typography variant="body1">Rate: {node.rate} OTTC/KB</Typography>
       <Typography variant="body1">IP: {node.ip}</Typography>
       {/* <Typography variant="body1">Port: {node.port}</Typography> */}
-      {!isSelected && <Button onClick={handleSelect}>Connect</Button>}
+      {!isSelected && !pConnect && (
+        <Button onClick={handleSelect}>Connect</Button>
+      )}
+      {!isSelected && pConnect && (
+        <div>
+          {isLoading ? (
+            <CircularProgress size={24} />
+          ) : (
+            <>
+              <Button onClick={handlePConnect} disabled={isLoading}>
+                Confirm
+              </Button>
+              <Button onClick={handleCancel} disabled={isLoading}>
+                Cancel
+              </Button>
+            </>
+          )}
+        </div>
+      )}
       {isSelected && <Typography className="status">Connected</Typography>}
-      {isSelected && <Button onClick={handleDisconnect}>Disconnect</Button>}
+      {isSelected && (
+        <>
+          {pDisconnect ? (
+            <CircularProgress size={24} />
+          ) : (
+            <Button onClick={handleDisconnect}>Disconnect</Button>
+          )}
+        </>
+      )}
     </div>
   );
 };
