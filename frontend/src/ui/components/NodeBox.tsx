@@ -25,7 +25,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
 }) => {
   const [pConnect, setPConnect] = useState<boolean>(false);
   const [pDisconnect, setPDisconnect] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(false); // Track loading state
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
 
   const handleSelect = () => {
     // onSelect(node);
