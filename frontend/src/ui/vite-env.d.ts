@@ -11,6 +11,7 @@ interface FileMetadata {
   interface ElectronAPI {
     selectFile: () => Promise<{fileMetadata: FileMetadata | null}>;
     handleDragDrop: (file: File) => Promise<{ fileMetadata: FileMetadata  | null}>;
+    selectDownloadPath: () => Promise<string | null>;
   }
   
   declare global {

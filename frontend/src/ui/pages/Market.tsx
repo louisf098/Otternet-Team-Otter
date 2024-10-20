@@ -106,9 +106,6 @@ const Market: React.FC = () => {
             setDownloadLocation(location);
         } catch (err: any) {
             console.error("Error with selecting download location: ", err);
-            // setSnackbarMessage(err.message);
-            // setSnackbarColor('error');
-            // setSnackbarOpen(true);
             return;
         }
     };
