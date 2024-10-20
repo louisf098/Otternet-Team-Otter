@@ -54,7 +54,12 @@ const CreateWallet = () => {
 
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
-    const blob = new Blob([privateKey], { type: "text/plain" });
+    const blob = new Blob(
+      ["Wallet ID: " + walletID + "\n" + "Private Key: " + privateKey],
+      {
+        type: "text/plain",
+      }
+    );
 
     // Create a URL for the blob object
     const url = window.URL.createObjectURL(blob);
@@ -243,7 +248,7 @@ const CreateWallet = () => {
             Already have a wallet?{" "}
             <span>
               <Link
-                onClick={() => navigate("/dashboard", { replace: true })}
+                onClick={() => navigate("/", { replace: true })}
                 variant="body2"
                 sx={{ alignSelf: "center", cursor: "pointer" }}
               >
