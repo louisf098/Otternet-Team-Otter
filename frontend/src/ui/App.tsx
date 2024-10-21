@@ -3,9 +3,8 @@ import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Download from "./pages/Download";
-import Wallet from "./pages/Wallet";
 import Market from "./pages/Market";
-import Login from "./pages/Login";
+import SignIn from "./pages/SignIn";
 import Settings from "./pages/Settings";
 import "./App.css";
 import CreateWallet from "./pages/CreateWallet";
@@ -20,10 +19,9 @@ const App: React.FC = () => {
         <Router>
           <Routes>
             <Route path="/" element={<MainLayout />}>
-              <Route index element={<Login />} />
+              <Route index element={<SignIn />} />
               <Route path="/createwallet" element={<CreateWallet />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/wallet" element={<Wallet />} />
               <Route path="/market" element={<Market />} />
               <Route path="/proxy" element={<Proxy />} />
               <Route path="/upload" element={<Upload />} />

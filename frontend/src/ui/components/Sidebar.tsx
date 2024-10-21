@@ -76,19 +76,6 @@ const Sidebar = () => {
             </ListItem>
             <ListItem key={2} disablePadding>
               <ListItemButton
-                onClick={() => navigate("/wallet", { replace: true })}
-              >
-                <ListItemIcon>
-                  <AttachMoneyIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary={"Wallet/Mining"}
-                  sx={{ display: collapsed ? "none" : "inline-block" }}
-                />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key={3} disablePadding>
-              <ListItemButton
                 onClick={() => navigate("/market", { replace: true })}
               >
                 <ListItemIcon>
@@ -101,7 +88,7 @@ const Sidebar = () => {
               </ListItemButton>
             </ListItem>
 
-            <ListItem key={4} disablePadding>
+            <ListItem key={3} disablePadding>
               <ListItemButton
                 onClick={() => navigate("/proxy", { replace: true })}
               >
@@ -115,7 +102,7 @@ const Sidebar = () => {
               </ListItemButton>
             </ListItem>
 
-            <ListItem key={5} disablePadding>
+            <ListItem key={4} disablePadding>
               <ListItemButton
                 onClick={() => navigate("/upload", { replace: true })}
               >
@@ -129,7 +116,7 @@ const Sidebar = () => {
               </ListItemButton>
             </ListItem>
 
-            <ListItem key={6} disablePadding>
+            <ListItem key={5} disablePadding>
               <ListItemButton
                 onClick={() => navigate("/download", { replace: true })}
               >

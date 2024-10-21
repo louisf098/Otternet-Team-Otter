@@ -8,7 +8,7 @@ import { AuthContext } from "../contexts/AuthContext";
 const Settings = () => {
   const navigate = useNavigate();
 
-  const { setPublicKey } = useContext(AuthContext);
+  const { publicKey, setPublicKey } = useContext(AuthContext);
 
   const handleSignOut = () => {
     navigate("/", { replace: true });
