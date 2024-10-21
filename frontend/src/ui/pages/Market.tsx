@@ -207,6 +207,11 @@ const Market: React.FC = () => {
 
     const currentFiles = files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
+    const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
+        const file = allFiles.find(f => f.id === fileId);
+        return file?.bundlable;
+    }).length;
+
     return (
         <Box sx={{ m: 4, width: "100vw" }}>
             <Typography variant="h3" sx={{ mb: 3, textAlign: "left" }}>
@@ -306,7 +311,7 @@ const Market: React.FC = () => {
                 color="primary"
                 onClick={handleCheckoutOpen}
                 sx={{ position: "fixed", bottom: 20, right: 20 }}
-                disabled={!walletId}
+                disabled={bundlableSelectedFilesCount < 2} // Disable if less than 2 bundlable files are selected
             >
                 Checkout
             </Button>
