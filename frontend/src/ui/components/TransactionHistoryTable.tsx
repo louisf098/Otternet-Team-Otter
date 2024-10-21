@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -6,74 +6,44 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import { FormData } from "../interfaces/File";
+import { Tooltip } from "@mui/material";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
-interface DashboardData {
-  time: Date;
-  name: string;
-  size: number;
-  peerCount: number;
-  uploaderID: string;
-  downloaderID: string;
-  downloaderNode: string;
-  proxyNode: string;
+interface transaactionHistoryTableProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+  handleCopy: (text: string) => void;
 }
 
-function createData(
-  time: Date,
-  name: string,
-  size: number,
-  peerCount: number,
-  uploaderID: string,
-  downloaderID: string,
-  downloaderNode: string,
-  proxyNode: string
-): DashboardData {
-  return {
-    time,
-    name,
-    size,
-    peerCount,
-    uploaderID,
-    downloaderID,
-    downloaderNode,
-    proxyNode,
-  };
-}
+const TransactionHistoryTable: React.FC<transaactionHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy }) => {
+  const [downloads, setDownloads] = React.useState<FormData[]>([]);
+  useEffect(() => {
+    fetchDownloadData();
+  }, [])
+  
+  const fetchDownloadData = async () => {
+    try {
+      const response = await fetch("http://localhost:9378/getDownloadHistory", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      if (response.status === 404) {
+        setSnackbarMessage("No download history found");
+        setSnackbarOpen(true);
+      } else {
+        const data = await response.json();
+        setDownloads(data);
+      }
+    } catch (err) {
+      console.error("Error fetching download data: ", err);
+      setSnackbarMessage("Error fetching download data");
+      setSnackbarOpen(true);
+    }
+  }
 
-const rows = [
-  createData(
-    new Date(),
-    "hw1.zip",
-    10000000,
-    13,
-    "jwnihfhifvhwi",
-    "98fhu39fh239fu",
-    "db1ygf7b2iv3",
-    "8ybfy7b1t79f7v38"
-  ),
-  createData(
-    new Date(),
-    "screenshot.png",
-    10000,
-    12321,
-    "f2u9h73fh3",
-    "f8hb3yfh9u2hf",
-    "fhy3714b9yfv1bv",
-    "nvy8hby1rhv7"
-  ),
-  createData(
-    new Date(),
-    "essay1.pdf",
-    321323,
-    123213,
-    "rf8uh48yf8yu",
-    "fn9uc892d3d",
-    "fm10h78uhgf8hno",
-    "9fuyb17gb78fvcb2o"
-  ),
-];
-
-const TransactionHistoryTable = () => {
   return (
     <TableContainer component={Paper} sx={{ mt: 1 }}>
       <Table sx={{ minWidth: 500 }} aria-label="simple table">
@@ -81,28 +51,70 @@ const TransactionHistoryTable = () => {
           <TableRow>
             <TableCell>Timestamp</TableCell>
             <TableCell>File Name</TableCell>
-            <TableCell>Size</TableCell>
-            <TableCell>Cost</TableCell>
-            <TableCell>Uploader ID</TableCell>
-            <TableCell>Downloader Node</TableCell>
-            <TableCell>Proxy Node</TableCell>
+            <TableCell>Size (KB)</TableCell>
+            <TableCell>Cost (OTTC)</TableCell>
+            <TableCell>
+              File Hash
+              <Tooltip title="Click hash to copy to your clipboard" arrow>
+                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
+              </Tooltip>
+            </TableCell>
+            <TableCell>
+              Uploader Wallet ID
+              <Tooltip title="Click wallet ID to copy to your clipboard" arrow>
+                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
+              </Tooltip>
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => (
+          {downloads.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                You have not downloaded any files yet.
+              </TableCell>
+            </TableRow>
+          ) : 
+          downloads.map((download) => (
             <TableRow
-              key={row.name}
+              key={download.timestamp}
               sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
             >
               <TableCell component="th" scope="row">
-                {row.time.toISOString()}
+                {download.timestamp}
               </TableCell>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.size}</TableCell>
-              <TableCell>{row.peerCount}</TableCell>
-              <TableCell>{row.uploaderID}</TableCell>
-              <TableCell>{row.downloaderNode}</TableCell>
-              <TableCell>{row.proxyNode}</TableCell>
+              <TableCell>{download.fileName}</TableCell>
+              <TableCell>{download.fileSize}</TableCell>
+              <TableCell>{download.price}</TableCell>
+              <TableCell
+                onClick={() => {
+                  handleCopy(download.fileHash);
+                }}
+                sx={{ cursor: "pointer",
+                  maxWidth: "200px",
+                  wordWrap: "break-word",
+                  whiteSpace: "normal",
+                 }}
+              >
+                <Tooltip title="Click to copy" arrow>
+                  <span>{download.fileHash}</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell
+                onClick={() => {
+                  handleCopy(download.userID);
+                }}
+                sx={{ 
+                  cursor: "pointer",
+                  maxWidth: "200px",
+                  wordWrap: "break-word",
+                  whiteSpace: "normal",
+                }}
+              >
+                <Tooltip title="Click to copy" arrow>
+                  <span>{download.userID}</span>
+                </Tooltip>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

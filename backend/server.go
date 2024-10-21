@@ -68,7 +68,7 @@ func main() {
 	r.HandleFunc("/", baseHandler)
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
-	r.HandleFunc("/getAllFiles", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
 	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
