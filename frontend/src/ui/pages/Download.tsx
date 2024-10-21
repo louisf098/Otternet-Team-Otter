@@ -167,7 +167,7 @@ const Download = () => {
             <Typography variant="subtitle2"><strong>Hash:</strong> {searchedHash}</Typography>
             <Typography variant="subtitle2"><strong>Name:</strong> {fileDetails.name}</Typography>
             <Typography variant="subtitle2"><strong>Type:</strong> {fileDetails.type}</Typography>
-            <Typography variant="subtitle2"><strong>Size:</strong> {fileDetails.size}</Typography>
+            <Typography variant="subtitle2"><strong>Size:</strong> {fileDetails.size} KB</Typography>
           </Box>
         )}
 
@@ -226,7 +226,7 @@ const Download = () => {
             {fileDetails && (
               <>
                 <strong>Name:</strong> {fileDetails.name} <br />
-                <strong>Size:</strong> {fileDetails.size} <br />
+                <strong>Size:</strong> {fileDetails.size} KB<br />
                 <strong>Type:</strong> {fileDetails.type} <br />
                 <strong>Price:</strong> {selectedPrice} OTTC <br />
                 <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
