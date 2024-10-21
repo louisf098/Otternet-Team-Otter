@@ -80,7 +80,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             width: "100%",
           }}
         >
-          <Box sx={{ display: "flex", width: "250px" }}>
+          {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
               Filter
             </Typography>
@@ -96,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
               <MenuItem value={9}>Bundle Mode (On)</MenuItem>
               <MenuItem value={10}>Bundle Mode (Off)</MenuItem>
             </Select>
-          </Box>
+          </Box> */}
           <Box
             sx={{
               display: "flex",
