@@ -69,6 +69,11 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
         "Content-Type": "application/json",
       },
     });
+    if (response.status === 404) {
+      setSnackbarMessage("No upload history found");
+      setSnackbarOpen(true);
+      return;
+    }
     const data = await response.json();
     setUploads(data);
   };

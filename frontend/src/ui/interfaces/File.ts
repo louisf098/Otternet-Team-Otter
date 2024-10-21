@@ -17,4 +17,11 @@ export interface FormData {
     timestamp: string,
     fileHash: string,
     bundleMode: boolean
-  }
+}
+
+export interface ProxyData {
+    id: string;
+    ipAddr: string;
+    price: number;
+    timestamp: string;
+}

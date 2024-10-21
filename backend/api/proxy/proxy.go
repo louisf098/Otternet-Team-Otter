@@ -99,6 +99,10 @@ func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	mutex.Lock()
 	defer mutex.Unlock()
+	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
+		http.Error(w, "No proxy history found", http.StatusNotFound)
+		return
+	}
 	existingData, err := os.ReadFile(jsonFilePath)
 	if err != nil {
 		http.Error(w, "Error reading existing data", http.StatusInternalServerError)

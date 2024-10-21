@@ -10,6 +10,10 @@ import ProxyHistoryTable from "../components/ProxyHistoryTable";
 import TabSelector from "../components/TabSelector";
 import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
 import { Snackbar } from "@mui/material";
+import { IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import Tooltip from "@mui/material/Tooltip";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
@@ -130,7 +134,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
           textColor="primary"
           sx={{ margin: -1 }}
         >
-          <Tab label="Current Uploads" id="dashboard-tab-upload"/>
+          <Tab label={
+            <Box sx={{ display: 'flex', alignItems: 'center'}}>
+              <span>Current Uploads</span>
+              <Tooltip title="You can also edit a row by right-clicking!">
+                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1 }}/>
+              </Tooltip>
+            </Box>
+          } id="dashboard-tab-upload"/>
           <Tab label="Download History" id="dashboard-tab-history"/>
           <Tab label="Proxy History" id="dashboard-tab-proxy"/>
         </Tabs>
@@ -143,19 +154,37 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
         <TabSelector value={selectedTab} index={1}>
-          <TransactionHistoryTable />
+          <TransactionHistoryTable 
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+          />
         </TabSelector>
         <TabSelector value={selectedTab} index={2}>
-          <ProxyHistoryTable />
+          <ProxyHistoryTable 
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+          />
         </TabSelector>
       </Box>
 
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={3000}
         onClose={handleSnackbarClose}
         message={snackbarMessage}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        action={
+          <IconButton
+            size="small"
+            aria-label="close"
+            color="inherit"
+            onClick={handleSnackbarClose}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
       />
     </>
   );
