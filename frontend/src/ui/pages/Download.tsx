@@ -25,7 +25,7 @@ const dummyProviders = [
 ];
 
 const dummyFileDetails = {
-  name: "Cookie_Monster_Script",
+  name: "Cookie_Monster_Script.txt",
   type: "Text Document(.txt)",
   size: 174
 };
