@@ -13,7 +13,7 @@ export interface ProxyNode {
 interface NodeBoxProps {
   node: ProxyNode;
   isSelected: boolean;
-  onSelect: (node: ProxyNode) => void;
+  onSelect: (node: ProxyNode) => Promise<boolean>; // Adjust to expect a promise that returns success status
   onDisconnect: (node: ProxyNode) => void;
 }
 
@@ -28,20 +28,34 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
 
   const handleSelect = () => {
-    // onSelect(node);
     setPConnect(true);
   };
-  const handlePConnect = () => {
+
+  const handlePConnect = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      onSelect(node);
-      setPConnect(false);
+
+    try {
+      const success = await onSelect(node);
+      if (success) {
+        setTimeout(() => {
+          setPConnect(false);
+          setIsLoading(false);
+        }, 2000);
+      } else {
+        alert("Failed to connect to proxy. Please check the server.");
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error connecting to proxy:", error);
+      alert("Failed to connect to proxy. Please try again.");
       setIsLoading(false);
-    }, 1000);
+    }
   };
+
   const handleCancel = () => {
     setPConnect(false);
   };
+
   const handleDisconnect = (e: React.MouseEvent) => {
     setPDisconnect(true);
     setTimeout(() => {
@@ -58,7 +72,6 @@ const NodeBox: React.FC<NodeBoxProps> = ({
       </Typography>
       <Typography variant="body1">Rate: {node.rate} OTTC/KB</Typography>
       <Typography variant="body1">IP: {node.ip}</Typography>
-      {/* <Typography variant="body1">Port: {node.port}</Typography> */}
       {!isSelected && !pConnect && (
         <Button onClick={handleSelect}>Connect</Button>
       )}
