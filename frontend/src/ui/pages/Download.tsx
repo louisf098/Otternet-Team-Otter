@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Typography, Card, Grid, CardContent, CardActions, Modal } from "@mui/material";
+import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "@mui/material";
 import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
@@ -25,7 +25,7 @@ const dummyProviders = [
 ];
 
 const dummyFileDetails = {
-  name: "Cookie_Monster_Script.txt",
+  name: "Cookie_Monster_Script",
   type: "Text Document(.txt)",
   size: 174
 };
@@ -40,14 +40,24 @@ const Download = () => {
   const [fileDetails, setFileDetails] = useState<{name: string; type: string; size: number;} | null >(null);
   const [selectedPrice, setSelectedPrice] = useState<number>();
   const [selectedWallet, setSelectedWallet] = useState<string>("");
+  const [isValidHash, setIsValidHash] = useState<boolean | null>(null);
 
   const handleSearchClick = () => {
+    if (!fileHash.trim()) {
+      setIsValidHash(false);
+      setProviders([]);
+      setFileDetails(null);
+      return;
+    }
+
     setIsLoading(true);
+    setIsValidHash(null);
 
     setTimeout(() => {
       setProviders(dummyProviders);
       setSearchedHash(fileHash);
       setFileDetails(dummyFileDetails);
+      setIsValidHash(true);
       setIsLoading(false);
     }, 2000);
   }
@@ -140,7 +150,13 @@ const Download = () => {
           {isLoading ? <CircularProgress size={24} /> : "Search Providers"}
         </Button>
 
-        {fileDetails && (
+        {isValidHash === false && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Invalid file hash. Please enter a valid hash.
+          </Alert>
+        )}
+
+        {isValidHash && fileDetails && (
           <Box sx={{ mt: 2, textAlign: 'left' }}>
             <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mr: 1}}>
@@ -155,33 +171,35 @@ const Download = () => {
           </Box>
         )}
 
-        <Box sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            {providers.map((provider) => (
-              <Grid item xs={12} sm={6} key={provider.walletID}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" justifyContent="space-between">
-                      <Box display="flex" flexDirection="column" alignItems="flex-start">
-                        <Typography variant="body2">WalletID: {provider.walletID}</Typography>
-                        <Typography variant="body2">Price: {provider.price} OTTC</Typography>
+        {isValidHash && (
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              {providers.map((provider) => (
+                <Grid item xs={12} sm={6} key={provider.walletID}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" justifyContent="space-between">
+                        <Box display="flex" flexDirection="column" alignItems="flex-start">
+                          <Typography variant="body2">WalletID: {provider.walletID}</Typography>
+                          <Typography variant="body2">Price: {provider.price} OTTC</Typography>
+                        </Box>
+                        <CardActions>
+                          <Button 
+                            size="small" 
+                            variant="contained" 
+                            onClick={() => handleDownload(provider.walletID, provider.price)}
+                          >
+                            Download
+                          </Button>
+                        </CardActions>
                       </Box>
-                      <CardActions>
-                        <Button 
-                          size="small" 
-                          variant="contained" 
-                          onClick={() => handleDownload(provider.walletID, provider.price)}
-                        >
-                          Download
-                        </Button>
-                      </CardActions>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
       </Box>
 
       <Modal
@@ -208,7 +226,7 @@ const Download = () => {
             {fileDetails && (
               <>
                 <strong>Name:</strong> {fileDetails.name} <br />
-                <strong>Size:</strong> {fileDetails.size} KB <br />
+                <strong>Size:</strong> {fileDetails.size} <br />
                 <strong>Type:</strong> {fileDetails.type} <br />
                 <strong>Price:</strong> {selectedPrice} OTTC <br />
                 <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
