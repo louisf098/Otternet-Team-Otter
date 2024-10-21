@@ -17,7 +17,7 @@ const Login = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { publicKey, setPublicKey } = React.useContext(AuthContext);
+  const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (error) {
@@ -30,20 +30,33 @@ const Login = () => {
     navigate("/dashboard", { replace: true });
   };
 
-  const validateInputs = (event: React.FormEvent<HTMLFormElement>) => {
-    const walletId = document.getElementById("walletID") as HTMLInputElement;
+  const validateInputs = () => {
+    const walletID = document.getElementById("walletID") as HTMLInputElement;
     const privateKey = document.getElementById(
       "privateKey"
     ) as HTMLInputElement;
 
-    if (!walletId.value || !privateKey.value) {
+    if (!walletID.value || !privateKey.value) {
       setError(true);
       setErrorMessage("Please fill out both wallet ID and private key");
-      return;
+      return false;
+    }
+
+    if (!Object.keys(walletKeyPair).includes(walletID.value)) {
+      console.log(Object.keys(walletKeyPair));
+      setError(true);
+      setErrorMessage("Invalid Wallet ID");
+      return false;
+    }
+
+    if (walletKeyPair[walletID.value] !== privateKey.value) {
+      setError(true);
+      setErrorMessage("Incorrect Private Key");
+      return false;
     }
     setError(false);
 
-    handleSubmit(event);
+    return true;
   };
 
   return (
@@ -110,8 +123,10 @@ const Login = () => {
           <FormControl>
             <FormLabel>Wallet ID</FormLabel>
             <TextField
-              error={error}
-              helperText={errorMessage}
+              error={error && errorMessage != "Incorrect Private Key"}
+              helperText={
+                errorMessage == "Incorrect Private Key" ? "" : errorMessage
+              }
               id="walletID"
               type="text"
               name="walletID"
@@ -128,8 +143,10 @@ const Login = () => {
               <FormLabel htmlFor="privateKey">Private Key</FormLabel> {}
             </Box>
             <TextField
-              error={error}
-              helperText={errorMessage}
+              error={error && errorMessage != "Invalid Wallet ID"}
+              helperText={
+                errorMessage == "Invalid Wallet ID" ? "" : errorMessage
+              }
               name="privateKey"
               placeholder="••••••"
               type="password"

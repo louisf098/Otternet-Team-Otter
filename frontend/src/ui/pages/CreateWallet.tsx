@@ -26,11 +26,12 @@ const CreateWallet = () => {
   // const [error, setError] = React.useState(false);
   // const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { publicKey, setPublicKey } = useContext(AuthContext);
+  const { walletKeyPair, setWalletKeyPair, setPublicKey } =
+    useContext(AuthContext);
 
-  const handleCopy = () => {
+  const handleCopy = (text: string) => {
     setOpenCopyNotif(true);
-    navigator.clipboard.writeText(window.location.toString());
+    navigator.clipboard.writeText(text);
   };
 
   const handleGenerateWallet = () => {
@@ -50,6 +51,8 @@ const CreateWallet = () => {
     }
     setWalletID(walletID);
     setPrivateKey(privateKey);
+    setWalletKeyPair({ ...walletKeyPair, [walletID]: privateKey });
+    console.log(walletKeyPair);
   };
 
   const handleBackupDownload = () => {
@@ -157,7 +160,10 @@ const CreateWallet = () => {
                   value={walletID}
                   endAdornment={
                     <InputAdornment position="end">
-                      <IconButton onClick={handleCopy} color="primary">
+                      <IconButton
+                        onClick={() => handleCopy(walletID)}
+                        color="primary"
+                      >
                         <ContentCopyIcon />
                       </IconButton>
                     </InputAdornment>
@@ -175,7 +181,10 @@ const CreateWallet = () => {
                   value={privateKey}
                   endAdornment={
                     <InputAdornment position="end">
-                      <IconButton onClick={handleCopy} color="primary">
+                      <IconButton
+                        onClick={() => handleCopy(privateKey)}
+                        color="primary"
+                      >
                         <ContentCopyIcon />
                       </IconButton>
                     </InputAdornment>
