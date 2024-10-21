@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import NodeBox from "./NodeBox";
 import { ProxyContext } from "../contexts/ProxyContext";
 import { proxyNodes } from "../data/proxyNodes";
@@ -9,26 +9,34 @@ import "../stylesheets/NodesSection.css";
 
 const NodesSection: React.FC = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
-  // typeof proxyNodes will need to be changed once we use real data
-  const handleSelect = async (node: (typeof proxyNodes)[0]) => {
+  const handleSelect = async (
+    node: (typeof proxyNodes)[0]
+  ): Promise<boolean> => {
     try {
-      await setSelectedNode(node);
       const proxyData: ProxyData = {
         id: node.id,
         ipAddr: node.ip,
         price: node.rate,
         timestamp: new Date().toISOString(),
+      };
+
+      const success = await connectToProxy(proxyData);
+      if (success) {
+        await setSelectedNode(node);
+        return true; // Successfully connected
+      } else {
+        return false; // Failed to connect
       }
-      connectToProxy(proxyData);
     } catch (e) {
-      alert(`Failed to connect to ${node.id}`);
+      console.error("Failed to connect to proxy:", e);
+      return false;
     }
   };
 
-  const connectToProxy = async (proxyData: ProxyData) => {
+  const connectToProxy = async (proxyData: ProxyData): Promise<boolean> => {
     try {
       const response = await fetch("http://localhost:9378/connectToProxy", {
         method: "POST",
@@ -37,18 +45,23 @@ const NodesSection: React.FC = () => {
         },
         body: JSON.stringify(proxyData),
       });
+
       if (response.status === 200) {
         setSnackbarMessage("Connected to proxy");
         setSnackbarOpen(true);
+        return true; // Connection succeeded
       } else {
         setSnackbarMessage("Failed to connect to proxy");
         setSnackbarOpen(true);
+        return false; // Connection failed
       }
     } catch (err) {
-      console.error("Error connecting to proxy: ", err);
+      console.error("Error connecting to proxy:", err);
       setSnackbarMessage("Error connecting to proxy");
+      setSnackbarOpen(true);
+      return false; // Error occurred
     }
-  }
+  };
 
   const handleCloseSnackbar = (
     event: React.SyntheticEvent<any, Event> | Event,
@@ -58,8 +71,7 @@ const NodesSection: React.FC = () => {
       return;
     }
     setSnackbarOpen(false);
-  }
-  
+  };
 
   const handleDisconnect = async (node: (typeof proxyNodes)[0]) => {
     if (selectedNode?.id === node.id) {
@@ -108,7 +120,6 @@ const NodesSection: React.FC = () => {
         }
       />
     </>
-    
   );
 };
 
