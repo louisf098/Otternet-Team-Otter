@@ -6,4 +6,5 @@ go run server.go
 
 # Then, run the Electron frontend (Ensure port 5173 is free)
 cd frontend\
+npm install\
 npm run dev
