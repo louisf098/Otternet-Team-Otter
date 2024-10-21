@@ -9,30 +9,22 @@ const NodesSection: React.FC = () => {
 
   // typeof proxyNodes will need to be changed once we use real data
   const handleSelect = async (node: (typeof proxyNodes)[0]) => {
-    const confirm = window.confirm(
-      `Establish Proxy Connection to ${node.id} for $${node.rate}/KB?`
-    );
-    if (confirm) {
-      try {
-        await setSelectedNode(node);
-      } catch (e) {
-        alert(`Failed to connect to ${node.id}`);
-      }
+    try {
+      await setSelectedNode(node);
+    } catch (e) {
+      alert(`Failed to connect to ${node.id}`);
     }
   };
 
   const handleDisconnect = async (node: (typeof proxyNodes)[0]) => {
-    const confirm = window.confirm(`Disconnect from ${selectedNode?.id}?`);
-    if (confirm) {
-      if (selectedNode?.id === node.id) {
-        try {
-          setSelectedNode(null);
-        } catch (e) {
-          alert(`Failed to disconnect from ${node.id}`);
-        }
-      } else {
-        alert("You are not connected to this node");
+    if (selectedNode?.id === node.id) {
+      try {
+        setSelectedNode(null);
+      } catch (e) {
+        alert(`Failed to disconnect from ${node.id}`);
       }
+    } else {
+      alert("You are not connected to this node");
     }
   };
 

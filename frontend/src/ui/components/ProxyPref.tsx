@@ -31,7 +31,7 @@ const ProxyPref = () => {
 
   const handleRateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    if (!isNaN(Number(value)) || value === "") {
+    if ((!isNaN(Number(value)) && Number(value) > 0) || value === "") {
       setRate(value); // Store as string, don't convert to number immediately
       setRateError(null);
     } else {
@@ -85,9 +85,10 @@ const ProxyPref = () => {
             checked={proxyEnabled}
             onChange={handleProxyChange}
             name="proxyEnabled"
+            disabled={Boolean(rateError) || rate === ""}
           />
           <Tooltip
-            title="Enable this option to allow others to use your node as a proxy. Set the rate and port for how others will connect through your node below."
+            title="Enable this option to allow others to use your node as a proxy. Set the rate for how others will connect through your node below."
             arrow
           >
             <IconButton>
@@ -167,8 +168,8 @@ const ProxyPref = () => {
           /> */}
         </Box>
         <Typography>
-          Nodes connected to proxy:{" "}
-          <span style={{ fontWeight: "bold", color: "blue" }}>21 </span>
+          Nodes connected to Your Proxy:{" "}
+          <span style={{ fontWeight: "bold", color: "blue" }}>0 </span>
         </Typography>
       </Box>
     </Box>
