@@ -45,24 +45,20 @@ const dummyData: { [walletId: string]: FileItem[] } = {
         { id: 9, name: "Video.mp4", size: "10MB", type: "Video", dateUploaded: "2024-07-10", price: "20", bundlable: false },
         { id: 10, name: "Ebook.epub", size: "2MB", type: "Ebook", dateUploaded: "2024-08-20", price: "4", bundlable: true },
     ],
-    wallet3: [
-        { id: 11, name: "Archive.zip", size: "12MB", type: "Archive", dateUploaded: "2024-09-10", price: "25", bundlable: true },
-        { id: 12, name: "Script.js", size: "500KB", type: "JavaScript File", dateUploaded: "2024-08-01", price: "3", bundlable: true },
-        { id: 13, name: "Stylesheet.css", size: "250KB", type: "CSS File", dateUploaded: "2024-08-05", price: "2", bundlable: false },
-        { id: 14, name: "Vector.ai", size: "6MB", type: "Adobe File", dateUploaded: "2024-09-15", price: "30", bundlable: true },
-        { id: 15, name: "CodeSnippet.py", size: "100KB", type: "Python Script", dateUploaded: "2024-09-20", price: "5", bundlable: true },
-    ],
 };
 
 const Market: React.FC = () => {
-    const [searchInput, setSearchInput] = useState<string>(""); // State for search input
-    const [walletId, setWalletId] = useState<string>(""); // State for searched wallet
+    const [searchInput, setSearchInput] = useState<string>("");
+    const [walletId, setWalletId] = useState<string>("");
     const [files, setFiles] = useState<FileItem[]>(Object.values(dummyData).flat());
     const [error, setError] = useState<string>("");
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
+    const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+    const [downloadLocation, setDownloadLocation] = useState<string>("");
 
     const allFiles: FileItem[] = Object.values(dummyData).flat();
 
@@ -93,8 +89,40 @@ const Market: React.FC = () => {
         }
     };
 
-    const handleDownload = (fileName: string) => {
-        console.log(`Downloading file: ${fileName}`);
+    const handleDownload = (file: FileItem) => {
+        setSelectedFile(file);
+        setDownloadModalOpen(true);
+    };
+
+    const handleSelectDownloadLocation = async () => {
+        try {
+            if (!window.electronAPI || !window.electronAPI.selectDownloadPath) {
+                throw new Error("Electron API not available");
+            }
+            const location = await window.electronAPI.selectDownloadPath();
+            if (!location) {
+                throw new Error("Problem with selecting download location");
+            }
+            setDownloadLocation(location);
+        } catch (err: any) {
+            console.error("Error with selecting download location: ", err);
+            return;
+        }
+    };
+
+    const handleDownloadConfirm = () => {
+        if (selectedFile && downloadLocation) {
+            console.log(`Downloading file: ${selectedFile.name} to ${downloadLocation}`);
+        }
+        setDownloadModalOpen(false);
+        setSelectedFile(null);
+        setDownloadLocation("");
+    };
+
+    const handleDownloadModalClose = () => {
+        setDownloadModalOpen(false);
+        setSelectedFile(null);
+        setDownloadLocation("");
     };
 
     const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -151,10 +179,30 @@ const Market: React.FC = () => {
 
     const handleCheckoutClose = () => {
         setCheckoutOpen(false);
+        setDownloadLocation(""); // Clear the download location when closing the checkout modal
+    };
+
+    const handleCheckoutConfirm = () => {
+        if (downloadLocation && selectedFiles.length > 0) {
+            console.log(`Downloading selected files to ${downloadLocation}`);
+        }
+        setCheckoutOpen(false);
+        setSelectedFiles([]);
+        setDownloadLocation("");
     };
 
     const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
         setCurrentPage(page);
+    };
+
+    const calculateTotalCost = () => {
+        const total = selectedFiles.reduce((sum, fileId) => {
+            const file = allFiles.find((f) => f.id === fileId);
+            return file ? sum + parseFloat(file.price) : sum;
+        }, 0);
+        const discountRate = Math.min(selectedFiles.length * 1, 5); // 1% per file, max 5%
+        const discountedTotal = total * (1 - discountRate / 100);
+        return discountedTotal.toFixed(2);
     };
 
     const currentFiles = files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -238,7 +286,7 @@ const Market: React.FC = () => {
                                 variant="contained"
                                 startIcon={<DownloadIcon />}
                                 sx={{ ml: 2 }}
-                                onClick={() => handleDownload(file.name)}
+                                onClick={() => handleDownload(file)}
                             >
                                 Download
                             </Button>
@@ -264,6 +312,61 @@ const Market: React.FC = () => {
             </Button>
 
             <Modal
+                open={downloadModalOpen}
+                onClose={handleDownloadModalClose}
+                aria-labelledby="download-modal-title"
+                aria-describedby="download-modal-description"
+            >
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: 400,
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                    }}
+                >
+                    <Typography id="download-modal-title" variant="h6" component="h2">
+                        Confirm Download
+                    </Typography>
+                    <Typography id="download-modal-description" sx={{ mt: 2 }}>
+                        {selectedFile && (
+                            <>
+                                <strong>Name:</strong> {selectedFile.name} <br />
+                                <strong>Size:</strong> {selectedFile.size} <br />
+                                <strong>Type:</strong> {selectedFile.type} <br />
+                                <strong>Uploaded:</strong> {selectedFile.dateUploaded} <br />
+                                <strong>Price:</strong> {selectedFile.price} OTTC <br />
+                                <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
+                            </>
+                        )}
+                    </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "flex-start", mt: 3 }}>
+                        <Button onClick={handleSelectDownloadLocation} sx={{ mr: 2 }}>
+                            Select Download Location
+                        </Button>
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+                        <Button onClick={handleDownloadModalClose} sx={{ mr: 2 }}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleDownloadConfirm}
+                            variant="contained"
+                            color="primary"
+                            disabled={!downloadLocation} // Disable if download location is not selected
+                        >
+                            Confirm
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
+
+            <Modal
                 open={checkoutOpen}
                 onClose={handleCheckoutClose}
                 aria-labelledby="checkout-modal-title"
@@ -285,7 +388,7 @@ const Market: React.FC = () => {
                     <Typography id="checkout-modal-title" variant="h6" component="h2">
                         Checkout
                     </Typography>
-                    <Typography id="checkout-modal-description" sx={{ mt: 2 }}>
+                    <Typography id="checkout-modal-description" sx={{ mt: 2, fontWeight: "bold" }}>
                         Selected Files:
                     </Typography>
                     <List>
@@ -303,11 +406,39 @@ const Market: React.FC = () => {
                             );
                         })}
                     </List>
+                    <Box>
+                        <Box sx={{ display: "flex" }}>
+                            <Typography sx={{ fontWeight: "bold" }}>
+                                Download Location:
+                            </Typography>
+                            <Typography sx={{ mt: 0.01, ml: 1 }}>
+                                {downloadLocation || "Not Selected"}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Button onClick={handleSelectDownloadLocation}>
+                                Select Download Location
+                            </Button>
+                        </Box>
+                        <Box sx={{ mt: 2 }}>
+                            <Typography sx={{ fontWeight: "bold" }}>
+                                Total Cost (after discount):
+                            </Typography>
+                            <Typography>
+                                {calculateTotalCost()} OTTC
+                            </Typography>
+                        </Box>
+                    </Box>
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
                         <Button onClick={handleCheckoutClose} sx={{ mr: 2 }}>
                             Cancel
                         </Button>
-                        <Button onClick={handleCheckoutClose} variant="contained" color="primary">
+                        <Button
+                            onClick={handleCheckoutConfirm}
+                            variant="contained"
+                            color="primary"
+                            disabled={!downloadLocation || selectedFiles.length === 0} // Disable if no download location or no files are selected
+                        >
                             Confirm
                         </Button>
                     </Box>
