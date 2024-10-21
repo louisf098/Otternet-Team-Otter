@@ -11,7 +11,7 @@ import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
 import { AuthContext } from "../contexts/AuthContext";
 
-const Login = () => {
+const SignIn = () => {
   const navigate = useNavigate();
 
   const [error, setError] = React.useState(false);
@@ -184,4 +184,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignIn;

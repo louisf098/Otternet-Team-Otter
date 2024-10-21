@@ -199,7 +199,7 @@ const CreateWallet = () => {
                 Download Backup File
               </Button>
               <Button type="submit" fullWidth variant="contained">
-                Log in
+                Sign In
               </Button>
               <Snackbar
                 message="Copied to clipboard"
@@ -261,7 +261,7 @@ const CreateWallet = () => {
                 variant="body2"
                 sx={{ alignSelf: "center", cursor: "pointer" }}
               >
-                Log in
+                Sign In
               </Link>
             </span>
           </Typography>

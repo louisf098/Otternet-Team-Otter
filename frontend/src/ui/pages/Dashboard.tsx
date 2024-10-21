@@ -1,9 +1,11 @@
 import React from "react";
 import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid2";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import Button from "@mui/material/Button";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
@@ -14,6 +16,22 @@ import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+
+interface TransactionData {
+  transactionID: string;
+  dateTime: number;
+  cost: number;
+  status?: String;
+}
+
+function createData(
+  transactionID: string,
+  dateTime: number,
+  cost: number,
+  status?: string
+): TransactionData {
+  return { transactionID, dateTime, cost, status };
+}
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
@@ -26,10 +44,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
   };
   const handleFilterChange = (event: SelectChangeEvent<number>) => {
     setSelectedFilter(event.target.value as number);
-  }
+  };
   const handleStatsChange = (event: SelectChangeEvent<number>) => {
     setSelectedStats(event.target.value as number);
-  }
+  };
 
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState("");
@@ -42,7 +60,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
       return;
     }
     setSnackbarOpen(false);
-  }
+  };
 
   const handleCopy = async (text: string) => {
     try {
@@ -54,7 +72,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
       setSnackbarMessage("Error copying text");
       setSnackbarOpen(true);
     }
-  }
+  };
+
+  const [mining, toggleMining] = React.useState(false);
 
   return (
     <>
@@ -71,6 +91,53 @@ const Dashboard: React.FC<DashboardProps> = () => {
         <Typography variant="h3" sx={{ mb: 1 }}>
           Dashboard
         </Typography>
+        <Grid container spacing={1}>
+          <Grid size={3}>
+            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
+              <Typography variant="h5">Wallet ID:</Typography>
+              <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
+                qsfjlkwjf923urjfwoijfjefipjwfiu2fjiwejfjwfwf3rfw238238723f
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={3}>
+            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
+              <Typography variant="h5">Balance (OTTC)</Typography>
+              <Typography variant="body1">555 Ottercoins</Typography>
+            </Paper>
+          </Grid>
+
+          <Grid size={3}>
+            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
+              <Typography variant="h5">Revenue</Typography>
+              <Typography variant="body1">Mining: 555 OTC</Typography>
+              <Typography variant="body1">Peers: 555 OTC</Typography>
+            </Paper>
+          </Grid>
+          <Grid size={3}>
+            <Paper sx={{ p: 1, height: "100px" }}>
+              <Typography variant="h5">Spendings</Typography>
+              <Typography variant="body1">555 OTC</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+        <Box
+          component={Paper}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            p: 1,
+          }}
+        >
+          <Typography variant="h5">Miner</Typography>
+          <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
+          <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
+          <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
+          <Button variant="contained" onClick={() => toggleMining(!mining)}>
+            {mining ? "Pause Mining" : "Start Mining"}
+          </Button>
+        </Box>
         <Box
           component={Paper}
           sx={{
@@ -109,7 +176,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
               <Typography variant="body1" sx={{ mr: 1 }}>
                 Statistics
               </Typography>
-              <Select fullWidth size="small" variant="standard" value={selectedStats} onChange={handleStatsChange}>
+              <Select
+                fullWidth
+                size="small"
+                variant="standard"
+                value={selectedStats}
+                onChange={handleStatsChange}
+              >
                 <MenuItem value={1}>Past 24 Hours</MenuItem>
                 <MenuItem value={2}>Past Week</MenuItem>
                 <MenuItem value={3}>Past Month</MenuItem>
@@ -134,34 +207,37 @@ const Dashboard: React.FC<DashboardProps> = () => {
           textColor="primary"
           sx={{ margin: -1 }}
         >
-          <Tab label={
-            <Box sx={{ display: 'flex', alignItems: 'center'}}>
-              <span>Current Uploads</span>
-              <Tooltip title="You can also edit a row by right-clicking!">
-                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1 }}/>
-              </Tooltip>
-            </Box>
-          } id="dashboard-tab-upload"/>
-          <Tab label="Download History" id="dashboard-tab-history"/>
-          <Tab label="Proxy History" id="dashboard-tab-proxy"/>
+          <Tab
+            label={
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <span>Current Uploads</span>
+                <Tooltip title="You can also edit a row by right-clicking!">
+                  <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1 }} />
+                </Tooltip>
+              </Box>
+            }
+            id="dashboard-tab-upload"
+          />
+          <Tab label="Download History" id="dashboard-tab-history" />
+          <Tab label="Proxy History" id="dashboard-tab-proxy" />
         </Tabs>
 
         <TabSelector value={selectedTab} index={0}>
-          <UploadHistoryTable 
+          <UploadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
         </TabSelector>
         <TabSelector value={selectedTab} index={1}>
-          <TransactionHistoryTable 
+          <TransactionHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
         </TabSelector>
         <TabSelector value={selectedTab} index={2}>
-          <ProxyHistoryTable 
+          <ProxyHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
@@ -191,4 +267,3 @@ const Dashboard: React.FC<DashboardProps> = () => {
 };
 
 export default Dashboard;
-
