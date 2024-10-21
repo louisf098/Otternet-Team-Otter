@@ -31,7 +31,7 @@ const ProxyPref = () => {
 
   const handleRateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    if (!isNaN(Number(value)) || value === "") {
+    if ((!isNaN(Number(value)) && Number(value) > 0) || value === "") {
       setRate(value); // Store as string, don't convert to number immediately
       setRateError(null);
     } else {
