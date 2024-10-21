@@ -35,12 +35,13 @@ function createData(
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
-  const [selectedTab, setSelectedTab] = React.useState(0);
+  const [selectedTableTab, setSelectedTableTab] = React.useState(0);
+  const [selectedInfoTab, setSelectedInfoTab] = React.useState(0);
   const [selectedFilter, setSelectedFilter] = React.useState(1);
   const [selectedStats, setSelectedStats] = React.useState(1);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setSelectedTab(newValue);
+    setSelectedTableTab(newValue);
   };
   const handleFilterChange = (event: SelectChangeEvent<number>) => {
     setSelectedFilter(event.target.value as number);
@@ -91,53 +92,36 @@ const Dashboard: React.FC<DashboardProps> = () => {
         <Typography variant="h3" sx={{ mb: 1 }}>
           Dashboard
         </Typography>
-        <Grid container spacing={1}>
-          <Grid size={3}>
-            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
-              <Typography variant="h5">Wallet ID:</Typography>
-              <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
-                qsfjlkwjf923urjfwoijfjefipjwfiu2fjiwejfjwfwf3rfw238238723f
-              </Typography>
-            </Paper>
+        <Box sx={{ display: "flex" }}>
+          <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
+            <Typography variant="h5">Wallet</Typography>
+            <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
+              Wallet ID: qsfjlkwjf923urjfwoijfjefipjwf
+              <Typography variant="body1">Balance: 555 OTC</Typography>
+              <Typography variant="body1">Mining Revenue: 555 OTC</Typography>
+              <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
+            </Typography>
+          </Paper>
+          <Grid size={2.4}>
+            <Box
+              component={Paper}
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                p: 1,
+              }}
+            >
+              <Typography variant="h5">Miner</Typography>
+              <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
+              <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
+              <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
+              <Button variant="contained" onClick={() => toggleMining(!mining)}>
+                {mining ? "Pause Mining" : "Start Mining"}
+              </Button>
+            </Box>
           </Grid>
-          <Grid size={3}>
-            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
-              <Typography variant="h5">Balance (OTTC)</Typography>
-              <Typography variant="body1">555 Ottercoins</Typography>
-            </Paper>
-          </Grid>
-
-          <Grid size={3}>
-            <Paper sx={{ p: 1, flexGrow: 1, height: "100px" }}>
-              <Typography variant="h5">Revenue</Typography>
-              <Typography variant="body1">Mining: 555 OTC</Typography>
-              <Typography variant="body1">Peers: 555 OTC</Typography>
-            </Paper>
-          </Grid>
-          <Grid size={3}>
-            <Paper sx={{ p: 1, height: "100px" }}>
-              <Typography variant="h5">Spendings</Typography>
-              <Typography variant="body1">555 OTC</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-        <Box
-          component={Paper}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            p: 1,
-          }}
-        >
-          <Typography variant="h5">Miner</Typography>
-          <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
-          <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
-          <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
-          <Button variant="contained" onClick={() => toggleMining(!mining)}>
-            {mining ? "Pause Mining" : "Start Mining"}
-          </Button>
         </Box>
+
         <Box
           component={Paper}
           sx={{
@@ -201,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           </Box>
         </Box>
         <Tabs
-          value={selectedTab}
+          value={selectedTableTab}
           onChange={handleTabChange}
           indicatorColor="primary"
           textColor="primary"
@@ -222,21 +206,21 @@ const Dashboard: React.FC<DashboardProps> = () => {
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
         </Tabs>
 
-        <TabSelector value={selectedTab} index={0}>
+        <TabSelector value={selectedTableTab} index={0}>
           <UploadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
         </TabSelector>
-        <TabSelector value={selectedTab} index={1}>
+        <TabSelector value={selectedTableTab} index={1}>
           <TransactionHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
         </TabSelector>
-        <TabSelector value={selectedTab} index={2}>
+        <TabSelector value={selectedTableTab} index={2}>
           <ProxyHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
