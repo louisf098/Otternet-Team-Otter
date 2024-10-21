@@ -85,6 +85,7 @@ const ProxyPref = () => {
             checked={proxyEnabled}
             onChange={handleProxyChange}
             name="proxyEnabled"
+            disabled={Boolean(rateError) || rate === ""}
           />
           <Tooltip
             title="Enable this option to allow others to use your node as a proxy. Set the rate for how others will connect through your node below."
