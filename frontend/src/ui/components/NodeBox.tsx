@@ -54,6 +54,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
 
   const handleCancel = () => {
     setPConnect(false);
+    setIsLoading(false);
   };
 
   const handleDisconnect = (e: React.MouseEvent) => {
