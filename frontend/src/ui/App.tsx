@@ -11,6 +11,7 @@ import CreateWallet from "./pages/CreateWallet";
 import Proxy from "./pages/Proxy";
 import { ProxyProvider } from "./contexts/ProxyContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import Miner from "./pages/Miner";
 
 const App: React.FC = () => {
   return (
@@ -26,6 +27,7 @@ const App: React.FC = () => {
               <Route path="/proxy" element={<Proxy />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/download" element={<Download />} />
+              <Route path="/miner" element={<Miner />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Routes>

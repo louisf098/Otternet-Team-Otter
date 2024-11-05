@@ -16,8 +16,10 @@ import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import PublicIcon from "@mui/icons-material/Public";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import HardwareIcon from "@mui/icons-material/Hardware";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import { AuthContext } from "../contexts/AuthContext";
+import Hardware from "@mui/icons-material/Hardware";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -125,6 +127,19 @@ const Sidebar = () => {
                 </ListItemIcon>
                 <ListItemText
                   primary={"Download"}
+                  sx={{ display: collapsed ? "none" : "inline-block" }}
+                />
+              </ListItemButton>
+            </ListItem>
+            <ListItem key={6} disablePadding>
+              <ListItemButton
+                onClick={() => navigate("/miner", { replace: true })}
+              >
+                <ListItemIcon>
+                  <Hardware />
+                </ListItemIcon>
+                <ListItemText
+                  primary={"Miner"}
                   sx={{ display: collapsed ? "none" : "inline-block" }}
                 />
               </ListItemButton>
