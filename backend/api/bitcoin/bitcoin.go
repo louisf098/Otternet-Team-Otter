@@ -82,14 +82,6 @@ func (bc *BitcoinClient) GetBalance() (float64, error) {
 
 
 func (bc *BitcoinClient) GenerateNewAddress() (string, error) {
-    // Check if a wallet is loaded by calling getwalletinfo
-    _, err := bc.call("getwalletinfo", []interface{}{})
-    if err == nil {
-        // If getwalletinfo succeeds, it means a wallet is loaded
-        return "", fmt.Errorf("a wallet is already loaded, should unload before generating new address")
-    }
-
-    // If getwalletinfo fails (no wallet is loaded), proceed to generate a new address
     response, err := bc.call("getnewaddress", []interface{}{})
     if err != nil {
         return "", err
