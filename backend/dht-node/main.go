@@ -119,6 +119,8 @@ func createLibp2pHost() (host.Host, *dht.IpfsDHT, error) {
 		},
 	})
 
+	node.Network().Peers()
+
 	return node, kadDHT, nil
 }
 
@@ -247,7 +249,6 @@ func handleInput(ctx context.Context, dht *dht.IpfsDHT) {
 				fmt.Printf("Failed to put record: %v\n", err)
 				continue
 			}
-			// provideKey(ctx, dht, key)
 			fmt.Println("Record stored successfully")
 
 		case "PUT_PROVIDER":
@@ -257,6 +258,7 @@ func handleInput(ctx context.Context, dht *dht.IpfsDHT) {
 			}
 			key := args[1]
 			provideKey(ctx, dht, key)
+
 		default:
 			fmt.Println("Expected GET, GET_PROVIDERS, PUT or PUT_PROVIDER")
 		}
@@ -278,6 +280,7 @@ func provideKey(ctx context.Context, dht *dht.IpfsDHT, key string) error {
 	if err != nil {
 		return fmt.Errorf("failed to start providing key: %v", err)
 	}
+	fmt.Println("Successfully providing key")
 	return nil
 }
 
@@ -342,7 +345,7 @@ func main() {
 	fmt.Println("Node Peer ID:", node.ID())
 
 	connectToPeer(node, relay_node_addr)     // connect to relay node
-	makeReservation(node)                    // make reservation on realy node
+	makeReservation(node)                    // make reservation on relay node
 	connectToPeer(node, bootstrap_node_addr) // connect to bootstrap node
 	go handlePeerExchange(node)
 	go handleInput(ctx, dht)
