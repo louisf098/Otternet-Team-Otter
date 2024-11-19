@@ -1,12 +1,16 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type ProxyData struct {
@@ -17,6 +21,10 @@ type ProxyData struct {
 }
 
 var mutex = &sync.Mutex{}
+
+var serverStarted = false
+var proxyServer *http.Server
+var customTransport = http.DefaultTransport
 
 const jsonFilePath = "./api/proxy/proxy.json"
 
@@ -111,4 +119,68 @@ func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(existingData)
 	fmt.Println("Successfully retrieved proxy history")
+}
+
+// Become a proxy server
+func StartServer(w http.ResponseWriter, r *http.Request) {
+	if serverStarted {
+		http.Error(w, "Server already started", http.StatusBadRequest)
+		return
+	}
+
+	proxyServer = &http.Server{
+		Addr:    ":9138",
+		Handler: http.HandlerFunc(HandleRequest),
+	}
+
+	// Start server in a goroutine so that it doesn't block the main thread
+	go func() {
+		err := proxyServer.ListenAndServe()
+		if err != nil {
+			fmt.Printf("Error starting server: %v\n", err)
+			serverStarted = false
+		}
+	}()
+	serverStarted = true
+	w.WriteHeader(http.StatusOK)
+	fmt.Println("Successfully started proxy server on port 9138")
+}
+
+func ShutdownServer(w http.ResponseWriter, r *http.Request) {
+	if !serverStarted {
+		http.Error(w, "Server not started", http.StatusBadRequest)
+		return
+	}
+	// If server takes more than 8 seconds to shutdown, forcefully close it
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	err := proxyServer.Shutdown(ctx)
+	if err != nil {
+		http.Error(w, "Error shutting down server", http.StatusInternalServerError)
+		return
+	}
+	serverStarted = false
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Println("Successfully stopped proxy server")
+}
+
+func HandleRequest(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	target := vars["target"]
+
+	targetURL := "https://" + target + r.URL.Path
+	fmt.Println("Target URL: ", targetURL)
+
+}
+
+func GetStatus(w http.ResponseWriter, r *http.Request) {
+	if serverStarted {
+		w.WriteHeader(http.StatusOK)
+		fmt.Println("Server is running")
+	} else {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		fmt.Println("Server is not running")
+	}
 }
