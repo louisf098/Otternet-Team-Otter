@@ -72,6 +72,7 @@ func main() {
 	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
 	global.DHTNode.MakeReservation()
 	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
+	go global.DHTNode.HandlePeerExchange()
 
 	defer global.DHTNode.Close()
 
@@ -88,6 +89,7 @@ func main() {
 	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
+	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
 	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
 	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")

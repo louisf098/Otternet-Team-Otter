@@ -1,11 +1,15 @@
 package dhtnode
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"strings"
 
 	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"
@@ -168,6 +172,61 @@ func (dhtNode *DHTNode) ConnectToPeer(peerAddr string) {
 	// store peer information permanently
 	dhtNode.Host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 	fmt.Println("Connected to:", info.ID)
+}
+
+func (dhtNode *DHTNode) ConnectToPeerUsingRelay(targetPeerID string) {
+	ctx := dhtNode.ctx
+	targetPeerID = strings.TrimSpace(targetPeerID)
+	relayAddr, err := multiaddr.NewMultiaddr(RelayNodeAddr)
+	if err != nil {
+		log.Printf("Failed to create relay multiaddr: %v", err)
+		return
+	}
+	peerMultiaddr := relayAddr.Encapsulate(multiaddr.StringCast("/p2p-circuit/p2p/" + targetPeerID))
+	relayedAddrInfo, err := peer.AddrInfoFromP2pAddr(peerMultiaddr)
+	if err != nil {
+		log.Println("Failed to get relayed AddrInfo: %w", err)
+		return
+	}
+	// Connect to the peer through the relay
+	err = dhtNode.Host.Connect(ctx, *relayedAddrInfo)
+	if err != nil {
+		log.Println("Failed to connect to peer through relay: %w", err)
+		return
+	}
+	fmt.Printf("Connected to peer via relay: %s\n", targetPeerID)
+}
+
+func (dhtNode *DHTNode) HandlePeerExchange() {
+	relayInfo, _ := peer.AddrInfoFromString(RelayNodeAddr)
+	dhtNode.Host.SetStreamHandler("/orcanet/p2p", func(s network.Stream) {
+		defer s.Close()
+		buf := bufio.NewReader(s)
+		peerAddr, err := buf.ReadString('\n')
+		if err != nil {
+			if err != io.EOF {
+				fmt.Printf("error reading from stream: %v", err)
+			}
+		}
+		peerAddr = strings.TrimSpace(peerAddr)
+		var data map[string]interface{}
+		err = json.Unmarshal([]byte(peerAddr), &data)
+		if err != nil {
+			fmt.Printf("error unmarshalling data: %v", err)
+		}
+		if knownPeers, ok := data["known_peers"].([]interface{}); ok {
+			for _, peerItem := range knownPeers {
+				fmt.Println("Peer:")
+				if peerMap, ok := peerItem.(map[string]interface{}); ok {
+					if peerID, ok := peerMap["peer_id"].(string); ok {
+						if peerID != relayInfo.ID.String() {
+							dhtNode.ConnectToPeerUsingRelay(peerID)
+						}
+					}
+				}
+			}
+		}
+	})
 }
 
 // makeReservation makes a reservation on the relay node
