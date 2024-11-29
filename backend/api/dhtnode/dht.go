@@ -278,7 +278,7 @@ func (dhtNode *DHTNode) GetValue(key string) (string, error) {
 	dhtKey := "/orcanet/" + key
 	res, err := dhtNode.DHT.GetValue(dhtNode.ctx, dhtKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to get record: %v", err)
+		fmt.Printf("GetValue Error: %v", err)
 	}
 	return string(res), nil
 }

@@ -211,21 +211,21 @@ func ConfirmFileinDHT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("File Hash: %s\n", fileHash)
-	_, err := global.DHTNode.GetValue(fileHash)
+	value, err := global.DHTNode.GetValue(fileHash)
 	if err != nil {
 		http.Error(w, "File not found in DHT", http.StatusNotFound)
 		return
 	}
-	response := map[string]string{"message": "File found in DHT", "status": "success"}
+
+	response := map[string]string{"message": value, "status": "success"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
 func insertFileinDHT(fileHash string) int {
-	err := global.DHTNode.PutValue(fileHash, "")
+	err := global.DHTNode.PutValue(fileHash, "test123")
 	if err != nil {
 		fmt.Printf("Failed to put record: %v\n", err)
-		return -1
 	}
 	err = global.DHTNode.ProvideKey(fileHash)
 	if err != nil {
