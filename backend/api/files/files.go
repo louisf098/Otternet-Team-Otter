@@ -246,3 +246,27 @@ func setProvider(fileHash string) int {
 	fmt.Printf("File %s stored successfully\n", fileHash)
 	return 0
 }
+
+// Handles downloading file metadata and file
+func DownloadFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Println("File Download API Hit")
+
+	providerID := r.PathValue("providerID")
+	fileHash := r.PathValue("fileHash")
+
+	// Connect to peer, send file hash, receive file metadata and file
+
+	// Obtain peer info from DHT using providerID
+
+	// Open connection to peer using fileRequest protocol
+
+	// Send file hash to peer
+
+	// Receive file metadata and file
+
+	// Save file metadata to local file.json
+}
