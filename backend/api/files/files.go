@@ -1,10 +1,10 @@
 package files
 
 import (
+	"Otternet/backend/global"
 	"encoding/json"
 	"fmt"
 	"io"
-
 	"net/http"
 	"os"
 	"sync"
@@ -71,6 +71,7 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	existingData, err := os.ReadFile(jsonFilePath)
 	if err != nil {
 		http.Error(w, "Error reading existing file data", http.StatusInternalServerError)
@@ -93,6 +94,12 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	if !found {
 		// Append new file metadata to existing file metadata
+		result := insertFileinDHT(postData.FileHash)
+		if result == -1 {
+			http.Error(w, "Error storing file in DHT", http.StatusInternalServerError)
+			// return
+		}
+		fmt.Printf("File %s stored in DHT\n", postData.FileHash)
 		postDatas = append(postDatas, postData)
 	}
 
@@ -189,6 +196,53 @@ func GetAllFiles(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Get All Files API Response Sent")
 }
 
-func insertFileinDHT(hashFile string) {
-	// Insert file in DHT with RPC call
+// Confirm that file exists in DHT
+func ConfirmFileinDHT(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Println("Confirm File in DHT API Hit")
+	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	fileHash, exists := vars["fileHash"]
+	if !exists || fileHash == "" {
+		http.Error(w, "Invalid file hash", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("File Hash: %s\n", fileHash)
+	value, err := global.DHTNode.GetValue(fileHash)
+	if err != nil {
+		http.Error(w, "File not found in DHT", http.StatusNotFound)
+		return
+	}
+
+	response := map[string]string{"message": value, "status": "success"}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func insertFileinDHT(fileHash string) int {
+	err := global.DHTNode.PutValue(fileHash, "test123")
+	if err != nil {
+		fmt.Printf("Failed to put record: %v\n", err)
+	}
+	err = global.DHTNode.ProvideKey(fileHash)
+	if err != nil {
+		fmt.Printf("Failed to provide key: %v\n", err)
+		return -1
+	}
+	fmt.Printf("File %s stored successfully\n", fileHash)
+	return 0
+}
+
+// can be used to set provider or reset expiration timer for provider
+func setProvider(fileHash string) int {
+	err := global.DHTNode.ProvideKey(fileHash)
+	if err != nil {
+		fmt.Printf("Failed to provide key: %v\n", err)
+		return -1
+	}
+	fmt.Printf("File %s stored successfully\n", fileHash)
+	return 0
 }
