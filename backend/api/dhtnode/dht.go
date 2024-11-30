@@ -283,6 +283,16 @@ func (dhtNode *DHTNode) GetValue(key string) (string, error) {
 	return string(res), nil
 }
 
+// retrieve a list of providers for the given file hash, returns the peer IDs of the providers
+func (dhtNode *DHTNode) FindProviders(key string) ([]peer.AddrInfo, error) {
+	fileHash := cid.NewCidV1(cid.Raw, []byte(key))
+	providers, err := dhtNode.DHT.FindProviders(dhtNode.Ctx, fileHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find providers: %v", err)
+	}
+	return providers, nil
+}
+
 // Shut down DHT Node
 func (dhtNode *DHTNode) Close() error {
 	return dhtNode.Host.Close()

@@ -249,6 +249,67 @@ func setProvider(fileHash string) int {
 	return 0
 }
 
+// Call FindProviders from dht.go to get list of providers, iterate through list of providers and send a ping to each provider
+// Receive price from each provider and store in a map, return map of providers with prices
+func GetFilePrices(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Println("Get File Prices API Hit")
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+
+	// get file hash from request
+	fileHash, exists := vars["fileHash"]
+	if !exists || fileHash == "" {
+		http.Error(w, "No file hash provided", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("File Hash: %s\n", fileHash)
+
+	providers, err := global.DHTNode.FindProviders(fileHash)
+	if err != nil {
+		http.Error(w, "Error finding providers", http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Found Provider(s): %v\n", providers)
+
+	prices := make(map[string]float64)
+	for _, provider := range providers {
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, priceRequestProtocol)
+		if err != nil {
+			fmt.Printf("Error opening stream: %v\n", err)
+			continue
+		}
+		defer stream.Close()
+
+		// send file hash to provider
+		_, err = stream.Write([]byte(fileHash + "\n"))
+		if err != nil {
+			fmt.Printf("Error sending file hash: %v\n", err)
+			continue
+		}
+
+		// provider will send price back in byte form - ensure it is decoded correctly into float64
+		decoder := json.NewDecoder(stream)
+		var price float64
+		err = decoder.Decode(&price)
+		if err != nil {
+			fmt.Printf("Error decoding price: %v\n", err)
+			continue
+		}
+
+		prices[provider.ID.String()] = price
+	}
+
+	// send map of providers with prices back
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(prices)
+	fmt.Println("Get File Prices API Response Sent")
+}
+
 // Handles downloading file metadata and file
 func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {

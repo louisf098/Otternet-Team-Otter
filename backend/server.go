@@ -73,6 +73,7 @@ func main() {
 	global.DHTNode.MakeReservation()
 	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
 	files.HandleFileRequests(global.DHTNode.Host)
+	files.HandlePriceRequests(global.DHTNode.Host)
 	go global.DHTNode.HandlePeerExchange()
 
 	defer global.DHTNode.Close()
@@ -92,6 +93,7 @@ func main() {
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
 	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
 	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
 	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
