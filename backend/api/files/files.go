@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type FormData struct {
@@ -255,18 +256,72 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("File Download API Hit")
 
+	// get details from request
 	providerID := r.PathValue("providerID")
 	fileHash := r.PathValue("fileHash")
+	downloadPath := r.PathValue("downloadPath")
 
-	// Connect to peer, send file hash, receive file metadata and file
+	// make sure peerID is valid
+	peerID := peer.ID(providerID)
+	fmt.Printf("Peer ID: %s\n", peerID)
 
 	// Obtain peer info from DHT using providerID
+	peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
+	if err != nil {
+		fmt.Printf("Error finding peer: %v\n", err)
+		return
+	}
 
-	// Open connection to peer using fileRequest protocol
+	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
+	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
+	if err != nil {
+		fmt.Printf("Error opening stream: %v\n", err)
+		return
+	}
+	defer stream.Close()
 
 	// Send file hash to peer
+	_, err = stream.Write([]byte(fileHash + "\n"))
+	if err != nil {
+		fmt.Printf("Error sending file hash: %v\n", err)
+		return
+	}
 
-	// Receive file metadata and file
+	// Receive file metadata from peer
+	decoder := json.NewDecoder(stream)
+	var metadata FormData
+	err = decoder.Decode(&metadata)
+	if err != nil {
+		fmt.Printf("Error decoding metadata: %v\n", err)
+		return
+	}
+
+	// Download file from peer
+	file, err := os.Create(downloadPath)
+	if err != nil {
+		fmt.Printf("Error creating file: %v\n", err)
+		return
+	}
+
+	_, err = io.Copy(file, stream)
+	if err != nil {
+		fmt.Printf("Error copying file: %v\n", err)
+		return
+	}
+	file.Close()
+	fmt.Println("File Downloaded Successfully")
 
 	// Save file metadata to local file.json
+	downloadedFile := FormData{
+		UserID:     providerID,
+		Price:      metadata.Price,
+		FileName:   metadata.FileName,
+		FilePath:   downloadPath,
+		FileSize:   metadata.FileSize,
+		FileType:   metadata.FileType,
+		Timestamp:  metadata.Timestamp,
+		FileHash:   fileHash,
+		BundleMode: metadata.BundleMode,
+	}
+
 }
