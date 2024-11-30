@@ -5,17 +5,6 @@ import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
-interface FormData {
-  userID: string,
-  price: number,
-  fileName: string,
-  filePath: string,
-  fileSize: number,
-  fileType: string,
-  timestamp: string,
-  fileHash: string,
-  bundleMode: boolean
-}
 
 // dummy data for download demo
 const dummyProviders = [
@@ -62,19 +51,25 @@ const Download = () => {
     }, 2000);
   }
 
-  const handleDownloadClick = async (phash: string, pprice: number) => {
+  const handleDownloadClick = async (phash: string) => {
     try {
-      const postData: FormData = {
-        userID: phash, 
-        price: pprice,
-        fileName: dummyFileDetails.name,
-        filePath: downloadLocation,
-        fileSize: dummyFileDetails.size,
-        fileType: dummyFileDetails.type,
-        timestamp: new Date().toISOString(),
-        fileHash: searchedHash,
-        bundleMode: false
-      };
+      // const postData: FormData = {
+      //   userID: phash, 
+      //   price: pprice,
+      //   fileName: dummyFileDetails.name,
+      //   filePath: downloadLocation,
+      //   fileSize: dummyFileDetails.size,
+      //   fileType: dummyFileDetails.type,
+      //   timestamp: new Date().toISOString(),
+      //   fileHash: searchedHash,
+      //   bundleMode: false
+      // };
+
+      const postData = {
+        ProviderID : phash,
+        DownloadPath : downloadLocation,
+        FileHash : searchedHash
+      }
       
       const response = await fetch("http://localhost:9378/download", {
         method: 'POST',
@@ -243,7 +238,7 @@ const Download = () => {
               Cancel
             </Button>
             <Button
-              onClick={() => handleDownloadClick(selectedWallet, selectedPrice!)}
+              onClick={() => handleDownloadClick(selectedWallet)}
               variant="contained"
               color="primary"
               disabled={!downloadLocation}

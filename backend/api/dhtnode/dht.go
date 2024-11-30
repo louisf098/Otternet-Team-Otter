@@ -34,7 +34,7 @@ var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWQd1K1k8XA9xV
 type DHTNode struct {
 	Host host.Host
 	DHT  *dht.IpfsDHT
-	ctx  context.Context
+	Ctx  context.Context
 }
 
 // NewDHTNode initializes and configures a libp2p host with DHT support
@@ -117,7 +117,7 @@ func CreateLibp2pHost() (*DHTNode, error) {
 	dhtNode := &DHTNode{
 		Host: node,
 		DHT:  kadDHT,
-		ctx:  ctx,
+		Ctx:  ctx,
 	}
 
 	return dhtNode, nil
@@ -175,7 +175,7 @@ func (dhtNode *DHTNode) ConnectToPeer(peerAddr string) {
 }
 
 func (dhtNode *DHTNode) ConnectToPeerUsingRelay(targetPeerID string) {
-	ctx := dhtNode.ctx
+	ctx := dhtNode.Ctx
 	targetPeerID = strings.TrimSpace(targetPeerID)
 	relayAddr, err := multiaddr.NewMultiaddr(RelayNodeAddr)
 	if err != nil {
@@ -231,7 +231,7 @@ func (dhtNode *DHTNode) HandlePeerExchange() {
 
 // makeReservation makes a reservation on the relay node
 func (dhtNode *DHTNode) MakeReservation() {
-	ctx := dhtNode.ctx
+	ctx := dhtNode.Ctx
 	relayInfo, err := peer.AddrInfoFromString(RelayNodeAddr)
 	if err != nil {
 		log.Fatalf("Failed to create addrInfo from string representation of relay multiaddr: %v", err)
@@ -254,7 +254,7 @@ func (dhtNode *DHTNode) ProvideKey(key string) error {
 	c := cid.NewCidV1(cid.Raw, mh)
 
 	// Start providing the key
-	err = dhtNode.DHT.Provide(dhtNode.ctx, c, true)
+	err = dhtNode.DHT.Provide(dhtNode.Ctx, c, true)
 	if err != nil {
 		return fmt.Errorf("failed to start providing key: %v", err)
 	}
@@ -265,7 +265,7 @@ func (dhtNode *DHTNode) ProvideKey(key string) error {
 // stores a value in the DHT under the given key
 func (dhtNode *DHTNode) PutValue(key string, value string) error {
 	dhtKey := "/orcanet/" + key
-	err := dhtNode.DHT.PutValue(dhtNode.ctx, dhtKey, []byte(value))
+	err := dhtNode.DHT.PutValue(dhtNode.Ctx, dhtKey, []byte(value))
 	if err != nil {
 		return fmt.Errorf("failed to put record: %v", err)
 	}
@@ -276,7 +276,7 @@ func (dhtNode *DHTNode) PutValue(key string, value string) error {
 // retrieves a value from the DHT for the given key
 func (dhtNode *DHTNode) GetValue(key string) (string, error) {
 	dhtKey := "/orcanet/" + key
-	res, err := dhtNode.DHT.GetValue(dhtNode.ctx, dhtKey)
+	res, err := dhtNode.DHT.GetValue(dhtNode.Ctx, dhtKey)
 	if err != nil {
 		fmt.Printf("GetValue Error: %v", err)
 	}

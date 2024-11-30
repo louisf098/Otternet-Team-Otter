@@ -1,6 +1,7 @@
 package files
 
 import (
+	"Otternet/backend/api/download"
 	"Otternet/backend/global"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type FormData struct {
@@ -250,16 +251,34 @@ func setProvider(fileHash string) int {
 
 // Handles downloading file metadata and file
 func DownloadFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+	if r.Method != "POST" {
+		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Println("File Download API Hit")
 
 	// get details from request
-	providerID := r.PathValue("providerID")
-	fileHash := r.PathValue("fileHash")
-	downloadPath := r.PathValue("downloadPath")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	var postData = struct {
+		ProviderID   string `json:"providerID"`
+		DownloadPath string `json:"downloadPath"`
+		FileHash     string `json:"fileHash"`
+	}{}
+	err = json.Unmarshal(body, &postData)
+	if err != nil {
+		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
+		return
+	}
+
+	providerID := postData.ProviderID
+	downloadPath := postData.DownloadPath
+	fileHash := postData.FileHash
 
 	// make sure peerID is valid
 	peerID := peer.ID(providerID)
@@ -324,4 +343,14 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		BundleMode: metadata.BundleMode,
 	}
 
+	res := download.StoreFile(download.FormData(downloadedFile)) // ???!!!
+	if res != 0 {
+		http.Error(w, "Error storing file in downloads.json", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+	fmt.Println("File Download API Response Sent")
 }

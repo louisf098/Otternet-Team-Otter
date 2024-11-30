@@ -115,3 +115,51 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 	w.Write(fileData)
 	fmt.Println("Get All Downloads API Hit")
 }
+
+// Handles adding to download history - used by download file in files.go !!!!!!
+func StoreFile(postData FormData) int {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Holds existing File metadata if JSON file exists
+	var postDatas []FormData
+
+	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
+		fmt.Println("File does not exist")
+		emptyData := []FormData{}
+		firstData, err := json.MarshalIndent(emptyData, "", " ")
+		if err != nil {
+			fmt.Println("Error marshalling empty data")
+			return -1
+		}
+
+		err = os.WriteFile(jsonFilePath, firstData, 0644)
+		if err != nil {
+			fmt.Println("Error writing to file")
+			return -1
+		}
+	}
+	existingData, err := os.ReadFile(jsonFilePath)
+	if err != nil {
+		fmt.Println("Error reading file")
+		return -1
+	}
+	err = json.Unmarshal(existingData, &postDatas)
+	if err != nil {
+		fmt.Println("Error unmarshalling file")
+		return -1
+	}
+
+	postDatas = append(postDatas, postData)
+	newData, err := json.MarshalIndent(postDatas, "", " ")
+	if err != nil {
+		fmt.Println("Error marshalling data")
+		return -1
+	}
+	err = os.WriteFile(jsonFilePath, newData, 0644)
+	if err != nil {
+		fmt.Println("Error writing to file")
+		return -1
+	}
+	return 0
+}

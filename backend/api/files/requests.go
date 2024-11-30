@@ -17,7 +17,7 @@ import (
 var fileRequestProtocol = protocol.ID("/otternet/fileRequest")
 
 // Handles incoming file requests using a stream handler
-func handleFileRequests(h host.Host) {
+func HandleFileRequests(h host.Host) {
 	h.SetStreamHandler(fileRequestProtocol, func(s network.Stream) {
 		defer s.Close()
 
@@ -58,9 +58,6 @@ func handleFileRequests(h host.Host) {
 		if err != nil {
 			log.Printf("Error sending file: %v", err)
 		}
-
-		// Process the metadata as needed
-		log.Printf("Retrieved metadata: %+v", metadata)
 	})
 }
 
