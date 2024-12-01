@@ -26,9 +26,11 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var id = []byte("114295851") // Seed used to generate node's private key & peer ID
+var id = []byte("114295852") // Seed used to generate node's private key & peer ID
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
-var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWQd1K1k8XA9xVEzSAu7HUCodC7LJB6uW5Kw4VwkRdstPE"
+
+// var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWHvjhLXNGWQ8uYXXs5kCSsq7aZZMYv7MW8mRde8TpSQcf"
+var BootstrapNodeAddr = "/ip4/127.0.0.1/tcp/61000/p2p/12D3KooWHvjhLXNGWQ8uYXXs5kCSsq7aZZMYv7MW8mRde8TpSQcf"
 
 // Encapsulates the host and DHT for easy access
 type DHTNode struct {
@@ -285,7 +287,14 @@ func (dhtNode *DHTNode) GetValue(key string) (string, error) {
 
 // retrieve a list of providers for the given file hash, returns the peer IDs of the providers
 func (dhtNode *DHTNode) FindProviders(key string) ([]peer.AddrInfo, error) {
-	fileHash := cid.NewCidV1(cid.Raw, []byte(key))
+	data := []byte(key)
+	hash := sha256.Sum256(data)
+	mh, err := multihash.EncodeName(hash[:], "sha2-256")
+	if err != nil {
+		fmt.Printf("Error encoding multihash: %v", err)
+		return nil, err
+	}
+	fileHash := cid.NewCidV1(cid.Raw, mh)
 	providers, err := dhtNode.DHT.FindProviders(dhtNode.Ctx, fileHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find providers: %v", err)

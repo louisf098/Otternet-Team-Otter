@@ -95,6 +95,7 @@ func main() {
 	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
 	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
 	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
+	r.HandleFunc("/getProviders/{fileHash}", files.GetProviders).Methods("GET")
 	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
@@ -103,7 +104,7 @@ func main() {
 	handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{
-		Addr:    ":9378",
+		Addr:    ":9378", // 9378
 		Handler: handlerWithCORS,
 	}
 

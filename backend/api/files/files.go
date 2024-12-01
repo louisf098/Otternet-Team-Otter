@@ -249,6 +249,35 @@ func setProvider(fileHash string) int {
 	return 0
 }
 
+func GetProviders(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Println("Get Providers API Hit")
+	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	fileHash, exists := vars["fileHash"]
+	if !exists || fileHash == "" {
+		http.Error(w, "Invalid file hash", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("File Hash: %s\n", fileHash)
+	providers, err := global.DHTNode.FindProviders(fileHash)
+	if err != nil {
+		http.Error(w, "Error finding providers", http.StatusInternalServerError)
+		return
+	}
+	var providerIDs []string
+	for _, provider := range providers {
+		providerIDs = append(providerIDs, provider.ID.String())
+	}
+	response := map[string][]string{"providers": providerIDs}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+	fmt.Println("Get Providers API Response Sent")
+}
+
 // Call FindProviders from dht.go to get list of providers, iterate through list of providers and send a ping to each provider
 // Receive price from each provider and store in a map, return map of providers with prices
 func GetFilePrices(w http.ResponseWriter, r *http.Request) {
