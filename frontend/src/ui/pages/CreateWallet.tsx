@@ -1,5 +1,8 @@
-import { useContext, useState } from "react";
+import * as bitcoin from "bitcoinjs-lib";
+import * as ecc from "tiny-secp256k1";
+import ECPairFactory from "ecpair";
 import React from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import Box from "@mui/material/Box";
@@ -16,6 +19,12 @@ import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import { Buffer } from "buffer";
+
+// Ensure Buffer is available globally
+window.Buffer = Buffer;
+
+const ECPair = ECPairFactory(ecc);
 
 const CreateWallet = () => {
   const navigate = useNavigate();
@@ -35,21 +44,16 @@ const CreateWallet = () => {
   };
 
   const handleGenerateWallet = () => {
-    let walletID: string = "";
-    let privateKey: string = "";
-    const characters: string =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let counter: number = 0;
-    while (counter < 32) {
-      walletID += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      privateKey += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      counter += 1;
-    }
-    setWalletID(walletID);
+    // Use bitcoinjs-lib to generate a key pair
+    const keyPair = ECPair.makeRandom();
+
+    // Get the public address in Bitcoin format
+    const { address } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey });
+
+    // Get the private key in Wallet Import Format (WIF)
+    const privateKey = keyPair.toWIF();
+
+    setWalletID(address ?? "");
     setPrivateKey(privateKey);
     setWalletKeyPair({ ...walletKeyPair, [walletID]: privateKey });
     console.log(walletKeyPair);
@@ -58,10 +62,10 @@ const CreateWallet = () => {
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
     const blob = new Blob(
-      ["Wallet ID: " + walletID + "\n" + "Private Key: " + privateKey],
-      {
-        type: "text/plain",
-      }
+      [
+        `Bitcoin Wallet\n\nAddress: ${walletID}\nPrivate Key: ${privateKey}\n\nKeep your private key safe!`,
+      ],
+      { type: "text/plain" }
     );
 
     // Create a URL for the blob object
