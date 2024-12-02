@@ -1,11 +1,11 @@
 package bitcoin
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "Otternet/backend/config"
+	"Otternet/backend/config"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 type BitcoinRPCRequest struct {
@@ -143,4 +143,17 @@ func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) 
     return label, nil
 }
 
+func (bc *BitcoinClient) TransferCoins(toAddress string, amount float64) (string, error) {
+    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount})
+    if err != nil {
+        return "", fmt.Errorf("failed to send coins: %w", err)
+    }
 
+    // Extract Transaction ID
+    transactionID, ok := response["result"].(string)
+    if !ok {
+        return "", fmt.Errorf("unexpected response format; no transaction ID found")
+    }
+
+    return transactionID, nil
+}

@@ -1,10 +1,11 @@
 package bitcoin
 
 import (
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "Otternet/backend/config"
+	"Otternet/backend/config"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
 )
 
 func GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +66,39 @@ func GetLabelFromAddressHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"label": label})
 }
 
+func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("TransferCoinsHandler triggered")
 
+    // Parse transfer query parameters
+    fromAddress := r.URL.Query().Get(("from"))
+    toAddress := r.URL.Query().Get("to")
+    amountStr := r.URL.Query().Get("amount")
 
+    // Validate parameters
+    if fromAddress == "" || toAddress == "" || amountStr == "" {
+        http.Error(w, "'from', 'to', or 'amount' parameter(s) are missing", http.StatusBadRequest)
+        return
+    }
 
+    // Check if transaction amount is valid
+    amount, err := strconv.ParseFloat(amountStr, 64)
+    if err != nil || amount <= 0 {
+        http.Error(w, "'amount' transaction must be a valid positive number", http.StatusBadRequest)
+        return
+    }
 
+    // Initialize config and Bitcoin client
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // Perform coin transfer using Bitcoin RPC
+    transactionID, err := btcClient.TransferCoins(toAddress, amount)
+    if err != nil {
+        fmt.Printf("Error with coin transaction: %v\n", err)
+        http.Error(w, fmt.Sprintf("Failed to transfer coins: %v\n", err), http.StatusInternalServerError)
+        return
+    }
+
+    // Encode JSON response with transaction ID
+    json.NewEncoder(w).Encode(map[string]string{"transactionID": transactionID})
+}

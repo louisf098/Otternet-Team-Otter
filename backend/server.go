@@ -1,21 +1,21 @@
 package main
 
 import (
-    "Otternet/backend/api/bitcoin"
-    "Otternet/backend/api/download"
-    files "Otternet/backend/api/files"
-    "Otternet/backend/api/proxy"
-    "context"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
-    "os/signal"
-    "syscall"
+	"Otternet/backend/api/bitcoin"
+	"Otternet/backend/api/download"
+	files "Otternet/backend/api/files"
+	"Otternet/backend/api/proxy"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-    "github.com/gorilla/handlers"
-    "github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 var corsOptions = handlers.CORS(
@@ -74,6 +74,8 @@ func main() {
     r.HandleFunc("/newaddress", bitcoin.GenerateAddressHandler).Methods("GET")
     // Label from address route
     r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
+    // Coin transaction route
+    r.HandleFunc("/transferCoins", bitcoin.TransferCoinsHandler).Methods("POST")
 
     // Other existing routes
     r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
