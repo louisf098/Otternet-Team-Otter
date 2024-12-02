@@ -95,6 +95,23 @@ func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
     return address, nil
 }
 
+func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
+    // Call the "createwallet" RPC with the wallet name
+    response, err := bc.call("createwallet", []interface{}{walletName})
+    if err != nil {
+        return "", err
+    }
+
+    // No need for a type assertion; response is already a map
+    result, ok := response["name"].(string)
+    if !ok {
+        return "", fmt.Errorf("unexpected result type for 'name': expected string, got %T", response["name"])
+    }
+
+    return result, nil
+}
+
+
 // func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
 //     // Call the "getaddressinfo" RPC method
 //     response, err := bc.call("getaddressinfo", []interface{}{addressStr})

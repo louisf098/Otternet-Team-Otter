@@ -5,6 +5,7 @@ import (
     "fmt"
     "net/http"
     "Otternet/backend/config"
+    "github.com/gorilla/mux"
 )
 
 func GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,31 @@ func GenerateAddressHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"address": address})
 }
 
+func GenerateWalletHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	labelStr, exists := vars["walletName"]
+	if !exists || labelStr == "" {
+		http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+		return
+	}
+    fmt.Println("CreateWalletHandler triggered")
+    // labelStr := r.URL.Query().Get("walletName")
+    // if labelStr == "" {
+    //     http.Error(w, "Label parameter is missing", http.StatusBadRequest)
+    //     return
+    // }
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+    response, err := btcClient.CreateNewWallet(labelStr)
+    if err != nil {
+        fmt.Printf("Error creating wallet: %v\n", err)
+    }
+    // Respond with the result of the createwallet RPC command
+    json.NewEncoder(w).Encode(response)
+
+}
+
 func GetLabelFromAddressHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Println("GenerateLabelFromAddressHandler triggered")
     
@@ -64,8 +90,4 @@ func GetLabelFromAddressHandler(w http.ResponseWriter, r *http.Request) {
     // Encode the response as JSON
     json.NewEncoder(w).Encode(map[string]string{"label": label})
 }
-
-
-
-
 

@@ -16,6 +16,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import { createWallet, generateAddress } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
@@ -35,24 +36,13 @@ const CreateWallet = () => {
   };
 
   const handleGenerateWallet = () => {
-    let walletID: string = "";
-    let privateKey: string = "";
-    const characters: string =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let counter: number = 0;
-    while (counter < 32) {
-      walletID += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      privateKey += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      counter += 1;
-    }
+    createWallet("new wallet");
+    let walletID: string = generateAddress();
     setWalletID(walletID);
-    setPrivateKey(privateKey);
-    setWalletKeyPair({ ...walletKeyPair, [walletID]: privateKey });
-    console.log(walletKeyPair);
+    // let privateKey: string = "";
+    // setPrivateKey(privateKey);
+    // setWalletKeyPair({ ...walletKeyPair, [walletID]: privateKey });
+    console.log(walletID);
   };
 
   const handleBackupDownload = () => {
