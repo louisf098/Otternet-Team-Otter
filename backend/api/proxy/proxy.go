@@ -2,185 +2,241 @@ package proxy
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"net/http"
-	"os"
 	"sync"
-	"time"
-
-	"github.com/gorilla/mux"
+	"github.com/elazarl/goproxy"
+	"github.com/ipfs/go-cid"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/multiformats/go-multihash"
 )
 
-type ProxyData struct {
-	ID        string  `json:"id"`
-	IPAddr    string  `json:"ipAddr"`
-	Price     float64 `json:"price"`
-	Timestamp string  `json:"timestamp"`
+// ProxyNode represents a proxy node's details
+type ProxyNode struct {
+	ID          string  `json:"id"`
+	IP          string  `json:"ip"`
+	Port        string  `json:"port"`
+	PricePerHour float64 `json:"pricePerHour"`
+	Status      string  `json:"status"` // "available", "busy"
 }
 
-var mutex = &sync.Mutex{}
+// In-memory data stores (replace with database in production)
+var (
+	proxyNodes     = []ProxyNode{}
+	activeSessions = map[string]bool{} // Tracks active sessions by user ID
+	mu             sync.Mutex
+	proxyServer    *http.Server
+	libp2pHost     host.Host
+	libp2pDHT      *dht.IpfsDHT
+	globalCtx      context.Context
+)
 
-var serverStarted = false
-var proxyServer *http.Server
-var customTransport = http.DefaultTransport
-
-const jsonFilePath = "./api/proxy/proxy.json"
-
-// Handles connecting to a different node's proxy. For now, we just store proxy history in a JSON file.
-func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
-		return
-	}
-	fmt.Println("Connect to Proxy API Hit")
-	w.Header().Set("Content-Type", "application/json")
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-	var postData ProxyData
-	fmt.Println("Body: ", string(body))
-	err = json.Unmarshal(body, &postData)
-	if err != nil {
-		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
-		return
-	}
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	var postDatas []ProxyData
-
-	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
-		fmt.Println("File does not exist")
-		emptyData := []ProxyData{}
-		firstData, err := json.MarshalIndent(emptyData, "", " ")
-		if err != nil {
-			http.Error(w, "Error marshalling empty data", http.StatusInternalServerError)
-			return
-		}
-		err = os.WriteFile(jsonFilePath, firstData, 0644) // 0644 means read/write permissions for owner, read permissions for all others
-		if err != nil {
-			http.Error(w, "Error writing empty data", http.StatusInternalServerError)
-			fmt.Println("Error writing empty data")
-			return
-		}
-	}
-	existingData, err := os.ReadFile(jsonFilePath)
-	if err != nil {
-		http.Error(w, "Error reading existing data", http.StatusInternalServerError)
-		return
-	}
-	err = json.Unmarshal(existingData, &postDatas)
-	if err != nil {
-		http.Error(w, "Error unmarshalling existing data", http.StatusInternalServerError)
-		return
-	}
-	postDatas = append(postDatas, postData)
-	newData, err := json.MarshalIndent(postDatas, "", " ")
-	if err != nil {
-		http.Error(w, "Error marshalling new data", http.StatusInternalServerError)
-		return
-	}
-	err = os.WriteFile(jsonFilePath, newData, 0644)
-	if err != nil {
-		http.Error(w, "Error writing new data", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(postData)
-	fmt.Println("Post Data: ", postData)
-	fmt.Println("Post Datas: ", postDatas)
-	fmt.Println("Successfully connected to proxy")
+// InitializeDHT initializes the DHT and stores the libp2p host and DHT instances
+func InitializeDHT(ctx context.Context, h host.Host, d *dht.IpfsDHT) {
+	libp2pHost = h
+	libp2pDHT = d
+	globalCtx = ctx
 }
 
-// Get proxy history
-func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
-		return
+// AdvertiseSelfAsNode advertises the current server as a node on the DHT
+func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
+	if libp2pHost == nil || libp2pDHT == nil {
+		return fmt.Errorf("DHT or host not initialized")
 	}
-	fmt.Println("Get Proxy History API Hit")
-	w.Header().Set("Content-Type", "application/json")
-	mutex.Lock()
-	defer mutex.Unlock()
-	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
-		http.Error(w, "No proxy history found", http.StatusNotFound)
-		return
-	}
-	existingData, err := os.ReadFile(jsonFilePath)
+
+	// Generate a unique identifier for this proxy node
+	nodeInfo := fmt.Sprintf("%s:%s", ip, port)
+	hash := sha256.Sum256([]byte(nodeInfo))
+	mh, err := multihash.EncodeName(hash[:], "sha2-256")
 	if err != nil {
-		http.Error(w, "Error reading existing data", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to create multihash: %v", err)
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(existingData)
-	fmt.Println("Successfully retrieved proxy history")
+
+	// Create a CID (Content Identifier) for the node
+	c := cid.NewCidV1(cid.Raw, mh)
+
+	// Announce the CID to the DHT
+	err = libp2pDHT.Provide(ctx, c, true)
+	if err != nil {
+		return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
+	}
+
+	log.Printf("Advertised node in DHT: %s (CID: %s)\n", nodeInfo, c)
+
+	// Register the node locally
+	mu.Lock()
+	defer mu.Unlock()
+	proxyNodes = append(proxyNodes, ProxyNode{
+		ID:          c.String(),
+		IP:          ip,
+		Port:        port,
+		PricePerHour: pricePerHour,
+		Status:      "available",
+	})
+	return nil
 }
 
-// Become a proxy server
+// StartServer starts the proxy server on the specified port
 func StartServer(w http.ResponseWriter, r *http.Request) {
-	if serverStarted {
-		http.Error(w, "Server already started", http.StatusBadRequest)
+	type StartRequest struct {
+		Port string `json:"port"`
+	}
+
+	var req StartRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Port == "" {
+		http.Error(w, "Invalid port provided", http.StatusBadRequest)
 		return
 	}
+
+	// Prevent multiple server instances
+	if proxyServer != nil {
+		http.Error(w, "Proxy server is already running", http.StatusConflict)
+		return
+	}
+
+	// Start the proxy server
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.Verbose = true
 
 	proxyServer = &http.Server{
-		Addr:    ":9138",
-		Handler: http.HandlerFunc(HandleRequest),
+		Addr:    ":" + req.Port,
+		Handler: proxy,
 	}
 
-	// Start server in a goroutine so that it doesn't block the main thread
 	go func() {
-		err := proxyServer.ListenAndServe()
-		if err != nil {
-			fmt.Printf("Error starting server: %v\n", err)
-			serverStarted = false
+		log.Printf("Starting proxy server on port %s...\n", req.Port)
+		if err := proxyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Proxy server error: %v\n", err)
 		}
 	}()
-	serverStarted = true
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Println("Successfully started proxy server on port 9138")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy server started"})
 }
 
+// ShutdownServer gracefully shuts down the proxy server
 func ShutdownServer(w http.ResponseWriter, r *http.Request) {
-	if !serverStarted {
-		http.Error(w, "Server not started", http.StatusBadRequest)
+	if proxyServer == nil {
+		http.Error(w, "Proxy server is not running", http.StatusConflict)
 		return
 	}
-	// If server takes more than 8 seconds to shutdown, forcefully close it
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-	defer cancel()
 
-	err := proxyServer.Shutdown(ctx)
-	if err != nil {
-		http.Error(w, "Error shutting down server", http.StatusInternalServerError)
-		return
+	log.Println("Shutting down proxy server...")
+	if err := proxyServer.Close(); err != nil {
+		log.Fatalf("Error shutting down proxy server: %v\n", err)
 	}
-	serverStarted = false
 
+	proxyServer = nil
 	w.WriteHeader(http.StatusOK)
-	fmt.Println("Successfully stopped proxy server")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy server shut down"})
 }
 
-func HandleRequest(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	target := vars["target"]
-
-	targetURL := "https://" + target + r.URL.Path
-	fmt.Println("Target URL: ", targetURL)
-
-}
-
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-	if serverStarted {
-		w.WriteHeader(http.StatusOK)
-		fmt.Println("Server is running")
-	} else {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Println("Server is not running")
+// ConnectToProxy handles user connection to a proxy node
+func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
+	type ConnectRequest struct {
+		UserID string `json:"userId"`
+		NodeID string `json:"nodeId"`
 	}
+
+	var req ConnectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Find the requested node
+	var node *ProxyNode
+	for i, n := range proxyNodes {
+		if n.ID == req.NodeID {
+			node = &proxyNodes[i]
+			break
+		}
+	}
+
+	if node == nil || node.Status != "available" {
+		http.Error(w, "Proxy node is not available", http.StatusBadRequest)
+		return
+	}
+
+	// Mark node as busy
+	node.Status = "busy"
+	activeSessions[req.UserID] = true
+
+	log.Printf("User %s connected to node %s\n", req.UserID, req.NodeID)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Connected to proxy node"})
+}
+
+// GetProxyHistory fetches active session details
+func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	sessionDetails := []string{}
+	for userID := range activeSessions {
+		sessionDetails = append(sessionDetails, userID)
+	}
+
+	json.NewEncoder(w).Encode(sessionDetails)
+}
+
+// HandleRequest processes proxy-specific HTTP requests
+func HandleRequest(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Handling request: %s %s\n", r.Method, r.URL.Path)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Request handled"})
+}
+
+// GetStatus returns the current status of the proxy server
+func GetStatus(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	status := "stopped"
+	if proxyServer != nil {
+		status = "running"
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"status": status})
+}
+
+// GetNodesHandler returns all registered proxy nodes
+func GetNodesHandler(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+	json.NewEncoder(w).Encode(proxyNodes)
+}
+
+// RegisterNodeHandler handles the registration of a new proxy node
+func RegisterNodeHandler(w http.ResponseWriter, r *http.Request) {
+    var newNode ProxyNode
+    if err := json.NewDecoder(r.Body).Decode(&newNode); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    mu.Lock()
+    defer mu.Unlock()
+
+    // Check for duplicate node ID
+    for _, node := range proxyNodes {
+        if node.ID == newNode.ID {
+            http.Error(w, "Node with this ID already exists", http.StatusConflict)
+            return
+        }
+    }
+
+    // Add the new node to the list
+    proxyNodes = append(proxyNodes, newNode)
+    log.Printf("Node registered: %+v\n", newNode)
+
+    w.WriteHeader(http.StatusCreated)
+    json.NewEncoder(w).Encode(map[string]string{"message": "Node registered successfully"})
 }
