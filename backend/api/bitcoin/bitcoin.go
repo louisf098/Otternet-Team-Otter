@@ -80,16 +80,67 @@ func (bc *BitcoinClient) GetBalance() (float64, error) {
     return balance, nil
 }
 
-
-func (bc *BitcoinClient) GenerateNewAddress() (string, error) {
-    response, err := bc.call("getnewaddress", []interface{}{})
+func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
+    response, err := bc.call("getnewaddress", []interface{}{label})
     if err != nil {
-        return "", err
+        return "", fmt.Errorf("failed to generate new address: %w", err)
     }
+
+    // Extract the "result" field containing the address
     address, ok := response["result"].(string)
     if !ok {
-        return "", fmt.Errorf("unexpected result type")
+        return "", fmt.Errorf("unexpected result type; expected string")
     }
+
     return address, nil
 }
+
+// func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
+//     // Call the "getaddressinfo" RPC method
+//     response, err := bc.call("getaddressinfo", []interface{}{addressStr})
+//     if err != nil {
+//         return "", fmt.Errorf("failed to retrieve address info: %w", err)
+//     }
+
+//     // Extract the "label" field from the result map
+//     label, ok := response["label"].(string)
+//     if !ok {
+//         return "", fmt.Errorf("label not found for address")
+//     }
+
+//     return label, nil
+// }
+
+func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
+    // Call the "getaddressinfo" RPC method
+    response, err := bc.call("getaddressinfo", []interface{}{addressStr})
+    if err != nil {
+        return "", fmt.Errorf("failed to retrieve address info: %w", err)
+    }
+
+    // Print the full response for debugging
+    fmt.Printf("Full response from getaddressinfo: %+v\n", response)
+
+
+    // Access the "result" field, which should be a nested map
+    result, ok := response["result"].(map[string]interface{})
+    if !ok {
+        return "", fmt.Errorf("unexpected response format from getaddressinfo")
+    }
+    // fmt.Printf("Full response from result: %+v\n", result["labels"].([]interface{}))
+
+    // Access the "labels" field within "result", expecting an array
+    labels, ok := result["labels"].([]interface{})
+    if !ok || len(labels) == 0 {
+        return "", fmt.Errorf("label not found for address")
+    }
+    // Extract the first label in the array and assert it as a string
+    label, ok := labels[0].(string)
+    if !ok {
+        return "", fmt.Errorf("unexpected label format")
+    }
+
+    return label, nil
+}
+
 
