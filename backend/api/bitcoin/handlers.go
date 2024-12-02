@@ -34,3 +34,20 @@ func GenerateAddressHandler(w http.ResponseWriter, r *http.Request) {
     }
     json.NewEncoder(w).Encode(map[string]string{"address": address})
 }
+
+func GenerateWalletHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("CreateWalletHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+    response, err := btcClient.CreateNewWallet()
+    if err != nil {
+        fmt.Printf("Error creating wallet: %v\n", err)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Respond with the result of the createwallet RPC command
+    json.NewEncoder(w).Encode(response)
+}
+

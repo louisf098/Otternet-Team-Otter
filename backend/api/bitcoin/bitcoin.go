@@ -93,3 +93,11 @@ func (bc *BitcoinClient) GenerateNewAddress() (string, error) {
     return address, nil
 }
 
+func (bc *BitcoinClient) CreateNewWallet() (string, error) {
+    response, err := bc.call("createwallet", []interface{}{"*"})
+    if err != nil {
+        return nil, err
+    }
+    return response, nil
+}
+
