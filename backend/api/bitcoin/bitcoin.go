@@ -95,7 +95,6 @@ func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
     return address, nil
 }
 
-<<<<<<< HEAD
 func (bc *BitcoinClient) CreateNewWallet() (string, error) {
     response, err := bc.call("createwallet", []interface{}{"*"})
     if err != nil {
@@ -104,7 +103,6 @@ func (bc *BitcoinClient) CreateNewWallet() (string, error) {
     return response, nil
 }
 
-=======
 // func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
 //     // Call the "getaddressinfo" RPC method
 //     response, err := bc.call("getaddressinfo", []interface{}{addressStr})
@@ -154,4 +152,3 @@ func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) 
 }
 
 
->>>>>>> origin
