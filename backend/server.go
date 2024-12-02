@@ -158,3 +158,54 @@ func jsonResponse(w http.ResponseWriter, r *http.Request) {
 	test := TestJSON{Name: "Test"}
 	json.NewEncoder(w).Encode(test)
 }
+
+func main() {
+    r := mux.NewRouter()
+    r.HandleFunc("/test", testOutput)
+    r.HandleFunc("/hello/{name}", nameReader)
+    r.HandleFunc("/json", jsonResponse)
+    r.HandleFunc("/", baseHandler)
+
+    // Register Bitcoin routes
+    r.HandleFunc("/balance", bitcoin.GetBalanceHandler).Methods("GET")
+    r.HandleFunc("/newaddress", bitcoin.GenerateAddressHandler).Methods("GET")
+    // Label from address route
+    r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
+
+    // Other existing routes
+    r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
+    r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
+    r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
+    r.HandleFunc("/download", download.DownloadFile).Methods("POST")
+    r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
+    r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
+    r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
+
+    handlerWithCORS := corsOptions(r)
+
+    server := &http.Server{
+        Addr:    ":9378",
+        Handler: handlerWithCORS,
+    }
+
+    signalChan := make(chan os.Signal, 1)
+    signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
+    shutdownComplete := make(chan bool)
+    go func() {
+        println("Preparing to listen on port 9378")
+        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            log.Fatalf("ListenAndServer error: %s\n", err)
+        }
+    }()
+
+    go func() {
+        sig := <-signalChan
+        fmt.Printf("Received signal: %s\n", sig)
+        if err := server.Shutdown(context.TODO()); err != nil {
+            log.Fatalf("Error during shutdown: %v", err)
+        }
+        shutdownComplete <- true
+    }()
+    <-shutdownComplete
+    log.Println("Server stopped")
+}
