@@ -35,13 +35,12 @@ const CreateWallet = () => {
     navigator.clipboard.writeText(text);
   };
 
-  const handleGenerateWallet = (walletName: string, passphrase: string) => {
-    let res = createWallet("danny30", "999");
+  const handleGenerateWallet = async (walletName: string, passphrase: string) => {
+    let res = await createWallet("danny31", "999");
     console.log(res.address);
     setWalletID(res.address);
     setPrivateKey(privateKey);
     setWalletKeyPair({ ...walletKeyPair, [walletID]: passphrase });
-    console.log(walletKeyPair);
   };
 
   const handleBackupDownload = () => {
