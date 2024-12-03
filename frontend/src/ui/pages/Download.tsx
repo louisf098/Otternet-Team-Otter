@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "@mui/material";
 import { Button, CircularProgress } from "@mui/material";
@@ -54,19 +54,6 @@ const Download = () => {
 
   const handleDownloadClick = async (phash: string) => {
     try {
-      // const postData: FormData = {
-      //   userID: phash, 
-      //   price: pprice,
-      //   fileName: dummyFileDetails.name,
-      //   filePath: downloadLocation,
-      //   fileSize: dummyFileDetails.size,
-      //   fileType: dummyFileDetails.type,
-      //   timestamp: new Date().toISOString(),
-      //   fileHash: searchedHash,
-      //   bundleMode: false
-      // };
-
-
 
       const postData = {
         ProviderID : phash,
@@ -176,8 +163,10 @@ const Download = () => {
                   <Card>
                     <CardContent>
                       <Box display="flex" justifyContent="space-between">
-                        <Box display="flex" flexDirection="column" alignItems="flex-start">
-                          <Typography variant="body2">WalletID: {provider.walletID}</Typography>
+                        <Box display="flex" flexDirection="column" alignItems="flex-start" >
+                          <Tooltip title={provider.walletID} arrow>
+                          <Typography variant="body2" noWrap sx={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>WalletID: {provider.walletID}</Typography>
+                          </Tooltip>
                           <Typography variant="body2">Price: {provider.price} OTTC</Typography>
                         </Box>
                         <CardActions>

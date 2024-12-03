@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -180,7 +181,6 @@ func GetAllFiles(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
 		return
 	}
-	fmt.Println("Get All Files API Hit")
 	w.Header().Set("Content-Type", "application/json")
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -195,7 +195,6 @@ func GetAllFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(fileData)
-	fmt.Println("Get All Files API Response Sent")
 }
 
 // Confirm that file exists in DHT
@@ -285,7 +284,6 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
 		return
 	}
-	fmt.Println("Get File Prices API Hit")
 	w.Header().Set("Content-Type", "application/json")
 
 	vars := mux.Vars(r)
@@ -296,18 +294,22 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No file hash provided", http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("File Hash: %s\n", fileHash)
+	fmt.Printf("Searching Providers of File Hash: %s\n", fileHash)
 
 	providers, err := global.DHTNode.FindProviders(fileHash)
 	if err != nil {
 		http.Error(w, "Error finding providers", http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("Found Provider(s): %v\n", providers)
+
+	var providerIDs []string
+	for _, provider := range providers {
+		providerIDs = append(providerIDs, provider.ID.String())
+	}
+	fmt.Printf("Found Provider(s): %v\n", providerIDs)
 
 	prices := make(map[string]float64)
 	for _, provider := range providers {
-
 		// open stream to provider using priceRequest protocol
 
 		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, priceRequestProtocol)
@@ -315,7 +317,7 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Error opening stream: %v\n", err)
 			continue
 		}
-		fmt.Printf("Opened stream to provider %s\n", provider.ID.String())
+		fmt.Printf("Connected to provider %s\n", provider.ID.String())
 
 		// send file hash to provider
 		_, err = stream.Write([]byte(fileHash + "\n"))
@@ -323,7 +325,6 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Error sending file hash: %v\n", err)
 			continue
 		}
-		fmt.Printf("Sent file hash to provider %s\n", provider.ID.String())
 		defer stream.Close()
 
 		// provider will send price back in byte form - ensure it is decoded correctly into float64
@@ -336,7 +337,7 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fmt.Printf("Received price from provider %s: %f\n", provider.ID.String(), price)
+		fmt.Printf("File priced at %f OTTC from provider %s\n", price, provider.ID.String())
 
 		prices[provider.ID.String()] = price
 	}
@@ -344,7 +345,6 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 	// send map of providers with prices back
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(prices)
-	fmt.Println("Get File Prices API Response Sent")
 }
 
 // Handles downloading file metadata and file
@@ -354,7 +354,6 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Println("File Download API Hit")
 
 	// get details from request
 	body, err := io.ReadAll(r.Body)
@@ -391,8 +390,6 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Found peer\n")
-
 	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
 	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
 	if err != nil {
@@ -401,7 +398,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer stream.Close()
 
-	fmt.Println("Opened stream to peer")
+	fmt.Printf("Connected to provider %s\n", providerID)
 
 	// Send file hash to peer
 	_, err = stream.Write([]byte(fileHash + "\n"))
@@ -410,7 +407,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Sent file hash to peer")
+	fmt.Println("Sending the File Hash to Provider")
 
 	// Receive file metadata from peer
 	decoder := json.NewDecoder(stream)
@@ -425,13 +422,15 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Download file from peer
 
+	fmt.Println("Creating the File in Download Location")
+
 	file, err := os.Create(downloadPath + "/" + metadata.FileName)
 	if err != nil {
 		fmt.Printf("Error creating file: %v\n", err)
 		return
 	}
 
-	fmt.Println("Created file")
+	fmt.Println("Downloading in Progress")
 
 	_, err = io.Copy(file, stream)
 	if err != nil {
@@ -450,7 +449,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		FilePath:   downloadPath,
 		FileSize:   metadata.FileSize,
 		FileType:   metadata.FileType,
-		Timestamp:  metadata.Timestamp,
+		Timestamp:  time.Now().Format(time.RFC3339),
 		FileHash:   fileHash,
 		BundleMode: metadata.BundleMode,
 	}
@@ -464,5 +463,4 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
-	fmt.Println("File Download API Response Sent")
 }
