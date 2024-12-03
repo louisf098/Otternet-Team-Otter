@@ -1,5 +1,3 @@
-const axios = require("axios");
-
 // Bitcoin Core RPC configuration
 const rpcUser = "your_rpc_username";
 const rpcPassword = "your_rpc_password";
