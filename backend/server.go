@@ -2,9 +2,11 @@ package main
 
 import (
 	"Otternet/backend/api/bitcoin"
+	"Otternet/backend/api/dhtnode"
 	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
+	"Otternet/backend/global"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -19,41 +21,93 @@ import (
 )
 
 var corsOptions = handlers.CORS(
-	handlers.AllowedOrigins([]string{"*"}), // Update as needed
+	handlers.AllowedOrigins([]string{"*"}),
 	handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 	handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 )
 
-// Global context for managing proxy mode
 var (
 	globalCtx       context.Context
 	cancelGlobalCtx context.CancelFunc
 )
 
+type TestJSON struct {
+    Name string `json:"name"`
+}
+
+func baseHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello World")
+}
+
+/*
+Test Function
+*/
+func testOutput(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		fmt.Fprintf(w, "GET")
+	case "POST":
+		fmt.Fprintf(w, "POST")
+	default:
+		http.Error(w, "Invalid request method.", http.StatusMethodNotAllowed)
+	}
+}
+
+func nameReader(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
+	fmt.Fprintf(w, "Hello %s!\n", name)
+}
+
+func jsonResponse(w http.ResponseWriter, r *http.Request) {
+	type TestJSON struct {
+		Name string `json:"name"`
+	}
+	test := TestJSON{Name: "Test"}
+	json.NewEncoder(w).Encode(test)
+}
+
 func main() {
+	var err error
+	global.DHTNode, err = dhtnode.CreateLibp2pHost()
+	if err != nil {
+		log.Fatalf("Failed to instantiate the DHT node: %v", err)
+	}
+	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
+	global.DHTNode.MakeReservation()
+	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
+	files.HandleFileRequests(global.DHTNode.Host)
+	files.HandlePriceRequests(global.DHTNode.Host)
+	go global.DHTNode.HandlePeerExchange()
+
+	defer global.DHTNode.Close()
+
 	// Create a cancellable context for proxy mode
 	globalCtx, cancelGlobalCtx = context.WithCancel(context.Background())
 	defer cancelGlobalCtx()
 
-	// Create router and register routes
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
 	r.HandleFunc("/hello/{name}", nameReader)
 	r.HandleFunc("/json", jsonResponse)
 	r.HandleFunc("/", baseHandler)
 
-	// Bitcoin-related routes
+	// Register Bitcoin routes
 	r.HandleFunc("/balance", bitcoin.GetBalanceHandler).Methods("GET")
 	r.HandleFunc("/newaddress", bitcoin.GenerateAddressHandler).Methods("GET")
 
 	// Label from address route
 	r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
 
-	// File sharing routes
+	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
+	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
 	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
-	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
+	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
+	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
+	r.HandleFunc("/getProviders/{fileHash}", files.GetProviders).Methods("GET")
+	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 
 	// Proxy-related routes
@@ -70,31 +124,35 @@ func main() {
 	r.HandleFunc("/startProxyMode", startProxyModeHandler).Methods("POST")
 	r.HandleFunc("/stopProxyMode", stopProxyModeHandler).Methods("POST")
 
-	// Set up the server
+	handlerWithCORS := corsOptions(r)
+
 	server := &http.Server{
-		Addr:    ":9378",
-		Handler: corsOptions(r),
+		Addr:    ":9378", // 9378
+		Handler: handlerWithCORS,
 	}
 
-	// Graceful shutdown logic
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
-
+	shutdownComplete := make(chan bool)
 	go func() {
-		sig := <-signalChan
-		fmt.Printf("Received signal: %s. Shutting down...\n", sig)
-		cancelGlobalCtx()
-		if err := server.Close(); err != nil {
-			log.Fatalf("Error shutting down server: %v", err)
+		println("Preparing to listen on port 9378")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServer error: %s\n", err)
 		}
 	}()
 
-	// Start the server
-	fmt.Println("Server started on port 9378")
-	log.Fatal(server.ListenAndServe())
+	go func() {
+		sig := <-signalChan
+		fmt.Printf("Received signal: %s\n", sig)
+		if err := server.Shutdown(context.TODO()); err != nil {
+			log.Fatalf("Error during shutdown: %v", err)
+		}
+		shutdownComplete <- true
+	}()
+	<-shutdownComplete
+	log.Println("Server stopped")
 }
 
-// starting proxy mode
 func startProxyModeHandler(w http.ResponseWriter, r *http.Request) {
 	type ProxyConfig struct {
 		IP          string  `json:"ip"`
@@ -129,35 +187,4 @@ func stopProxyModeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy mode stopped"})
-}
-
-// Helper Functions
-
-func baseHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World")
-}
-
-func testOutput(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		fmt.Fprintf(w, "GET")
-	case "POST":
-		fmt.Fprintf(w, "POST")
-	default:
-		http.Error(w, "Invalid request method.", http.StatusMethodNotAllowed)
-	}
-}
-
-func nameReader(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
-	fmt.Fprintf(w, "Hello %s!\n", name)
-}
-
-func jsonResponse(w http.ResponseWriter, r *http.Request) {
-	type TestJSON struct {
-		Name string `json:"name"`
-	}
-	test := TestJSON{Name: "Test"}
-	json.NewEncoder(w).Encode(test)
 }

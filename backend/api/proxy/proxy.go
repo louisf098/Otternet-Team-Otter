@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"Otternet/backend/global"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -8,20 +9,19 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
 	"github.com/elazarl/goproxy"
-	"github.com/ipfs/go-cid"
-	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/ipfs/go-cid"  // Correct import for CID
 	"github.com/multiformats/go-multihash"
 )
 
 // ProxyNode represents a proxy node's details
 type ProxyNode struct {
-	ID          string  `json:"id"`
-	IP          string  `json:"ip"`
-	Port        string  `json:"port"`
+	ID           string  `json:"id"`
+	IP           string  `json:"ip"`
+	Port         string  `json:"port"`
 	PricePerHour float64 `json:"pricePerHour"`
-	Status      string  `json:"status"` // "available", "busy"
+	Status       string  `json:"status"` // "available", "busy"
 }
 
 // In-memory data stores (replace with database in production)
@@ -30,22 +30,12 @@ var (
 	activeSessions = map[string]bool{} // Tracks active sessions by user ID
 	mu             sync.Mutex
 	proxyServer    *http.Server
-	libp2pHost     host.Host
-	libp2pDHT      *dht.IpfsDHT
-	globalCtx      context.Context
 )
-
-// InitializeDHT initializes the DHT and stores the libp2p host and DHT instances
-func InitializeDHT(ctx context.Context, h host.Host, d *dht.IpfsDHT) {
-	libp2pHost = h
-	libp2pDHT = d
-	globalCtx = ctx
-}
 
 // AdvertiseSelfAsNode advertises the current server as a node on the DHT
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
-	if libp2pHost == nil || libp2pDHT == nil {
-		return fmt.Errorf("DHT or host not initialized")
+	if global.DHTNode == nil {
+		return fmt.Errorf("DHT node is not initialized")
 	}
 
 	// Generate a unique identifier for this proxy node
@@ -59,8 +49,8 @@ func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour floa
 	// Create a CID (Content Identifier) for the node
 	c := cid.NewCidV1(cid.Raw, mh)
 
-	// Announce the CID to the DHT
-	err = libp2pDHT.Provide(ctx, c, true)
+	// Use the ProvideKey method to advertise the node in DHT
+	err = global.DHTNode.ProvideKey(string(c.Bytes()))
 	if err != nil {
 		return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
 	}
@@ -71,11 +61,11 @@ func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour floa
 	mu.Lock()
 	defer mu.Unlock()
 	proxyNodes = append(proxyNodes, ProxyNode{
-		ID:          c.String(),
-		IP:          ip,
-		Port:        port,
+		ID:           c.String(),
+		IP:           ip,
+		Port:         port,
 		PricePerHour: pricePerHour,
-		Status:      "available",
+		Status:       "available",
 	})
 	return nil
 }
@@ -216,27 +206,27 @@ func GetNodesHandler(w http.ResponseWriter, r *http.Request) {
 
 // RegisterNodeHandler handles the registration of a new proxy node
 func RegisterNodeHandler(w http.ResponseWriter, r *http.Request) {
-    var newNode ProxyNode
-    if err := json.NewDecoder(r.Body).Decode(&newNode); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+	var newNode ProxyNode
+	if err := json.NewDecoder(r.Body).Decode(&newNode); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-    mu.Lock()
-    defer mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-    // Check for duplicate node ID
-    for _, node := range proxyNodes {
-        if node.ID == newNode.ID {
-            http.Error(w, "Node with this ID already exists", http.StatusConflict)
-            return
-        }
-    }
+	// Check for duplicate node ID
+	for _, node := range proxyNodes {
+		if node.ID == newNode.ID {
+			http.Error(w, "Node with this ID already exists", http.StatusConflict)
+			return
+		}
+	}
 
-    // Add the new node to the list
-    proxyNodes = append(proxyNodes, newNode)
-    log.Printf("Node registered: %+v\n", newNode)
+	// Add the new node to the list
+	proxyNodes = append(proxyNodes, newNode)
+	log.Printf("Node registered: %+v\n", newNode)
 
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(map[string]string{"message": "Node registered successfully"})
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Node registered successfully"})
 }
