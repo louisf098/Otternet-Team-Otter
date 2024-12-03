@@ -4,6 +4,8 @@ import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "
 import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { Snackbar } from "@mui/material";
+import { set } from "react-hook-form";
 
 const Download = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +17,20 @@ const Download = () => {
   const [selectedPrice, setSelectedPrice] = useState<number>();
   const [selectedWallet, setSelectedWallet] = useState<string>("");
   const [isValidHash, setIsValidHash] = useState<boolean | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+
+
+  const handleSnackbarClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbarOpen(false);
+  }
 
   const handleSearchClick = async () => {
     if (!fileHash.trim()) {
@@ -80,13 +96,27 @@ const Download = () => {
         method: 'POST',
         body: JSON.stringify(postData),
       });
-      
+
       console.log("Response: ", response);
       setDownloadModalOpen(false);
       setDownloadLocation("");
 
+      if (response.ok) {
+        setSnackbarMessage("Download successful");
+        setSnackbarSeverity("success");
+      } else {
+        const error = await response.json();
+        setSnackbarMessage(error.message || "An error occurred during download");
+        setSnackbarSeverity("error");
+      }
+
+      setSnackbarOpen(true);
+
     } catch (err: any) {
       console.error("An error occurred during download:", err);
+      setSnackbarMessage("An error occurred during download");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
       setDownloadModalOpen(false);
       setDownloadLocation("");
     }
@@ -247,6 +277,15 @@ const Download = () => {
           </Box>
         </Box>
       </Modal>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
