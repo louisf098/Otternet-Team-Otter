@@ -153,15 +153,15 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
 
-    // Create wallet
+    // load wallet
     walletName, err := btcClient.LoadWallet(walletName)
     if err != nil {
         fmt.Printf("Error loading wallet: %v\n", err)
         return
     }
 
-    // Generate address for the new wallet
-    _, err = btcClient.UnlockWallet(walletName, passphrase)
+    // unlock wallet
+    err = btcClient.UnlockWallet(walletName, passphrase)
     if err != nil {
         fmt.Printf("Error unlocking wallet: %v\n", err)
         return

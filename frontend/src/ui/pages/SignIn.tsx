@@ -25,9 +25,9 @@ const SignIn = () => {
       event.preventDefault();
       return;
     }
-    const walletId = document.getElementById("walletID") as HTMLInputElement;
+    // const walletId = document.getElementById("walletID") as HTMLInputElement;
 
-    setPublicKey(walletId.value);
+    // setPublicKey(walletId.value);
     navigate("/dashboard", { replace: true });
   };
 
@@ -45,7 +45,8 @@ const SignIn = () => {
 
     let status = await unlockWallet(walletID.value, privateKey.value)
     if (status != "unlocked") {
-      return false;
+        setError(true);
+        return false;
     }
 
     // if (!Object.keys(walletKeyPair).includes(walletID.value)) {

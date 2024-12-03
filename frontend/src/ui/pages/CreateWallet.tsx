@@ -256,7 +256,7 @@ const CreateWallet = () => {
                 variant="contained"
                 onClick={handleGenerateWallet}
               >
-                Generate Wallet ID
+                Generate Wallet
               </Button>
             </>
           )}

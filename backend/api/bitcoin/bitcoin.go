@@ -186,21 +186,17 @@ func (bc *BitcoinClient) LoadWallet(walletName string) (string, error) {
     }
     result, ok := response["result"].(string)
     if !ok {
-        return "", fmt.Errorf("Failed to load wallet.")
+        return "", err
     }
     return result, nil
 }
 
-func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) (string, error) {
-    response, err := bc.call("walletpassphrase", []interface{}{passphrase, 600}, walletName)
+func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) error  {
+    _, err := bc.call("walletpassphrase", []interface{}{passphrase, 600}, walletName)
     if err != nil {
-        return "", err
+        return fmt.Errorf("Failed to unlock wallet: %w", err)
     }
-    result, ok := response["result"].(string)
-    if !ok {
-        return "", fmt.Errorf("Failed to unlock wallet.")
-    }
-    return result, nil
+    return nil
 }
 
 
