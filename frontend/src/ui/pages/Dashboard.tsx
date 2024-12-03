@@ -98,11 +98,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: qsfjlkwjf923urjfwoijfjefipjwf
               <Typography variant="body1">Balance: 555 OTC</Typography>
-              <Typography variant="body1">Mining Revenue: 555 OTC</Typography>
+              <Typography variant="body1">File Revenue: 555 OTC</Typography>
               <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
             </Typography>
           </Paper>
-          <Grid size={2.4}>
+          {/* <Grid size={2.4}>
             <Box
               component={Paper}
               sx={{
@@ -119,7 +119,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 {mining ? "Pause Mining" : "Start Mining"}
               </Button>
             </Box>
-          </Grid>
+          </Grid> */}
         </Box>
 
         <Box
