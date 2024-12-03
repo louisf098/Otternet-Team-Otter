@@ -134,7 +134,7 @@ func CreateWalletAndAddressHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{
         "walletName": walletName,
         "address":    address,
-        "privkey":      passStr,
+        "passphrase": passStr,
     })
 }
 
