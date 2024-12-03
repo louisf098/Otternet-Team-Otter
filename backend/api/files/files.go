@@ -307,12 +307,15 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 
 	prices := make(map[string]float64)
 	for _, provider := range providers {
+
+		// open stream to provider using priceRequest protocol
+
 		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, priceRequestProtocol)
 		if err != nil {
 			fmt.Printf("Error opening stream: %v\n", err)
 			continue
 		}
-		defer stream.Close()
+		fmt.Printf("Opened stream to provider %s\n", provider.ID.String())
 
 		// send file hash to provider
 		_, err = stream.Write([]byte(fileHash + "\n"))
@@ -320,15 +323,20 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Error sending file hash: %v\n", err)
 			continue
 		}
+		fmt.Printf("Sent file hash to provider %s\n", provider.ID.String())
+		defer stream.Close()
 
 		// provider will send price back in byte form - ensure it is decoded correctly into float64
 		decoder := json.NewDecoder(stream)
+
 		var price float64
 		err = decoder.Decode(&price)
 		if err != nil {
 			fmt.Printf("Error decoding price: %v\n", err)
 			continue
 		}
+
+		fmt.Printf("Received price from provider %s: %f\n", provider.ID.String(), price)
 
 		prices[provider.ID.String()] = price
 	}
@@ -370,16 +378,20 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	downloadPath := postData.DownloadPath
 	fileHash := postData.FileHash
 
-	// make sure peerID is valid
-	peerID := peer.ID(providerID)
-	fmt.Printf("Peer ID: %s\n", peerID)
-
 	// Obtain peer info from DHT using providerID
+	peerID, err := peer.Decode(providerID)
+	if err != nil {
+		http.Error(w, "Invalid provider ID", http.StatusBadRequest)
+		return
+	}
+
 	peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
 	if err != nil {
 		fmt.Printf("Error finding peer: %v\n", err)
 		return
 	}
+
+	fmt.Printf("Found peer\n")
 
 	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
 	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
@@ -389,12 +401,16 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer stream.Close()
 
+	fmt.Println("Opened stream to peer")
+
 	// Send file hash to peer
 	_, err = stream.Write([]byte(fileHash + "\n"))
 	if err != nil {
 		fmt.Printf("Error sending file hash: %v\n", err)
 		return
 	}
+
+	fmt.Println("Sent file hash to peer")
 
 	// Receive file metadata from peer
 	decoder := json.NewDecoder(stream)
@@ -405,19 +421,25 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("Received metadata: %v\n", metadata)
+
 	// Download file from peer
-	file, err := os.Create(downloadPath)
+
+	file, err := os.Create(downloadPath + "/" + metadata.FileName)
 	if err != nil {
 		fmt.Printf("Error creating file: %v\n", err)
 		return
 	}
+
+	fmt.Println("Created file")
 
 	_, err = io.Copy(file, stream)
 	if err != nil {
 		fmt.Printf("Error copying file: %v\n", err)
 		return
 	}
-	file.Close()
+	defer file.Close()
+
 	fmt.Println("File Downloaded Successfully")
 
 	// Save file metadata to local file.json

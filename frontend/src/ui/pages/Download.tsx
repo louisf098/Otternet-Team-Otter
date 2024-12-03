@@ -5,14 +5,6 @@ import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
-
-// dummy data for download demo
-const dummyProviders = [
-  {walletID: 'e0d123e5f316bef78bfdf5a008837577', price: 12}, 
-  {walletID: '95982461e7db28fb0d0ea25bd2fc9d7f', price: 15}, 
-  {walletID: '06adac43bac94634b3773f13296cf6d9', price: 19}
-];
-
 const Download = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
@@ -82,6 +74,8 @@ const Download = () => {
         FileHash : searchedHash
       }
       
+      console.log("WalletID: ", phash);
+      
       const response = await fetch("http://localhost:9378/download", {
         method: 'POST',
         body: JSON.stringify(postData),
@@ -101,6 +95,7 @@ const Download = () => {
   const handleDownload = (walletid: string, price: number) => {
     setSelectedWallet(walletid);
     setSelectedPrice(price);
+    console.log("Selected Wallet: ", walletid);
     setDownloadModalOpen(true);
   };
 
