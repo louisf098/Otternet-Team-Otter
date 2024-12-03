@@ -71,10 +71,11 @@ func main() {
 
     // Register Bitcoin routes
     r.HandleFunc("/balance", bitcoin.GetBalanceHandler).Methods("GET")
-    r.HandleFunc("/newaddress", bitcoin.GenerateAddressHandler).Methods("GET")
-    r.HandleFunc("/newaddress/{label}", bitcoin.GenerateAddressWithLabelHandler).Methods("GET")
+    r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")
+    r.HandleFunc("/newaddress/{walletName}/{label}", bitcoin.GenerateAddressWithLabelHandler).Methods("GET")
+
     // Label from address route
-    r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
+    r.HandleFunc("/labelfromaddress/{walletName}/{label}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
     r.HandleFunc("/createwallet/{walletName}", bitcoin.GenerateWalletHandler).Methods("GET")
     r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
 
