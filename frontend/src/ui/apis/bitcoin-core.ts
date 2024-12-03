@@ -69,3 +69,22 @@ export const getBalance = async (address: string) => {
     console.error("Error fetching balance:", error);
   }
 };
+
+export const unlockWallet = async(walletName: string, passphrase: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/unlockwallet/${walletName}/${passphrase}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to unlock wallet");
+    }
+    const data = await response.json();
+    console.log("Status:", data.status);
+    return data.status;
+  } catch (error) {
+    console.error("Error unlocking wallet:", error);
+  }
+}

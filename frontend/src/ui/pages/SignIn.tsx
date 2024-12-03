@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
 import { AuthContext } from "../contexts/AuthContext";
+import { unlockWallet } from "../apis/bitcoin-core";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const SignIn = () => {
     navigate("/dashboard", { replace: true });
   };
 
-  const validateInputs = () => {
+  const validateInputs = async () => {
     const walletID = document.getElementById("walletID") as HTMLInputElement;
     const privateKey = document.getElementById(
       "privateKey"
@@ -42,19 +43,24 @@ const SignIn = () => {
       return false;
     }
 
-    if (!Object.keys(walletKeyPair).includes(walletID.value)) {
-      console.log(Object.keys(walletKeyPair));
-      setError(true);
-      setErrorMessage("Invalid Wallet ID");
+    let status = await unlockWallet(walletID.value, privateKey.value)
+    if (status != "unlocked") {
       return false;
     }
 
-    if (walletKeyPair[walletID.value] !== privateKey.value) {
-      setError(true);
-      setErrorMessage("Incorrect Private Key");
-      return false;
-    }
-    setError(false);
+    // if (!Object.keys(walletKeyPair).includes(walletID.value)) {
+    //   console.log(Object.keys(walletKeyPair));
+    //   setError(true);
+    //   setErrorMessage("Invalid Wallet ID");
+    //   return false;
+    // }
+
+    // if (walletKeyPair[walletID.value] !== privateKey.value) {
+    //   setError(true);
+    //   setErrorMessage("Incorrect Private Key");
+    //   return false;
+    // }
+    // setError(false);
 
     return true;
   };

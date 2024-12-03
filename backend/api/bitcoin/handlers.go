@@ -129,6 +129,7 @@ func CreateWalletAndAddressHandler(w http.ResponseWriter, r *http.Request) {
     _, err = btcClient.SetPassphrase(walletName, passStr)
     if err != nil {
         fmt.Printf("Error setting passphrase: %v\n", err)
+        return
     }
 
     json.NewEncoder(w).Encode(map[string]string{
@@ -136,6 +137,37 @@ func CreateWalletAndAddressHandler(w http.ResponseWriter, r *http.Request) {
         "address":    address,
         "passphrase": passStr,
     })
+}
+
+func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletName, exists := vars["walletName"]
+	if !exists || walletName == "" {
+		http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+		return
+	}
+    passphrase := vars["passphrase"]
+    fmt.Println("CreateWalletAndAddressHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // Create wallet
+    walletName, err := btcClient.LoadWallet(walletName)
+    if err != nil {
+        fmt.Printf("Error loading wallet: %v\n", err)
+        return
+    }
+
+    // Generate address for the new wallet
+    _, err = btcClient.UnlockWallet(walletName, passphrase)
+    if err != nil {
+        fmt.Printf("Error unlocking wallet: %v\n", err)
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{"status": "unlocked"})
 }
 
 

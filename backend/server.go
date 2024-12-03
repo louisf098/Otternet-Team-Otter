@@ -77,6 +77,7 @@ func main() {
     r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
     r.HandleFunc("/createwallet/{walletName}", bitcoin.GenerateWalletHandler).Methods("GET")
     r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
+    r.HandleFunc("/unlockwallet/{walletName}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
 
     // Other existing routes
     r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
