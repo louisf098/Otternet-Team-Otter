@@ -17,6 +17,8 @@ import (
 
 var fileRequestProtocol = protocol.ID("/otternet/fileRequest")
 var priceRequestProtocol = protocol.ID("/otternet/priceRequest")
+var catalogRequestProtocol = protocol.ID("/otternet/catalogRequest")
+var otternetPeersProtocol = protocol.ID("/otternet/peers")
 
 // Handles incoming file requests using a stream handler
 func HandleFileRequests(h host.Host) {
@@ -110,6 +112,47 @@ func HandlePriceRequests(h host.Host) {
 		_, err = s.Write([]byte(priceStr))
 		if err != nil {
 			log.Printf("Error sending price: %v", err)
+		}
+	})
+}
+
+func HandleCatalogRequests(h host.Host) {
+	h.SetStreamHandler(catalogRequestProtocol, func(s network.Stream) {
+		defer s.Close()
+		fmt.Print("Catalog request received\n")
+		// send files.json to requester
+		file, err := os.Open("./api/files/files.json")
+		if err != nil {
+			log.Printf("Error opening file: %v", err)
+			return
+		}
+		defer file.Close()
+		_, err = io.Copy(s, file) //might not work. might need to write as bytes to stream
+
+		if err != nil {
+			log.Printf("Error sending file: %v", err)
+		}
+	})
+}
+
+// Handles incoming isOtternet requesets. If receive "otternet1" then send "otternet2"
+func HandleOtternetPeersRequests(h host.Host) {
+	h.SetStreamHandler(otternetPeersProtocol, func(s network.Stream) {
+		defer s.Close()
+
+		r := bufio.NewReader(s)
+		secretMessage, err := r.ReadString('\n')
+		if err != nil {
+			log.Printf("Error reading from stream: %v", err)
+		}
+		secretMessage = strings.ToLower(strings.TrimSpace(secretMessage))
+		if secretMessage != "otternet1" {
+			log.Printf("Invalid secret message: %v", err)
+		}
+		returnMessage := "otternet2"
+		_, err = s.Write([]byte(returnMessage))
+		if err != nil {
+			log.Printf("Error sending message: %v", err)
 		}
 	})
 }

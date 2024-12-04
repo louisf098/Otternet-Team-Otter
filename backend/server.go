@@ -74,6 +74,8 @@ func main() {
 	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
 	files.HandleFileRequests(global.DHTNode.Host)
 	files.HandlePriceRequests(global.DHTNode.Host)
+	files.HandleCatalogRequests(global.DHTNode.Host)
+	files.HandleOtternetPeersRequests(global.DHTNode.Host)
 	go global.DHTNode.HandlePeerExchange()
 
 	defer global.DHTNode.Close()
@@ -100,6 +102,10 @@ func main() {
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
 	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
+	r.HandleFunc("/getPeers", files.GetPeers).Methods("GET")
+	r.HandleFunc("/getClosestPeers", files.GetClosestPeers).Methods("GET")
+	r.HandleFunc("/getCatalog/{providerID}", files.GetCatalog).Methods("GET")
+	// r.HandleFunc("/getOtternetPeers", files.GetOtternetPeers).Methods("GET") // get otternet peers that HAVE FILES UPLOADEDß
 
 	handlerWithCORS := corsOptions(r)
 
