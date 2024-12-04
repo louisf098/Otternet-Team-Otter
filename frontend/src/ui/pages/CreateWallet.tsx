@@ -16,7 +16,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import { createWallet } from "../apis/bitcoin-core";
+import { createWalletAndGenerateAddress } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ const CreateWallet = () => {
   };
 
   const handleGenerateWallet = async () => {
-    let res = await createWallet(walletName, passphrase);
+    let res = await createWalletAndGenerateAddress(walletName, passphrase);
     setWalletAddress(res.address);
     setPassphrase(passphrase);
     setWalletKeyPair({ ...walletKeyPair, [walletName]: res.address });
