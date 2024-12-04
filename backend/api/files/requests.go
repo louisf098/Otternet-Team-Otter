@@ -139,17 +139,42 @@ func HandleCatalogRequests(h host.Host) {
 func HandleOtternetPeersRequests(h host.Host) {
 	h.SetStreamHandler(otternetPeersProtocol, func(s network.Stream) {
 		defer s.Close()
-
 		r := bufio.NewReader(s)
+
 		secretMessage, err := r.ReadString('\n')
 		if err != nil {
 			log.Printf("Error reading from stream: %v", err)
+			return
 		}
+
 		secretMessage = strings.ToLower(strings.TrimSpace(secretMessage))
+
 		if secretMessage != "otternet1" {
-			log.Printf("Invalid secret message: %v", err)
+			log.Printf("Invalid secret message: %v", secretMessage)
+			return
 		}
-		returnMessage := "otternet2"
+
+		returnMessage := ""
+
+		file, err := os.Open("./api/files/files.json")
+		if err != nil {
+			log.Printf("Error opening files.json: %v", err)
+		} else {
+			defer file.Close()
+			var files []FormData
+			decoder := json.NewDecoder(file)
+			if err := decoder.Decode(&files); err != nil {
+				log.Printf("Error decoding JSON: %v", err)
+			} else {
+				if len(files) > 0 {
+					returnMessage = "otternet2"
+				} else {
+					returnMessage = ""
+				}
+			}
+		}
+
+		// Send the appropriate return message back through the stream
 		_, err = s.Write([]byte(returnMessage))
 		if err != nil {
 			log.Printf("Error sending message: %v", err)

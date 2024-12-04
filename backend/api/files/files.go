@@ -524,6 +524,43 @@ func GetCatalog(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(catalog)
 }
 
+func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	peers := global.DHTNode.Host.Peerstore().Peers()
+	var peerIDs []string
+	for _, peer := range peers {
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peer, otternetPeersProtocol)
+		if err != nil {
+			fmt.Printf("Error opening stream: %v\n", err)
+			continue
+		}
+		defer stream.Close()
+		_, err = stream.Write([]byte("otternet1\n"))
+		if err != nil {
+			fmt.Printf("Error sending request: %v\n", err)
+			continue
+		}
+		decoder := json.NewDecoder(stream)
+		var secretMessage string
+		err = decoder.Decode(&secretMessage)
+		if err != nil {
+			fmt.Printf("Error decoding secret message: %v\n", err)
+			continue
+		}
+		if secretMessage != "otternet2" {
+			fmt.Printf("Invalid secret message!!!!\n")
+			continue
+		}
+		peerIDs = append(peerIDs, peer.String())
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(peerIDs)
+}
+
 // Gets the goods from peerstore
 func GetPeers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -532,6 +569,22 @@ func GetPeers(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	peers := global.DHTNode.Host.Peerstore().Peers()
+	var peerIDs []string
+	for _, peer := range peers {
+		peerIDs = append(peerIDs, peer.String())
+	}
+	response := map[string][]string{"peers": peerIDs}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func GetPeersWithAddrs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	peers := global.DHTNode.Host.Peerstore().PeersWithAddrs()
 	var peerIDs []string
 	for _, peer := range peers {
 		peerIDs = append(peerIDs, peer.String())
@@ -562,13 +615,4 @@ func GetClosestPeers(w http.ResponseWriter, r *http.Request) {
 	response := map[string][]string{"peers": peerIDs}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
-}
-
-func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-
 }
