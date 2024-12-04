@@ -18,7 +18,7 @@ const SignIn = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
+  // const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (error) {
