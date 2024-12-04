@@ -92,8 +92,8 @@ func (bc *BitcoinClient) GenerateNewAddress(walletName string) (string, error) {
     return address, nil
 }
 
-func (bc *BitcoinClient) GenerateNewAddressWithLabel(label string) (string, error) {
-    response, err := bc.call("getnewaddress", []interface{}{label}, "")
+func (bc *BitcoinClient) GenerateNewAddressWithLabel(walletName string, label string) (string, error) {
+    response, err := bc.call("getnewaddress", []interface{}{label}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to generate new address: %w", err)
     }
@@ -140,9 +140,9 @@ func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
 //     return label, nil
 // }
 
-func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
+func (bc *BitcoinClient) GetLabelFromAddress(walletName string, addressStr string) (string, error) {
     // Call the "getaddressinfo" RPC method
-    response, err := bc.call("getaddressinfo", []interface{}{addressStr}, "")
+    response, err := bc.call("getaddressinfo", []interface{}{addressStr}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to retrieve address info: %w", err)
     }

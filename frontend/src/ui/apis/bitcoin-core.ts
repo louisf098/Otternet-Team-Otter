@@ -1,4 +1,11 @@
-export const createWallet = async (walletName: string, passphrase: string) => {
+// Bitcoin Core RPC configuration
+const rpcUser = "your_rpc_username";
+const rpcPassword = "your_rpc_password";
+const rpcHost = "http://127.0.0.1"; // Default Bitcoin Core RPC host
+const rpcPort = "8332"; // Default Bitcoin Core RPC port
+
+// Function to create a wallet if it doesn't exist and generate an address
+export const createWalletAndGenerateAddress = async (walletName: string) => {
   try {
     const response = await fetch(
       `http://localhost:9378/createwalletandaddress/${walletName}/${passphrase}`,
