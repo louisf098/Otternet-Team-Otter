@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     Typography,
@@ -17,6 +17,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import SortIcon from "@mui/icons-material/Sort";
 import DownloadIcon from "@mui/icons-material/Download";
+import { ShoppingCart, ArrowBack } from "@mui/icons-material";
 
 interface FileItem {
     id: number;
@@ -31,14 +32,14 @@ interface FileItem {
 const ITEMS_PER_PAGE = 7;
 
 const dummyData: { [walletId: string]: FileItem[] } = {
-    wallet1: [
+    dbf8b58dec30242dd3e1a64331b9dacdb58cfa0f7742aa47e0984cf4098997ab: [
         { id: 1, name: "Document.pdf", size: "2MB", type: "PDF", dateUploaded: "2024-10-10", price: "5", bundlable: true },
         { id: 2, name: "Photo.jpg", size: "1.5MB", type: "Image", dateUploaded: "2024-09-15", price: "10", bundlable: false },
         { id: 5, name: "Report.docx", size: "3MB", type: "Word Document", dateUploaded: "2024-10-05", price: "12", bundlable: true },
         { id: 6, name: "Data.csv", size: "1MB", type: "CSV", dateUploaded: "2024-09-20", price: "7", bundlable: true },
         { id: 7, name: "Graph.png", size: "2.5MB", type: "Image", dateUploaded: "2024-09-30", price: "9", bundlable: false },
     ],
-    wallet2: [
+    e9fc6c0177c6270bd3dd58b7ef506630cd3279b1e4f7bce3c9d65f8f6f85f5a7: [
         { id: 3, name: "Presentation.pptx", size: "5MB", type: "PowerPoint", dateUploaded: "2024-10-12", price: "15", bundlable: true },
         { id: 4, name: "Spreadsheet.xlsx", size: "3MB", type: "Excel", dateUploaded: "2024-09-25", price: "8", bundlable: true },
         { id: 8, name: "Audio.mp3", size: "4MB", type: "Audio", dateUploaded: "2024-08-15", price: "6", bundlable: true },
@@ -54,6 +55,8 @@ const Market: React.FC = () => {
     const [error, setError] = useState<string>("");
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+    const [providers, setProviders] = useState<{ walletID: string }[]>([]);
+    const [searchedProviders, setSearchedProviders] = useState<{ walletID: string }[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
@@ -62,23 +65,49 @@ const Market: React.FC = () => {
 
     const allFiles: FileItem[] = Object.values(dummyData).flat();
 
+    useEffect(() => {
+        /* Display list of walletIDs (providers) */
+        const providers = Object.keys(dummyData).map(walletID => ({ walletID }));
+        setProviders(providers);
+    });
+
     const handleSearch = () => {
+        /* Search for provider by walletID */
         if (searchInput.trim() === "") {
-            setFiles(allFiles);
-            setError("");
-            setWalletId("");
+            /* set SearchedProviders to nothing */
+            setSearchedProviders([]);
         } else {
-            const fetchedFiles = dummyData[searchInput.trim()];
-            if (fetchedFiles) {
-                setFiles(fetchedFiles);
-                setWalletId(searchInput.trim());
-                setError("");
-            } else {
-                setFiles([]);
-                setError("No files found for the provided wallet ID.");
-                setWalletId(searchInput.trim());
+            const searchedProviders = providers.filter(provider => provider.walletID.includes(searchInput));
+            setSearchedProviders(searchedProviders);
+            if (searchedProviders.length === 0) {
+                setError("No providers found for the provided wallet ID.");
             }
         }
+        setFiles(allFiles);
+        setError("");
+        setWalletId("");
+        setCurrentPage(1);
+        setSelectedFiles([]);
+    };
+
+    const handleCheckCatalog = (walletID: string) => {
+        setWalletId(walletID);
+        const fetchedFiles = dummyData[walletID];
+        if (fetchedFiles) {
+            setFiles(fetchedFiles);
+            setError("");
+        } else {
+            setFiles([]);
+            setError("No files found for the provided wallet ID.");
+        }
+        setCurrentPage(1);
+        setSelectedFiles([]);
+    };
+
+    const handleBackToProviders = () => {
+        setFiles(allFiles);
+        setError("");
+        setWalletId("");
         setCurrentPage(1);
         setSelectedFiles([]);
     };
@@ -268,36 +297,74 @@ const Market: React.FC = () => {
 
             <Paper elevation={3} sx={{ maxWidth: "100%", margin: "0 auto", p: 2 }}>
                 <Typography variant="h5" sx={{ mb: 2 }}>
-                    {walletId ? `Files for Wallet ID: ${walletId}` : "All Files"}
+                    {walletId ? `Files for Wallet ID: ${walletId}` : searchedProviders.length > 0 ? "Search Results" : "All Providers"}
                 </Typography>
-                <List>
-                    {currentFiles.map((file) => (
+                {walletId ? (<List>
+                    {files.map((file) => (
                         <ListItem key={file.id} divider>
-                            {walletId && (
-                                <Checkbox
-                                    checked={selectedFiles.includes(file.id)}
-                                    onChange={() => handleCheckboxChange(file.id)}
-                                    disabled={!file.bundlable}
-                                    sx={{ mr: 2, color: file.bundlable ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
-                                />
-                            )}
-                            <ListItemText
-                                primary={file.name}
-                                secondary={`Wallet ID: ${Object.keys(dummyData).find(walletId => 
-                                    dummyData[walletId].some(f => f.id === file.id)
-                                )?.substring(0, 4)}... | Size: ${file.size} | Type: ${file.type} | Uploaded: ${file.dateUploaded} | Price: ${file.price} OTTC`}
-                            />
-                            <Button
-                                variant="contained"
-                                startIcon={<DownloadIcon />}
-                                sx={{ ml: 2 }}
-                                onClick={() => handleDownload(file)}
-                            >
-                                Download
-                            </Button>
-                        </ListItem>
-                    ))}
-                </List>
+                        <Checkbox
+                        checked={selectedFiles.includes(file.id)}
+                        onChange={() => handleCheckboxChange(file.id)}
+                        disabled={!file.bundlable}
+                        sx={{ mr: 2, color: file.bundlable ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
+                        />
+                        <ListItemText
+                            primary={file.name}
+                            secondary={`Size: ${file.size} | Type: ${file.type} | Uploaded: ${file.dateUploaded} | Price: ${file.price} OTTC`}
+                        />
+                        <Button
+                            variant="contained"
+                            startIcon={<DownloadIcon />}
+                            sx={{ ml: 2 }}
+                            onClick={() => handleDownload(file)}
+                        >
+                            Download
+                        </Button>
+                    </ListItem>
+                    ))}    
+                </List>) : 
+                searchedProviders.length > 0 ? (<List>
+                    {searchedProviders.map((provider) => (
+                        <ListItem key={provider.walletID} divider>
+                        <ListItemText
+                            primary={`Wallet ID: ${provider.walletID}`}
+                        />
+                        <Button
+                            variant="contained"
+                            startIcon={<ShoppingCart />}
+                            sx={{ ml: 2 }}
+                            onClick={() => handleCheckCatalog(provider.walletID)}
+                        >
+                            Check Catalog
+                        </Button>
+                    </ListItem>
+                    ))}    
+                </List>) : (<List>
+                    {providers.map((provider) => (
+                        <ListItem key={provider.walletID} divider>
+                        <ListItemText
+                            primary={`Wallet ID: ${provider.walletID}`}
+                        />
+                        <Button
+                            variant="contained"
+                            startIcon={<ShoppingCart />}
+                            sx={{ ml: 2 }}
+                            onClick={() => handleCheckCatalog(provider.walletID)}
+                        >
+                            Check Catalog
+                        </Button>
+                    </ListItem>
+                    ))}    
+                </List>)}
+                {walletId && (<Button
+                variant="text"
+                color="primary"
+                startIcon={<ArrowBack />}
+                onClick={handleBackToProviders}
+                >
+                Back to Providers
+                </Button>)}
+                
                 <Pagination
                     count={Math.ceil((files.length || 0) / ITEMS_PER_PAGE)}
                     page={currentPage}
@@ -305,7 +372,6 @@ const Market: React.FC = () => {
                     sx={{ display: "flex", justifyContent: "center", mt: 2 }}
                 />
             </Paper>
-
             <Button
                 variant="contained"
                 color="primary"
