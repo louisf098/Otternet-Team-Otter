@@ -27,6 +27,15 @@ type FormData struct {
 	BundleMode bool    `json:"bundleMode"`
 }
 
+type CatalogItem struct {
+	FileName   string  `json:"fileName"`
+	FileHash   string  `json:"fileHash"`
+	FileType   string  `json:"fileType"`
+	Price      float64 `json:"price"`
+	BundleMode bool    `json:"bundleMode"`
+	Timestamp  string  `json:"timestamp"`
+}
+
 var mutex = &sync.Mutex{}
 
 const jsonFilePath = "./api/files/files.json"
@@ -463,4 +472,103 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// Obtains the catalog of files from providerID
+func GetCatalog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	providerID, exists := vars["providerID"]
+	if !exists || providerID == "" {
+		http.Error(w, "Invalid or Incorrect provider ID", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("Provider ID: %s\n", providerID)
+	peerID, err := peer.Decode(providerID)
+	if err != nil {
+		http.Error(w, "Invalid provider ID", http.StatusBadRequest)
+		return
+	}
+	peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
+	if err != nil {
+		http.Error(w, "Error finding peer", http.StatusInternalServerError)
+		return
+	}
+	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, catalogRequestProtocol)
+	if err != nil {
+		http.Error(w, "Error opening stream: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer stream.Close()
+	fmt.Printf("Connected to provider %s\n", providerID)
+	// send anything using catalogRequestProtocol to get attention
+	_, err = stream.Write([]byte("catalog\n"))
+	if err != nil {
+		http.Error(w, "Error sending request", http.StatusInternalServerError)
+		return
+	}
+	// receive files.json and convert into list of catalog items
+	decoder := json.NewDecoder(stream)
+	var catalog []CatalogItem
+	err = decoder.Decode(&catalog)
+	if err != nil {
+		http.Error(w, "Error decoding catalog", http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Received catalog: %v\n", catalog)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(catalog)
+}
+
+// Gets the goods from peerstore
+func GetPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	peers := global.DHTNode.Host.Peerstore().Peers()
+	var peerIDs []string
+	for _, peer := range peers {
+		peerIDs = append(peerIDs, peer.String())
+	}
+	response := map[string][]string{"peers": peerIDs}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func GetClosestPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	// get own peer ID and use as key for GetClosestPeers as string
+	peerID := global.DHTNode.Host.ID()
+	fmt.Printf("My Own Peer ID: %s\n", peerID.String())
+	peers, err := global.DHTNode.GetClosestPeers(peerID.String())
+	if err != nil {
+		http.Error(w, "Error getting closest peers", http.StatusInternalServerError)
+		return
+	}
+	var peerIDs []string
+	for _, peer := range peers {
+		peerIDs = append(peerIDs, peer.String())
+	}
+	response := map[string][]string{"peers": peerIDs}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
 }

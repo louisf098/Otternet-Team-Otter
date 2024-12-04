@@ -26,7 +26,7 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var id = []byte("/orcanet/114295851") // Seed used to generate node's private key & peer ID
+var id = []byte("/orcanet/114295852") // Seed used to generate node's private key & peer ID
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
 
 var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWQd1K1k8XA9xVEzSAu7HUCodC7LJB6uW5Kw4VwkRdstPE"
@@ -301,6 +301,16 @@ func (dhtNode *DHTNode) FindProviders(key string) ([]peer.AddrInfo, error) {
 		return nil, fmt.Errorf("failed to find providers: %v", err)
 	}
 	return providers, nil
+}
+
+func (dhtNode *DHTNode) GetClosestPeers(key string) ([]peer.ID, error) {
+	dhtKey := "/orcanet/" + key
+	peers, err := dhtNode.DHT.GetClosestPeers(dhtNode.Ctx, dhtKey)
+	if err != nil {
+		fmt.Printf("Error getting closest peers: %v", err)
+		return nil, err
+	}
+	return peers, nil
 }
 
 // Shut down DHT Node
