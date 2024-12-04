@@ -103,9 +103,10 @@ func main() {
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
 	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
 	r.HandleFunc("/getPeers", files.GetPeers).Methods("GET")
+	r.HandleFunc("/getPeersWithAddrs", files.GetPeersWithAddrs).Methods("GET")
 	r.HandleFunc("/getClosestPeers", files.GetClosestPeers).Methods("GET")
 	r.HandleFunc("/getCatalog/{providerID}", files.GetCatalog).Methods("GET")
-	// r.HandleFunc("/getOtternetPeers", files.GetOtternetPeers).Methods("GET") // get otternet peers that HAVE FILES UPLOADEDß
+	r.HandleFunc("/getOtternetPeers", files.GetOtternetPeers).Methods("GET") // get otternet peers that HAVE FILES UPLOADEDß
 
 	handlerWithCORS := corsOptions(r)
 
