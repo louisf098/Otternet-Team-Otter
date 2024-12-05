@@ -29,12 +29,14 @@ const SignIn = () => {
     if (!address.value || !passphrase.value) {
       setError(true);
       setErrorMessage("Please fill out both wallet ID and private key");
-      return false;
+      return ;
     }
     let status = await unlockWallet(address.value, passphrase.value);
     if (status != "unlocked") {
       setError(true);
-      return false;
+      return ;
+    } else{
+      setError(false);
     }
 
     // if (!Object.keys(walletKeyPair).includes(walletID.value)) {

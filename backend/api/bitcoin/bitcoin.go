@@ -211,12 +211,13 @@ func (bc *BitcoinClient) LoadWallet(walletName string) (map[string]interface{}, 
 
 func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) error  {
     response, err := bc.call("walletpassphrase", []interface{}{passphrase, 600}, walletName)
-    fmt.Printf("Error unlocking wallet: %v\n", response)
     if err != nil {
         return fmt.Errorf("Failed to unlock wallet: %w", err)
     }
     if response != nil {
-        return fmt.Errorf(response["error"].(map[string]interface{})["message"].(string))
+        if response["error"]!= nil {
+            return fmt.Errorf(response["error"].(map[string]interface{})["message"].(string))
+        }
     }
     return nil
 }

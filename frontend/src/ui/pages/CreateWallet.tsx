@@ -17,7 +17,7 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import TextField from "@mui/material/TextField";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import { createWallet } from "../apis/bitcoin-core";
+import { createWallet, unlockWallet } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
@@ -93,7 +93,15 @@ const CreateWallet = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    let status = await unlockWallet(walletAddress, passphrase);
+    if (status != "unlocked") {
+      setError(true);
+      return;
+    }
+    if (error) {
+      return;
+    }
     navigate("/dashboard", { replace: true });
     setPublicKey(walletAddress);
   };
@@ -150,7 +158,6 @@ const CreateWallet = () => {
         </Typography>
         <Box
           component="form"
-          onSubmit={handleSignIn}
           noValidate
           sx={{
             display: "flex",
@@ -221,7 +228,7 @@ const CreateWallet = () => {
               >
                 Download Backup File
               </Button>
-              <Button type="submit" fullWidth variant="contained">
+              <Button fullWidth variant="contained" onClick={handleSignIn}>
                 Sign In
               </Button>
               <Snackbar

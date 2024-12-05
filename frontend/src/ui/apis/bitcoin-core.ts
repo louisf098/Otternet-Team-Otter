@@ -17,7 +17,7 @@ export const createWallet = async (walletName: string, passphrase: string) => {
       throw new Error("Failed to create wallet");
     }
     const data = await response.json();
-    console.log("Wallet created:", data);
+    console.log("Wallet created:");
     return data;
   } catch (error) {
     console.error("Error generating wallet:", error);
