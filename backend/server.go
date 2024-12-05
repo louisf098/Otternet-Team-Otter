@@ -78,7 +78,7 @@ func main() {
 	r.HandleFunc("/createwallet/{walletName}", bitcoin.GenerateWalletHandler).Methods("GET")
 	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
     // Coin transaction route
-    r.HandleFunc("/transferCoins/{walletName}", bitcoin.TransferCoinsHandler).Methods("POST")
+	r.HandleFunc("/transferCoins/{walletName}/{toAddress}/{amount}", bitcoin.TransferCoinsHandler).Methods("POST")
 
 	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")

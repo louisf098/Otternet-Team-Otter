@@ -162,22 +162,22 @@ func CreateWalletAndAddressHandler(w http.ResponseWriter, r *http.Request) {
 func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Println("TransferCoinsHandler triggered")
 
-    // Parse transfer query parameters
+    // Parse parameters from path variables
     vars := mux.Vars(r)
     walletName := vars["walletName"]
-    toAddress := r.URL.Query().Get("to")
-    amountStr := r.URL.Query().Get("amount")
+    toAddress := vars["toAddress"]
+    amountStr := vars["amount"]
 
     // Validate parameters
     if walletName == "" || toAddress == "" || amountStr == "" {
-        http.Error(w, "'walletName', 'to', or 'amount' parameter(s) are missing", http.StatusBadRequest)
+        http.Error(w, "'walletName', 'toAddress', or 'amount' parameter(s) are missing", http.StatusBadRequest)
         return
     }
 
     // Check if transaction amount is valid
     amount, err := strconv.ParseFloat(amountStr, 64)
     if err != nil || amount <= 0 {
-        http.Error(w, "'amount' transaction must be a valid positive number", http.StatusBadRequest)
+        http.Error(w, "'amount' must be a valid positive number", http.StatusBadRequest)
         return
     }
 
