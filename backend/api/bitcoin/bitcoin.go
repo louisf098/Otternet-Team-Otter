@@ -123,23 +123,6 @@ func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
     return result["name"].(string), nil
 }
 
-
-// func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
-//     // Call the "getaddressinfo" RPC method
-//     response, err := bc.call("getaddressinfo", []interface{}{addressStr})
-//     if err != nil {
-//         return "", fmt.Errorf("failed to retrieve address info: %w", err)
-//     }
-
-//     // Extract the "label" field from the result map
-//     label, ok := response["label"].(string)
-//     if !ok {
-//         return "", fmt.Errorf("label not found for address")
-//     }
-
-//     return label, nil
-// }
-
 func (bc *BitcoinClient) GetLabelFromAddress(walletName string, addressStr string) (string, error) {
     // Call the "getaddressinfo" RPC method
     response, err := bc.call("getaddressinfo", []interface{}{addressStr}, walletName)
@@ -180,7 +163,6 @@ func (bc *BitcoinClient) SetPassphrase(walletName string, passphrase string) (st
 }
 
 func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64) (string, error) {
-    // response, err := bc.call("sendtoaddress", []interface{}{toAddress, walletName, amount})
     response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to send coins: %w", err)
