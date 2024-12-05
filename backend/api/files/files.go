@@ -3,6 +3,7 @@ package files
 import (
 	"Otternet/backend/api/download"
 	"Otternet/backend/global"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,8 +38,14 @@ type CatalogItem struct {
 }
 
 var mutex = &sync.Mutex{}
+var mutex2 = &sync.Mutex{}
 
-const jsonFilePath = "./api/files/files.json"
+const (
+	jsonFilePath      = "./api/files/files.json"
+	providersFilePath = "./api/files/providers.txt"
+	maxProviders      = 300
+	popAmount         = 30 // number of oldest providers to remove from cache when maxProviders is reached
+)
 
 // Handles uploading new file or updating existing file metadata
 func UploadFile(w http.ResponseWriter, r *http.Request) {
@@ -348,12 +355,63 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Printf("File priced at %f OTTC from provider %s\n", price, provider.ID.String())
 
+		AppendProviderID(provider.ID.String())
+
 		prices[provider.ID.String()] = price
 	}
 
 	// send map of providers with prices back
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(prices)
+}
+
+func AppendProviderID(providerID string) error {
+	mutex2.Lock()
+	defer mutex2.Unlock()
+	// append and read-write to providers.txt. create if it doesn't exist
+	file, err := os.OpenFile(providersFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening provider IDs file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(providerID + "\n")
+	if err != nil {
+		return fmt.Errorf("error appending provider ID: %w", err)
+	}
+
+	// Move to the beginning of the file to read all lines
+	file.Seek(0, 0)
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading provider IDs file: %w", err)
+	}
+
+	// if num providers reached the limit, pop oldest 10% of providers
+	if len(lines) > maxProviders {
+		remaining := len(lines) - popAmount
+		if remaining < 0 {
+			remaining = 0
+		}
+		// Keep the remaining provider IDs
+		lines = lines[remaining:]
+
+		file.Truncate(0)
+		file.Seek(0, 0)
+		for _, line := range lines {
+			_, err := file.WriteString(line + "\n")
+			if err != nil {
+				return fmt.Errorf("error rewriting provider IDs file: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Handles downloading file metadata and file
@@ -569,22 +627,6 @@ func GetPeers(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	peers := global.DHTNode.Host.Peerstore().Peers()
-	var peerIDs []string
-	for _, peer := range peers {
-		peerIDs = append(peerIDs, peer.String())
-	}
-	response := map[string][]string{"peers": peerIDs}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-}
-
-func GetPeersWithAddrs(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid request method. Use GET.", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	peers := global.DHTNode.Host.Peerstore().PeersWithAddrs()
 	var peerIDs []string
 	for _, peer := range peers {
 		peerIDs = append(peerIDs, peer.String())
