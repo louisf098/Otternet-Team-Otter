@@ -31,7 +31,6 @@ const SignIn = () => {
       setErrorMessage("Please fill out both wallet ID and private key");
       return false;
     }
-
     let status = await unlockWallet(address.value, passphrase.value);
     if (status != "unlocked") {
       setError(true);
@@ -155,12 +154,7 @@ const SignIn = () => {
               color={error ? "error" : "primary"}
             />
           </FormControl>
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            onClick={validateInputs}
-          >
+          <Button fullWidth variant="contained" onClick={validateInputs}>
             Sign In
           </Button>
           <Typography sx={{ textAlign: "center" }}>

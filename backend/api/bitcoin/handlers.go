@@ -213,6 +213,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     unlockWalletErr := btcClient.UnlockWallet(walletName, passphrase)
     if unlockWalletErr != nil {
         fmt.Printf("Error unlocking wallet: %v\n", unlockWalletErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": unlockWalletErr.Error()})
         return
     }
 
