@@ -26,8 +26,8 @@ func NewBitcoinClient(cfg *config.Config) *BitcoinClient {
     return &BitcoinClient{Config: cfg}
 }
 
-func (bc *BitcoinClient) call(method string, params []interface{}) (map[string]interface{}, error) {
-    url := bc.Config.BitcoinRPCURL
+func (bc *BitcoinClient) call(method string, params []interface{}, walletName string) (map[string]interface{}, error) {
+    url := fmt.Sprintf("%s/wallet/%s", bc.Config.BitcoinRPCURL, walletName)
     reqBody := BitcoinRPCRequest{
         Jsonrpc: "1.0",
         Method:  method,
@@ -69,7 +69,7 @@ func (bc *BitcoinClient) call(method string, params []interface{}) (map[string]i
 }
 
 func (bc *BitcoinClient) GetBalance() (float64, error) {
-    response, err := bc.call("getbalance", []interface{}{"*"})
+    response, err := bc.call("getbalance", []interface{}{"*"}, "")
     if err != nil {
         return 0, err
     }
@@ -80,8 +80,20 @@ func (bc *BitcoinClient) GetBalance() (float64, error) {
     return balance, nil
 }
 
-func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
-    response, err := bc.call("getnewaddress", []interface{}{label})
+func (bc *BitcoinClient) GenerateNewAddress(walletName string) (string, error) {
+    response, err := bc.call("getnewaddress", []interface{}{}, walletName)
+    if err != nil {
+        return "", err
+    }
+    address, ok := response["result"].(string)
+    if !ok {
+        return "", fmt.Errorf("unexpected result type")
+    }
+    return address, nil
+}
+
+func (bc *BitcoinClient) GenerateNewAddressWithLabel(walletName string, label string) (string, error) {
+    response, err := bc.call("getnewaddress", []interface{}{label}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to generate new address: %w", err)
     }
@@ -94,6 +106,23 @@ func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
 
     return address, nil
 }
+
+func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
+    // Call the "createwallet" RPC with the wallet name
+    response, err := bc.call("createwallet", []interface{}{walletName}, "")
+    if err != nil {
+        return "", err
+    }
+
+    // Extract the "result" field safely
+    result, ok := response["result"].(map[string]interface{})
+    if !ok {
+        return "", fmt.Errorf("unexpected type for 'result': expected map[string]interface{}, got %T", response["result"])
+    }
+
+    return result["name"].(string), nil
+}
+
 
 // func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
 //     // Call the "getaddressinfo" RPC method
@@ -111,23 +140,18 @@ func (bc *BitcoinClient) GenerateNewAddress(label string) (string, error) {
 //     return label, nil
 // }
 
-func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
+func (bc *BitcoinClient) GetLabelFromAddress(walletName string, addressStr string) (string, error) {
     // Call the "getaddressinfo" RPC method
-    response, err := bc.call("getaddressinfo", []interface{}{addressStr})
+    response, err := bc.call("getaddressinfo", []interface{}{addressStr}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to retrieve address info: %w", err)
     }
-
-    // Print the full response for debugging
-    fmt.Printf("Full response from getaddressinfo: %+v\n", response)
-
 
     // Access the "result" field, which should be a nested map
     result, ok := response["result"].(map[string]interface{})
     if !ok {
         return "", fmt.Errorf("unexpected response format from getaddressinfo")
     }
-    // fmt.Printf("Full response from result: %+v\n", result["labels"].([]interface{}))
 
     // Access the "labels" field within "result", expecting an array
     labels, ok := result["labels"].([]interface{})
@@ -143,8 +167,21 @@ func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) 
     return label, nil
 }
 
-func (bc *BitcoinClient) TransferCoins(toAddress string, amount float64) (string, error) {
-    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount})
+func (bc *BitcoinClient) SetPassphrase(walletName string, passphrase string) (string, error) {
+    response, err := bc.call("encryptwallet", []interface{}{passphrase}, walletName)
+    if err != nil {
+        return "", err
+    }
+    result, ok := response["result"].(string)
+    if !ok {
+        return "", fmt.Errorf("Failed to set passphrase.")
+    }
+    return result, nil
+}
+
+func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64) (string, error) {
+    // response, err := bc.call("sendtoaddress", []interface{}{toAddress, walletName, amount})
+    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to send coins: %w", err)
     }
