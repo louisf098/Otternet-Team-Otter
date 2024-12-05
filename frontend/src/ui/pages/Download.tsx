@@ -66,6 +66,27 @@ const Download = () => {
     setSearchedHash(fileHash);
     setIsValidHash(true);
     setIsLoading(false);
+
+    // Get the list of providers, only the walletID is needed
+    const providerListWalletID = providerList.map(provider => provider.walletID);
+
+    // send a POST request to the backend to cache the list of providers
+    try {
+
+      const response = await fetch("http://localhost:9378/putPeersInCache", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(providerListWalletID),
+      });
+
+      if (!response.ok) {
+        console.error("Error caching providers");
+      }
+    } catch (err: any) {
+      console.error("Error caching providers: ", err);
+    }
   }
 
   const handleDownloadClick = async (phash: string) => {

@@ -91,6 +91,7 @@ const Market: React.FC = () => {
         if (searchInput.trim() === "") {
             /* set SearchedProviders to nothing */
             setSearchedProviders([]);
+            setError("");
         } else {
             const searchedProviders = providers.filter(provider => provider.walletID.includes(searchInput));
             setSearchedProviders(searchedProviders);
@@ -99,7 +100,6 @@ const Market: React.FC = () => {
             }
         }
         setFiles(allFiles);
-        setError("");
         setWalletId("");
         setCurrentPage(1);
         setSelectedFiles([]);
@@ -350,7 +350,7 @@ const Market: React.FC = () => {
                             sx={{ ml: 2 }}
                             onClick={() => handleCheckCatalog(provider.walletID)}
                         >
-                            Check Catalog
+                            Catalog
                         </Button>
                     </ListItem>
                     ))}    
@@ -366,7 +366,7 @@ const Market: React.FC = () => {
                             sx={{ ml: 2 }}
                             onClick={() => handleCheckCatalog(provider.walletID)}
                         >
-                            Check Catalog
+                            Catalog
                         </Button>
                     </ListItem>
                     ))}    
