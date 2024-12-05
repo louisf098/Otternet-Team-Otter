@@ -18,35 +18,24 @@ const SignIn = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  // const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    if (error) {
-      event.preventDefault();
-      return;
-    }
-    // const walletId = document.getElementById("walletID") as HTMLInputElement;
-
-    // setPublicKey(walletId.value);
-    navigate("/dashboard", { replace: true });
-  };
+  const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
 
   const validateInputs = async () => {
-    const walletID = document.getElementById("walletID") as HTMLInputElement;
-    const privateKey = document.getElementById(
-      "privateKey"
+    const address = document.getElementById("address") as HTMLInputElement;
+    const passphrase = document.getElementById(
+      "passphrase"
     ) as HTMLInputElement;
 
-    if (!walletID.value || !privateKey.value) {
+    if (!address.value || !passphrase.value) {
       setError(true);
       setErrorMessage("Please fill out both wallet ID and private key");
       return false;
     }
 
-    let status = await unlockWallet(walletID.value, privateKey.value)
+    let status = await unlockWallet(address.value, passphrase.value);
     if (status != "unlocked") {
-        setError(true);
-        return false;
+      setError(true);
+      return false;
     }
 
     // if (!Object.keys(walletKeyPair).includes(walletID.value)) {
@@ -63,7 +52,12 @@ const SignIn = () => {
     // }
     // setError(false);
 
-    return true;
+    if (error) {
+      return;
+    }
+
+    setPublicKey(address.value);
+    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -118,7 +112,6 @@ const SignIn = () => {
         </Typography>
         <Box
           component="form"
-          onSubmit={handleSubmit}
           noValidate
           sx={{
             display: "flex",
@@ -128,15 +121,15 @@ const SignIn = () => {
           }}
         >
           <FormControl>
-            <FormLabel>Wallet ID</FormLabel>
+            <FormLabel>Address</FormLabel>
             <TextField
               error={error && errorMessage != "Incorrect Private Key"}
               helperText={
                 errorMessage == "Incorrect Private Key" ? "" : errorMessage
               }
-              id="walletID"
+              id="address"
               type="text"
-              name="walletID"
+              name="address"
               placeholder="nf28y4ofb3y8ogf8gfy8g8ygo8"
               autoFocus
               required
@@ -147,17 +140,14 @@ const SignIn = () => {
           </FormControl>
           <FormControl>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="privateKey">Private Key</FormLabel> {}
+              <FormLabel htmlFor="privateKey">Passphrase</FormLabel> {}
             </Box>
             <TextField
               error={error && errorMessage != "Invalid Wallet ID"}
-              helperText={
-                errorMessage == "Invalid Wallet ID" ? "" : errorMessage
-              }
-              name="privateKey"
+              name="passphrase"
               placeholder="••••••"
               type="password"
-              id="privateKey"
+              id="passphrase"
               autoFocus
               required
               fullWidth

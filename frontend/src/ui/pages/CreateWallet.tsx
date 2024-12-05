@@ -14,48 +14,63 @@ import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
+import TextField from "@mui/material/TextField";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import { createWalletAndGenerateAddress } from "../apis/bitcoin-core";
+import { createWallet } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
-  const [walletName, setWalletName] = React.useState("");
-  const [walletAddress, setWalletAddress] = React.useState("");
-  const [passphrase, setPassphrase] = React.useState("");
-  const [openCopyNotif, setOpenCopyNotif] = React.useState(false);
+  const [walletName, setWalletName] = useState<string>("");
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [passphrase, setPassphrase] = useState<string>("");
+  const [confirmPassphrase, setConfirmPassphrase] = useState<string>("");
+  const [openCopyNotif, setOpenCopyNotif] = useState<boolean>(false);
 
-  // const [error, setError] = React.useState(false);
-  // const [errorMessage, setErrorMessage] = React.useState("");
+  const [error, setError] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { walletKeyPair, setWalletKeyPair, setPublicKey } =
-    useContext(AuthContext);
+  const { setPublicKey } = useContext(AuthContext);
 
   const handleCopy = (text: string) => {
     setOpenCopyNotif(true);
     navigator.clipboard.writeText(text);
   };
 
+  const checkMatchingPassphrase = () => {
+    if (passphrase === confirmPassphrase) {
+      setError(false);
+      setErrorMessage("");
+      return true;
+    } else {
+      setError(true);
+      setErrorMessage("Passphrases do not match");
+      return false;
+    }
+  };
+
   const handleGenerateWallet = async () => {
-    let res = await createWalletAndGenerateAddress(walletName, passphrase);
+    if (!checkMatchingPassphrase()) {
+      return;
+    }
+
+    let walletName = "";
+    const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 12; i++) {
+      const randomInd = Math.floor(Math.random() * characters.length);
+      walletName += characters.charAt(randomInd);
+    }
+    console.log(walletName);
+    let res = await createWallet(walletName, passphrase);
+    setWalletName(walletName);
     setWalletAddress(res.address);
     setPassphrase(passphrase);
-    setWalletKeyPair({ ...walletKeyPair, [walletName]: res.address });
   };
 
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
     const blob = new Blob(
-      [
-        "Wallet Name: " +
-          walletName +
-          "\n" +
-          "Wallet Address: " +
-          walletAddress +
-          "\n" +
-          "Passphrase: " +
-          passphrase,
-      ],
+      ["Wallet Address: " + walletAddress + "\n" + "Passphrase: " + passphrase],
       {
         type: "text/plain",
       }
@@ -147,7 +162,7 @@ const CreateWallet = () => {
           {walletAddress ? (
             <>
               <FormControl>
-                <FormLabel>Wallet ID</FormLabel>
+                <FormLabel>Wallet Name</FormLabel>
                 <OutlinedInput
                   id="walletName"
                   type="text"
@@ -155,16 +170,6 @@ const CreateWallet = () => {
                   fullWidth
                   disabled
                   value={walletName}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => handleCopy(walletName)}
-                        color="primary"
-                      >
-                        <ContentCopyIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  }
                 />
               </FormControl>
               <FormControl>
@@ -230,25 +235,27 @@ const CreateWallet = () => {
           ) : (
             <>
               <FormControl>
-                <FormLabel>Wallet Name</FormLabel>
-                <OutlinedInput
-                  id="walletName"
-                  type="text"
-                  name="walletName"
-                  fullWidth
-                  value={walletName}
-                  onChange={(e) => setWalletName(e.target.value)}
-                />
-              </FormControl>
-              <FormControl>
                 <FormLabel>Passphrase</FormLabel>
                 <OutlinedInput
                   id="passphrase"
-                  type="text"
+                  type="password"
                   name="passphrase"
                   fullWidth
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Confirm Passphrase</FormLabel>
+                <TextField
+                  id="confirmPassphrase"
+                  type="password"
+                  name="confirmPassphrase"
+                  fullWidth
+                  helperText={errorMessage}
+                  color={error ? "error" : "primary"}
+                  value={confirmPassphrase}
+                  onChange={(e) => setConfirmPassphrase(e.target.value)}
                 />
               </FormControl>
               <Button
@@ -260,41 +267,6 @@ const CreateWallet = () => {
               </Button>
             </>
           )}
-          {/* <FormControl>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="privateKey">Private Key</FormLabel>
-            </Box>
-            <TextField
-              name="privateKey"
-              placeholder="••••••"
-              type="privateKey"
-              id="privateKey"
-              autoFocus
-              required
-              fullWidth
-              variant="outlined"
-            />
-          </FormControl>
-          <FormControl>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="confirmPrivateKey">
-                Confirm Private Key
-              </FormLabel>
-            </Box>
-            <TextField
-              error={error}
-              helperText={errorMessage}
-              name="confirmPrivateKey"
-              placeholder="••••••"
-              type="confirmPrivateKey"
-              id="confirmPrivateKey"
-              autoFocus
-              required
-              fullWidth
-              variant="outlined"
-              color={error ? "error" : "primary"}
-            />
-          </FormControl> */}
           <Typography sx={{ textAlign: "center" }}>
             Already have a wallet?{" "}
             <span>

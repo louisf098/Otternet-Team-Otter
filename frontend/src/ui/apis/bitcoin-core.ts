@@ -5,7 +5,7 @@ const rpcHost = "http://127.0.0.1"; // Default Bitcoin Core RPC host
 const rpcPort = "8332"; // Default Bitcoin Core RPC port
 
 // Function to create a wallet if it doesn't exist and generate an address
-export const createWalletAndGenerateAddress = async (walletName: string, passphrase: string) => {
+export const createWallet = async (walletName: string, passphrase: string) => {
   try {
     const response = await fetch(
       `http://localhost:9378/createwalletandaddress/${walletName}/${passphrase}`,
@@ -77,10 +77,10 @@ export const getBalance = async (address: string) => {
   }
 };
 
-export const unlockWallet = async(walletName: string, passphrase: string) => {
+export const unlockWallet = async(address: string, passphrase: string) => {
   try {
     const response = await fetch(
-      `http://localhost:9378/unlockwallet/${walletName}/${passphrase}`,
+      `http://localhost:9378/unlockwallet/${address}/${passphrase}`,
       {
         method: "GET",
       }
@@ -93,5 +93,24 @@ export const unlockWallet = async(walletName: string, passphrase: string) => {
     return data.status;
   } catch (error) {
     console.error("Error unlocking wallet:", error);
+  }
+}
+
+export const lockWallet = async(walletName: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/lockwallet/${walletName}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to lock wallet");
+    }
+    const data = await response.json();
+    console.log("Status:", data.status);
+    return data.status;
+  } catch (error) {
+    console.error("Error locking wallet:", error);
   }
 }

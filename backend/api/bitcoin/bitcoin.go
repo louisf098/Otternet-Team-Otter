@@ -68,6 +68,22 @@ func (bc *BitcoinClient) call(method string, params []interface{}, walletName st
     return result, nil
 }
 
+func (bc *BitcoinClient) IsMyWallet(addressStr string, walletName string) (bool, error) {
+    // Call the "getaddressinfo" RPC method
+    response, err := bc.call("getaddressinfo", []interface{}{addressStr}, walletName)
+    if err != nil {
+        return false, fmt.Errorf("failed to retrieve address info: %w", err)
+    }
+
+    // Extract the "ismine" field from the result map
+    ismine, ok := response["result"].(map[string]interface{})["ismine"].(bool)
+    if !ok {
+        return false, fmt.Errorf("address does not belong to wallet")
+    }
+
+    return ismine, nil
+}
+
 func (bc *BitcoinClient) GetBalance() (float64, error) {
     response, err := bc.call("getbalance", []interface{}{"*"}, "")
     if err != nil {
@@ -179,15 +195,17 @@ func (bc *BitcoinClient) SetPassphrase(walletName string, passphrase string) (st
     return result, nil
 }
 
-func (bc *BitcoinClient) LoadWallet(walletName string) (string, error) {
+func (bc *BitcoinClient) LoadWallet(walletName string) (map[string]interface{}, error) {
     response, err := bc.call("loadwallet", []interface{}{walletName}, walletName)
     if err != nil {
-        return "", err
+        return nil, err
     }
-    result, ok := response["result"].(string)
+    // Type assertion for result
+    result, ok := response["result"].(map[string]interface{})
     if !ok {
-        return "", err
+        return nil, fmt.Errorf("unexpected result format for wallet: %v", response["result"])
     }
+
     return result, nil
 }
 
@@ -199,4 +217,35 @@ func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) erro
     return nil
 }
 
+func (bc *BitcoinClient) ListWallets() ([]string, error)   {
+    response, err := bc.call("listwallets", []interface{}{}, "")
+    if err != nil {
+        return nil, fmt.Errorf("failed to list all wallets: %w", err)
+    }
+
+    // parse the result from the response
+    result, ok := response["result"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected result type: %T", response["result"])
+    }
+
+    // convert []interface{} to []string
+    wallets := make([]string, len(result))
+    for i, wallet := range result {
+        wallets[i], ok = wallet.(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected wallet name type: %T", wallet)
+        }
+    }
+
+    return wallets, nil
+}
+
+func (bc *BitcoinClient) LockWallet(walletName string) error   {
+    _, err := bc.call("walletlock", []interface{}{}, walletName)
+    if err != nil {
+        return fmt.Errorf("Failed to lock wallet: %w", err)
+    }
+    return nil
+}
 
