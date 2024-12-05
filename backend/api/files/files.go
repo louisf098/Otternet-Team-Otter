@@ -327,7 +327,6 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 	prices := make(map[string]float64)
 	for _, provider := range providers {
 		// open stream to provider using priceRequest protocol
-
 		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, priceRequestProtocol)
 		if err != nil {
 			fmt.Printf("Error opening stream: %v\n", err)
@@ -355,7 +354,7 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Printf("File priced at %f OTTC from provider %s\n", price, provider.ID.String())
 
-		AppendProviderID(provider.ID.String())
+		// AppendProviderID(provider.ID.String())
 
 		prices[provider.ID.String()] = price
 	}
@@ -412,6 +411,37 @@ func AppendProviderID(providerID string) error {
 	}
 
 	return nil
+}
+
+func PutPeersInCache(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	var peerIDs []string
+	err = json.Unmarshal(body, &peerIDs)
+	if err != nil {
+		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
+		return
+	}
+	for _, peerID := range peerIDs {
+		peerInfo, err := peer.Decode(peerID)
+		if err != nil {
+			http.Error(w, "Invalid peer ID", http.StatusBadRequest)
+			return
+		}
+		AppendProviderID(peerInfo.String())
+	}
+	response := map[string]string{"message": "Peers added to cache successfully", "status": "success"}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 // Handles downloading file metadata and file
