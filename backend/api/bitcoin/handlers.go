@@ -10,16 +10,27 @@ import (
 )
 
 func GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Println("GetBalanceHandler triggered")
+    w.Header().Set("Content-Type", "application/json")
+    vars := mux.Vars(r)
+    walletName, exists := vars["walletName"]
+    if !exists || walletName == "" {
+        http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+        return
+    }
+
+    fmt.Printf("Fetching balance for wallet: %s\n", walletName)
 
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
-    balance, err := btcClient.GetBalance()
+
+    balance, err := btcClient.GetBalance(walletName)
     if err != nil {
-        fmt.Printf("Error fetching balance: %v\n", err)
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+        fmt.Printf("Error fetching balance for wallet %s: %v\n", walletName, err)
+        http.Error(w, "Failed to fetch balance", http.StatusInternalServerError)
         return
     }
+
+    fmt.Printf("Balance for wallet %s: %f\n", walletName, balance)
     json.NewEncoder(w).Encode(map[string]float64{"balance": balance})
 }
 
@@ -217,7 +228,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(map[string]string{"status": "unlocked"})
+    json.NewEncoder(w).Encode(map[string]string{"status": "unlocked", "walletName": walletName})
 }
 func LockWalletHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
