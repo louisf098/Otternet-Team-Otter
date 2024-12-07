@@ -239,6 +239,8 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("debug: %+v\n", targetProvider)
+
 	// Try connecting to the target provider
 	if err := global.DHTNode.Host.Connect(context.Background(), targetProvider); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to connect to proxy node: %v", err), http.StatusInternalServerError)
