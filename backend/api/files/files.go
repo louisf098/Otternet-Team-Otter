@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,10 @@ type CatalogItem struct {
 	Price      float64 `json:"price"`
 	BundleMode bool    `json:"bundleMode"`
 	Timestamp  string  `json:"timestamp"`
+}
+
+type ProviderList struct {
+	List []string `json:"list"`
 }
 
 var mutex = &sync.Mutex{}
@@ -355,7 +360,7 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Printf("File priced at %f OTTC from provider %s\n", price, provider.ID.String())
 
-		// AppendProviderID(provider.ID.String())
+		// AppendProviderID(provider.ID.String()) // doing this caused context deadline exceeded error. Will need to make another route just to append provider IDs
 
 		prices[provider.ID.String()] = price
 	}
@@ -365,53 +370,96 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(prices)
 }
 
-func AppendProviderID(providerID string) error {
+func AppendProviderIDs(providerIDs []string) error {
 	mutex2.Lock()
 	defer mutex2.Unlock()
 	// append and read-write to providers.txt. create if it doesn't exist
-	file, err := os.OpenFile(providersFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	providerList, providerSet, err := readProviders()
 	if err != nil {
-		return fmt.Errorf("error opening provider IDs file: %w", err)
+		return fmt.Errorf("error reading provider IDs: %w", err)
+	}
+
+	for _, providerID := range providerIDs {
+		if _, exists := providerSet[providerID]; !exists {
+			providerList.List = append(providerList.List, providerID)
+			providerSet[providerID] = struct{}{}
+		}
+	}
+
+	if len(providerList.List) > maxProviders {
+		providerList.List = providerList.List[popAmount:]
+	}
+	err = writeProviders(providerList.List)
+	if err != nil {
+		return fmt.Errorf("error writing provider IDs: %w", err)
+	}
+	return nil
+}
+
+// creates temp file, writes provider IDs to it, then renames it to providers.txt (for atomicity)
+func writeProviders(providers []string) error {
+	dir := filepath.Dir(providersFilePath)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return fmt.Errorf("error creating providers directory: %w", err)
+	}
+
+	tempFile, err := os.CreateTemp(dir, "providers_*.txt")
+	if err != nil {
+		return fmt.Errorf("error creating temporary providers file: %w", err)
+	}
+	tempFilePath := tempFile.Name()
+
+	writer := bufio.NewWriter(tempFile)
+	for _, provider := range providers {
+		_, err := writer.WriteString(provider + "\n")
+		if err != nil {
+			tempFile.Close()
+			os.Remove(tempFilePath)
+			return fmt.Errorf("error writing provider ID: %w", err)
+		}
+	}
+	err = writer.Flush()
+	if err != nil {
+		tempFile.Close()
+		os.Remove(tempFilePath)
+		return fmt.Errorf("error flushing writer: %w", err)
+	}
+	tempFile.Close()
+	if err != nil {
+		os.Remove(tempFilePath)
+		return fmt.Errorf("error closing temporary providers file: %w", err)
+	}
+	err = os.Rename(tempFilePath, providersFilePath)
+	if err != nil {
+		return fmt.Errorf("error renaming temporary providers file: %w", err)
+	}
+	return nil
+}
+
+// Returns list of provider IDs and a set of provider IDs
+func readProviders() (*ProviderList, map[string]struct{}, error) {
+	file, err := os.Open(providersFilePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error opening providers file: %w", err)
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(providerID + "\n")
-	if err != nil {
-		return fmt.Errorf("error appending provider ID: %w", err)
-	}
-
-	// Move to the beginning of the file to read all lines
-	file.Seek(0, 0)
 	scanner := bufio.NewScanner(file)
-	var lines []string
+	providerList := &ProviderList{List: []string{}}
+	providerSet := make(map[string]struct{})
+
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		line := scanner.Text()
+		if line != "" {
+			providerList.List = append(providerList.List, line)
+			providerSet[line] = struct{}{}
+		}
 	}
-
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading provider IDs file: %w", err)
+		return nil, nil, fmt.Errorf("error reading providers file: %w", err)
 	}
-
-	// if num providers reached the limit, pop oldest 10% of providers
-	if len(lines) > maxProviders {
-		remaining := len(lines) - popAmount
-		if remaining < 0 {
-			remaining = 0
-		}
-		// Keep the remaining provider IDs
-		lines = lines[remaining:]
-
-		file.Truncate(0)
-		file.Seek(0, 0)
-		for _, line := range lines {
-			_, err := file.WriteString(line + "\n")
-			if err != nil {
-				return fmt.Errorf("error rewriting provider IDs file: %w", err)
-			}
-		}
-	}
-
-	return nil
+	return providerList, providerSet, nil
 }
 
 func PutPeersInCache(w http.ResponseWriter, r *http.Request) {
@@ -426,20 +474,24 @@ func PutPeersInCache(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	var peerIDs []string
+	var peerIDs ProviderList
 	err = json.Unmarshal(body, &peerIDs)
 	if err != nil {
 		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
 		return
 	}
-	for _, peerID := range peerIDs {
+	peerInfos := []string{}
+	for _, peerID := range peerIDs.List {
 		peerInfo, err := peer.Decode(peerID)
 		if err != nil {
 			http.Error(w, "Invalid peer ID", http.StatusBadRequest)
 			return
 		}
-		AppendProviderID(peerInfo.String())
+		peerInfos = append(peerInfos, peerInfo.String())
 	}
+
+	AppendProviderIDs(peerInfos)
+
 	response := map[string]string{"message": "Peers added to cache successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -619,13 +671,13 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	providerIDs, err := readProviders()
+	providerIDs, _, err := readProviders()
 	if err != nil {
 		http.Error(w, "Error reading providers file", http.StatusInternalServerError)
 		return
 	}
 	returnIDs := make([]string, 0)
-	for _, peerID := range providerIDs {
+	for _, peerID := range providerIDs.List {
 		peerID_, err := peer.Decode(peerID)
 		if err != nil {
 			fmt.Printf("Error decoding peer ID: %v\n", err)
@@ -657,23 +709,6 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 	response := map[string][]string{"otternetPeers": returnIDs}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
-}
-
-func readProviders() ([]string, error) {
-	file, err := os.Open(providersFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("error opening providers file: %w", err)
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	var providerIDs []string
-	for scanner.Scan() {
-		providerIDs = append(providerIDs, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading providers file: %w", err)
-	}
-	return providerIDs, nil
 }
 
 // Gets the goods from peerstore
