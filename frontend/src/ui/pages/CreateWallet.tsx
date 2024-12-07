@@ -67,12 +67,9 @@ const CreateWallet = () => {
 
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
-    const blob = new Blob(
-      ["Wallet Address: " + walletAddress + "\n" + "Passphrase: " + passphrase],
-      {
-        type: "text/plain",
-      }
-    );
+    const blob = new Blob(["Wallet Address: " + walletAddress + "\n"], {
+      type: "text/plain",
+    });
 
     // Create a URL for the blob object
     const url = window.URL.createObjectURL(blob);
