@@ -121,7 +121,7 @@ func main() {
 	r.HandleFunc("/getNodes", proxy.GetNodesHandler).Methods("GET")
 
 	// New routes for enabling/disabling proxy advertisement
-	r.HandleFunc("/startProxyMode", startProxyModeHandler).Methods("POST")
+	r.HandleFunc("/startProxyMode", proxy.StartProxyModeHandler).Methods("POST")
 	r.HandleFunc("/stopProxyMode", stopProxyModeHandler).Methods("POST")
 
 	handlerWithCORS := corsOptions(r)
@@ -153,38 +153,48 @@ func main() {
 	log.Println("Server stopped")
 }
 
-func startProxyModeHandler(w http.ResponseWriter, r *http.Request) {
-	type ProxyConfig struct {
-		IP          string  `json:"ip"`
-		Port        string  `json:"port"`
-		PricePerHour float64 `json:"pricePerHour"`
-	}
+// func startProxyModeHandler(w http.ResponseWriter, r *http.Request) {
+// 	type ProxyConfig struct {
+// 		IP          string  `json:"ip"`
+// 		Port        string  `json:"port"`
+// 		PricePerHour float64 `json:"pricePerHour"`
+// 	}
 
-	var config ProxyConfig
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+// 	var config ProxyConfig
+// 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+// 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+// 		return
+// 	}
 
-	log.Printf("Starting proxy mode with config: %+v\n", config)
+// 	log.Printf("Starting proxy mode with config: %+v\n", config)
 
-	go func() {
-		err := proxy.AdvertiseSelfAsNode(globalCtx, config.IP, config.Port, config.PricePerHour)
-		if err != nil {
-			log.Printf("Failed to start proxy mode: %v\n", err)
-		}
-	}()
+// 	go func() {
+// 		// Start proxy here as well proxy.startProxy()
+// 		err := proxy.AdvertiseSelfAsNode(globalCtx, config.IP, config.Port, config.PricePerHour)
+// 		if err != nil {
+// 			log.Printf("Failed to start proxy mode: %v\n", err)
+// 		}
+// 	}()
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy mode started"})
-}
+// 	w.WriteHeader(http.StatusOK)
+// 	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy mode started"})
+// }
 
 // stopping proxy mode
 func stopProxyModeHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Stopping proxy mode...")
-	cancelGlobalCtx()
-	globalCtx, cancelGlobalCtx = context.WithCancel(context.Background()) // Reset the context
+	log.Println("Stopping proxy mode")
+
+	// remove the provider from the hard coded file hash (available proxy nodes)
+	response := struct {
+        Status int    `json:"status"` // 0 indicates failure (not available as a proxy)
+        Message string `json:"message"`
+    }{
+        Status:  0,
+        Message: "Node is no longer available as a proxy",
+    }
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy mode stopped"})
+	json.NewEncoder(w).Encode(response)
+
+	log.Printf("Node removed as a proxy for hard coded file hash")
 }
