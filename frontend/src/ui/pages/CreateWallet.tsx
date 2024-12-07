@@ -14,51 +14,63 @@ import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
+import TextField from "@mui/material/TextField";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import { createWallet, unlockWallet } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
-  const [walletID, setWalletID] = React.useState("");
-  const [privateKey, setPrivateKey] = React.useState("");
-  const [openCopyNotif, setOpenCopyNotif] = React.useState(false);
+  const [walletName, setWalletName] = useState<string>("");
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [passphrase, setPassphrase] = useState<string>("");
+  const [confirmPassphrase, setConfirmPassphrase] = useState<string>("");
+  const [openCopyNotif, setOpenCopyNotif] = useState<boolean>(false);
 
-  // const [error, setError] = React.useState(false);
-  // const [errorMessage, setErrorMessage] = React.useState("");
+  const [error, setError] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { walletKeyPair, setWalletKeyPair, setPublicKey } =
-    useContext(AuthContext);
+  const { setPublicKey } = useContext(AuthContext);
 
   const handleCopy = (text: string) => {
     setOpenCopyNotif(true);
     navigator.clipboard.writeText(text);
   };
 
-  const handleGenerateWallet = () => {
-    let walletID: string = "";
-    let privateKey: string = "";
-    const characters: string =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let counter: number = 0;
-    while (counter < 32) {
-      walletID += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      privateKey += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-      counter += 1;
+  const checkMatchingPassphrase = () => {
+    if (passphrase === confirmPassphrase) {
+      setError(false);
+      setErrorMessage("");
+      return true;
+    } else {
+      setError(true);
+      setErrorMessage("Passphrases do not match");
+      return false;
     }
-    setWalletID(walletID);
-    setPrivateKey(privateKey);
-    setWalletKeyPair({ ...walletKeyPair, [walletID]: privateKey });
-    console.log(walletKeyPair);
+  };
+
+  const handleGenerateWallet = async () => {
+    if (!checkMatchingPassphrase()) {
+      return;
+    }
+
+    let walletName = "";
+    const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 12; i++) {
+      const randomInd = Math.floor(Math.random() * characters.length);
+      walletName += characters.charAt(randomInd);
+    }
+    console.log(walletName);
+    let res = await createWallet(walletName, passphrase);
+    setWalletName(walletName);
+    setWalletAddress(res.address);
+    setPassphrase(passphrase);
   };
 
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
     const blob = new Blob(
-      ["Wallet ID: " + walletID + "\n" + "Private Key: " + privateKey],
+      ["Wallet Address: " + walletAddress + "\n" + "Passphrase: " + passphrase],
       {
         type: "text/plain",
       }
@@ -81,9 +93,17 @@ const CreateWallet = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    let status = await unlockWallet(walletAddress, passphrase);
+    if (status != "unlocked") {
+      setError(true);
+      return;
+    }
+    if (error) {
+      return;
+    }
     navigate("/dashboard", { replace: true });
-    setPublicKey(walletID);
+    setPublicKey(walletAddress);
   };
 
   return (
@@ -138,7 +158,6 @@ const CreateWallet = () => {
         </Typography>
         <Box
           component="form"
-          onSubmit={handleSignIn}
           noValidate
           sx={{
             display: "flex",
@@ -147,21 +166,32 @@ const CreateWallet = () => {
             gap: 2,
           }}
         >
-          {privateKey ? (
+          {walletAddress ? (
             <>
               <FormControl>
-                <FormLabel>Wallet ID</FormLabel>
+                <FormLabel>Wallet Name</FormLabel>
                 <OutlinedInput
-                  id="walletID"
+                  id="walletName"
                   type="text"
-                  name="walletID"
+                  name="walletName"
                   fullWidth
                   disabled
-                  value={walletID}
+                  value={walletName}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Wallet Address</FormLabel>
+                <OutlinedInput
+                  id="walletAddress"
+                  type="text"
+                  name="walletAddress"
+                  fullWidth
+                  disabled
+                  value={walletAddress}
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
-                        onClick={() => handleCopy(walletID)}
+                        onClick={() => handleCopy(walletAddress)}
                         color="primary"
                       >
                         <ContentCopyIcon />
@@ -171,18 +201,18 @@ const CreateWallet = () => {
                 />
               </FormControl>
               <FormControl>
-                <FormLabel>Private Key</FormLabel>
+                <FormLabel>Passphrase</FormLabel>
                 <OutlinedInput
-                  id="privateKey"
+                  id="passphrase"
                   type="text"
-                  name="privateKey"
+                  name="passphrase"
                   fullWidth
                   disabled
-                  value={privateKey}
+                  value={passphrase}
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
-                        onClick={() => handleCopy(privateKey)}
+                        onClick={() => handleCopy(passphrase)}
                         color="primary"
                       >
                         <ContentCopyIcon />
@@ -198,7 +228,7 @@ const CreateWallet = () => {
               >
                 Download Backup File
               </Button>
-              <Button type="submit" fullWidth variant="contained">
+              <Button fullWidth variant="contained" onClick={handleSignIn}>
                 Sign In
               </Button>
               <Snackbar
@@ -210,49 +240,40 @@ const CreateWallet = () => {
               />
             </>
           ) : (
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleGenerateWallet}
-            >
-              Generate Wallet ID
-            </Button>
+            <>
+              <FormControl>
+                <FormLabel>Passphrase</FormLabel>
+                <OutlinedInput
+                  id="passphrase"
+                  type="password"
+                  name="passphrase"
+                  fullWidth
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Confirm Passphrase</FormLabel>
+                <TextField
+                  id="confirmPassphrase"
+                  type="password"
+                  name="confirmPassphrase"
+                  fullWidth
+                  helperText={errorMessage}
+                  color={error ? "error" : "primary"}
+                  value={confirmPassphrase}
+                  onChange={(e) => setConfirmPassphrase(e.target.value)}
+                />
+              </FormControl>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleGenerateWallet}
+              >
+                Generate Wallet
+              </Button>
+            </>
           )}
-          {/* <FormControl>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="privateKey">Private Key</FormLabel>
-            </Box>
-            <TextField
-              name="privateKey"
-              placeholder="••••••"
-              type="privateKey"
-              id="privateKey"
-              autoFocus
-              required
-              fullWidth
-              variant="outlined"
-            />
-          </FormControl>
-          <FormControl>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="confirmPrivateKey">
-                Confirm Private Key
-              </FormLabel>
-            </Box>
-            <TextField
-              error={error}
-              helperText={errorMessage}
-              name="confirmPrivateKey"
-              placeholder="••••••"
-              type="confirmPrivateKey"
-              id="confirmPrivateKey"
-              autoFocus
-              required
-              fullWidth
-              variant="outlined"
-              color={error ? "error" : "primary"}
-            />
-          </FormControl> */}
           <Typography sx={{ textAlign: "center" }}>
             Already have a wallet?{" "}
             <span>
