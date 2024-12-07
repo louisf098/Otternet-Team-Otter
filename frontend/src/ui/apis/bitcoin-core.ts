@@ -58,26 +58,26 @@ export const generateAddress = async () => {
   }
 };
 
-export const getBalance = async (address: string) => {
+export const getBalance = async (walletName: string) => {
   try {
-    const response = await fetch("http://localhost:9378/getbalance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ address }),
-    });
+    const response = await fetch(
+      `http://localhost:9378/getbalance/${walletName}`,
+      {
+        method: "GET",
+      }
+    );
     if (!response.ok) {
-      throw new Error("Failed to fetch balance");
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch balance: ${errorText}`);
     }
     const data = await response.json();
-    console.log("Balance:", data.balance);
+    return data.balance;
   } catch (error) {
     console.error("Error fetching balance:", error);
   }
 };
 
-export const unlockWallet = async(address: string, passphrase: string) => {
+export const unlockWallet = async (address: string, passphrase: string) => {
   try {
     const response = await fetch(
       `http://localhost:9378/unlockwallet/${address}/${passphrase}`,
@@ -90,13 +90,13 @@ export const unlockWallet = async(address: string, passphrase: string) => {
     }
     const data = await response.json();
     console.log("Status:", data.status);
-    return data.status;
+    return data;
   } catch (error) {
     console.error("Error unlocking wallet:", error);
   }
-}
+};
 
-export const lockWallet = async(walletName: string) => {
+export const lockWallet = async (walletName: string) => {
   try {
     const response = await fetch(
       `http://localhost:9378/lockwallet/${walletName}`,
@@ -113,4 +113,4 @@ export const lockWallet = async(walletName: string) => {
   } catch (error) {
     console.error("Error locking wallet:", error);
   }
-}
+};

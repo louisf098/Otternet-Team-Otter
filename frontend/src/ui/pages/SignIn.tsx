@@ -18,7 +18,7 @@ const SignIn = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
+  const { setPublicKey, setWalletName } = React.useContext(AuthContext);
 
   const validateInputs = async () => {
     const address = document.getElementById("address") as HTMLInputElement;
@@ -31,27 +31,14 @@ const SignIn = () => {
       setErrorMessage("Please fill out both wallet ID and private key");
       return ;
     }
-    let status = await unlockWallet(address.value, passphrase.value);
-    if (status != "unlocked") {
+    let res = await unlockWallet(address.value, passphrase.value);
+    if (res.status != "unlocked") {
       setError(true);
       return ;
     } else{
+      setWalletName(res.walletName)
       setError(false);
     }
-
-    // if (!Object.keys(walletKeyPair).includes(walletID.value)) {
-    //   console.log(Object.keys(walletKeyPair));
-    //   setError(true);
-    //   setErrorMessage("Invalid Wallet ID");
-    //   return false;
-    // }
-
-    // if (walletKeyPair[walletID.value] !== privateKey.value) {
-    //   setError(true);
-    //   setErrorMessage("Incorrect Private Key");
-    //   return false;
-    // }
-    // setError(false);
 
     if (error) {
       return;
