@@ -21,7 +21,6 @@ import { createWallet, unlockWallet } from "../apis/bitcoin-core";
 
 const CreateWallet = () => {
   const navigate = useNavigate();
-  const [walletName, setWalletName] = useState<string>("");
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [passphrase, setPassphrase] = useState<string>("");
   const [confirmPassphrase, setConfirmPassphrase] = useState<string>("");
@@ -30,7 +29,7 @@ const CreateWallet = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { setPublicKey } = useContext(AuthContext);
+  const { setPublicKey, setWalletName, walletName } = useContext(AuthContext);
 
   const handleCopy = (text: string) => {
     setOpenCopyNotif(true);
@@ -54,27 +53,23 @@ const CreateWallet = () => {
       return;
     }
 
-    let walletName = "";
+    let newWalletName = "";
     const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 12; i++) {
       const randomInd = Math.floor(Math.random() * characters.length);
-      walletName += characters.charAt(randomInd);
+      newWalletName += characters.charAt(randomInd);
     }
-    console.log(walletName);
-    let res = await createWallet(walletName, passphrase);
-    setWalletName(walletName);
+    let res = await createWallet(newWalletName, passphrase);
+    setWalletName(newWalletName);
     setWalletAddress(res.address);
     setPassphrase(passphrase);
   };
 
   const handleBackupDownload = () => {
     // Create a Blob object containing the private key text
-    const blob = new Blob(
-      ["Wallet Address: " + walletAddress + "\n" + "Passphrase: " + passphrase],
-      {
-        type: "text/plain",
-      }
-    );
+    const blob = new Blob(["Wallet Address: " + walletAddress + "\n"], {
+      type: "text/plain",
+    });
 
     // Create a URL for the blob object
     const url = window.URL.createObjectURL(blob);
@@ -94,16 +89,14 @@ const CreateWallet = () => {
   };
 
   const handleSignIn = async () => {
-    let status = await unlockWallet(walletAddress, passphrase);
-    if (status != "unlocked") {
-      setError(true);
-      return;
-    }
-    if (error) {
+    let res = await unlockWallet(walletAddress, passphrase);
+    console.log(res.status);
+    if (res.status != "unlocked") {
       return;
     }
     navigate("/dashboard", { replace: true });
     setPublicKey(walletAddress);
+    setWalletName(res.walletName);
   };
 
   return (

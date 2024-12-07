@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid2";
 import Paper from "@mui/material/Paper";
@@ -16,6 +16,8 @@ import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { AuthContext } from "../contexts/AuthContext";
+import { getBalance } from "../apis/bitcoin-core";
 
 interface TransactionData {
   transactionID: string;
@@ -35,10 +37,13 @@ function createData(
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
-  const [selectedTableTab, setSelectedTableTab] = React.useState(0);
-  const [selectedInfoTab, setSelectedInfoTab] = React.useState(0);
-  const [selectedFilter, setSelectedFilter] = React.useState(1);
-  const [selectedStats, setSelectedStats] = React.useState(1);
+  const [selectedTableTab, setSelectedTableTab] = useState<number>(0);
+  const [selectedInfoTab, setSelectedInfoTab] = useState<number>(0);
+  const [selectedFilter, setSelectedFilter] = useState<number>(1);
+  const [selectedStats, setSelectedStats] = useState<number>(1);
+  const [balance, setBalance] = useState<number>(0);
+
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setSelectedTableTab(newValue);
@@ -77,6 +82,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   const [mining, toggleMining] = React.useState(false);
 
+  const fetchBalance = async () => {
+    let fetchedBalance = await getBalance(walletName);
+    setBalance(fetchedBalance);
+  };
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
   return (
     <>
       <Box
@@ -96,8 +109,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
           <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
-              Wallet ID: qsfjlkwjf923urjfwoijfjefipjwf
-              <Typography variant="body1">Balance: 555 OTC</Typography>
+              Wallet ID: {publicKey}
+              <Typography variant="body1">Balance: {balance}</Typography>
               <Typography variant="body1">File Revenue: 555 OTC</Typography>
               <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
             </Typography>

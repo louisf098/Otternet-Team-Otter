@@ -1,11 +1,11 @@
 package bitcoin
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "Otternet/backend/config"
+	"Otternet/backend/config"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 type BitcoinRPCRequest struct {
@@ -84,8 +84,8 @@ func (bc *BitcoinClient) IsMyWallet(addressStr string, walletName string) (bool,
     return ismine, nil
 }
 
-func (bc *BitcoinClient) GetBalance() (float64, error) {
-    response, err := bc.call("getbalance", []interface{}{"*"}, "")
+func (bc *BitcoinClient) GetBalance(walletName string) (float64, error) {
+    response, err := bc.call("getbalance", []interface{}{"*"}, walletName)
     if err != nil {
         return 0, err
     }
