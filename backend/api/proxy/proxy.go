@@ -178,6 +178,11 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
 
+	log.Println("Available proxy nodes:")
+	for _, n := range proxyNodes {
+		log.Printf("Node ID: %s, IP: %s, Port: %s, Status: %s, PricePerHour: %f\n", n.ID, n.IP, n.Port, n.Status, n.PricePerHour)
+	}
+
 	// Validate that the node exists and is available
 	var node *ProxyNode
 	for i, n := range proxyNodes {
