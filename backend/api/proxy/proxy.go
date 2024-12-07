@@ -32,30 +32,29 @@ var (
 	proxyServer    *http.Server
 )
 
-// AdvertiseSelfAsNode advertises the current server as a node on the DHT
+var ProxyProviderHash = "fixed-proxy-hash"
+
+// AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
 	if global.DHTNode == nil {
 		return fmt.Errorf("DHT node is not initialized")
 	}
 
-	// Generate a unique identifier for this proxy node
-	nodeInfo := fmt.Sprintf("%s:%s", ip, port)
-	hash := sha256.Sum256([]byte(nodeInfo))
+	// Hash the ProxyProviderHash to create a CID
+	hash := sha256.Sum256([]byte(ProxyProviderHash))
 	mh, err := multihash.EncodeName(hash[:], "sha2-256")
 	if err != nil {
 		return fmt.Errorf("failed to create multihash: %v", err)
 	}
-
-	// Create a CID (Content Identifier) for the node
 	c := cid.NewCidV1(cid.Raw, mh)
 
-	// Use the ProvideKey method to advertise the node in DHT
-	err = global.DHTNode.ProvideKey(string(c.Bytes()))
+	// Announce this node as a provider for the CID in the DHT
+	err = global.DHTNode.ProvideKey(c.String())
 	if err != nil {
 		return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
 	}
 
-	log.Printf("Advertised node in DHT: %s (CID: %s)\n", nodeInfo, c)
+	log.Printf("Advertised as a provider for hash: %s (CID: %s)\n", ProxyProviderHash, c)
 
 	// Register the node locally
 	mu.Lock()
@@ -68,6 +67,40 @@ func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour floa
 		Status:       "available",
 	})
 	return nil
+}
+
+// FetchAvailableProxies retrieves a list of proxy nodes currently providing the ProxyProviderHash
+func FetchAvailableProxies(ctx context.Context) ([]ProxyNode, error) {
+	if global.DHTNode == nil {
+		return nil, fmt.Errorf("DHT node is not initialized")
+	}
+
+	// Hash the ProxyProviderHash to create a CID
+	hash := sha256.Sum256([]byte(ProxyProviderHash))
+	mh, err := multihash.EncodeName(hash[:], "sha2-256")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create multihash: %v", err)
+	}
+	c := cid.NewCidV1(cid.Raw, mh)
+
+	// Find providers for the CID
+	providers, err := global.DHTNode.FindProviders(c.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch providers: %v", err)
+	}
+
+	log.Printf("Found %d providers for hash: %s\n", len(providers), ProxyProviderHash)
+
+	// Transform providers into proxy nodes (assumes metadata retrieval later)
+	proxyList := []ProxyNode{}
+	for _, provider := range providers {
+		proxyList = append(proxyList, ProxyNode{
+			ID:     provider.ID.String(),
+			Status: "available", // Status retrieval depends on the system's metadata protocol
+		})
+	}
+
+	return proxyList, nil
 }
 
 // StartServer starts the proxy server on the specified port
@@ -197,11 +230,19 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": status})
 }
 
-// GetNodesHandler returns all registered proxy nodes
+// GetNodesHandler retrieves a list of available proxy nodes
 func GetNodesHandler(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
-	json.NewEncoder(w).Encode(proxyNodes)
+    // Fetch the list of proxies from the DHT
+    proxies, err := FetchAvailableProxies(global.DHTNode.Ctx)
+    if err != nil {
+        log.Printf("Failed to fetch available proxies: %v", err)
+        http.Error(w, "Failed to fetch available proxies", http.StatusInternalServerError)
+        return
+    }
+
+    // Return the list as JSON
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(proxies)
 }
 
 // RegisterNodeHandler handles the registration of a new proxy node
