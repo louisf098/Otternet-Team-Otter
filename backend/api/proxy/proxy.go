@@ -36,7 +36,7 @@ var (
 	proxyServer    *http.Server
 )
 
-var ProxyProviderHash = "fixed-proxy-hash"
+var ProxyProviderHash = "proxy-louis-test"
 
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
@@ -191,7 +191,7 @@ func ShutdownServer(w http.ResponseWriter, r *http.Request) {
 func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 	type ConnectRequest struct {
 		UserID string `json:"userId"`
-		NodeID string `json:"nodeId"`
+		NodeID string `json:"nodeId"` // PeerID of the proxy node
 	}
 
 	var req ConnectRequest
@@ -200,38 +200,55 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	log.Println("Available proxy nodes:")
-	for _, n := range proxyNodes {
-		log.Printf("Node ID: %s, IP: %s, Port: %s, Status: %s, PricePerHour: %f\n", n.ID, n.IP, n.Port, n.Status, n.PricePerHour)
+	if global.DHTNode == nil {
+		http.Error(w, "DHT node is not initialized", http.StatusInternalServerError)
+		return
 	}
 
-	// Validate that the node exists and is available
-	var node *ProxyNode
-	for i, n := range proxyNodes {
-		if n.ID == req.NodeID {
-			node = &proxyNodes[i]
+	log.Printf("Attempting to connect to proxy node: %s\n", req.NodeID)
+
+	// Use DHT to find providers for the hardcoded hash
+	hash := sha256.Sum256([]byte(ProxyProviderHash))
+	mh, err := multihash.EncodeName(hash[:], "sha2-256")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create multihash: %v", err), http.StatusInternalServerError)
+		return
+	}
+	c := cid.NewCidV1(cid.Raw, mh)
+
+	providers, err := global.DHTNode.FindProviders(c.String())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to find providers: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var targetProvider peer.AddrInfo
+	found := false
+
+	// Look for the requested NodeID among providers
+	for _, provider := range providers {
+		if provider.ID.String() == req.NodeID {
+			targetProvider = provider
+			found = true
 			break
 		}
 	}
 
-	if node == nil || node.Status != "available" {
-		http.Error(w, "Proxy node is not available", http.StatusBadRequest)
+	if !found {
+		http.Error(w, fmt.Sprintf("Proxy node with ID %s not found", req.NodeID), http.StatusNotFound)
 		return
 	}
 
-	log.Printf("Attempting to connect to proxy node: IP=%s, Port=%s\n", node.IP, node.Port)
-
-	// Open a direct TCP connection or send a libp2p stream request
-	peerID, err := peer.Decode(req.NodeID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid peer ID: %v", err), http.StatusBadRequest)
+	// Try connecting to the target provider
+	if err := global.DHTNode.Host.Connect(context.Background(), targetProvider); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to connect to proxy node: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	stream, err := global.DHTNode.Host.NewStream(context.Background(), peerID, "/proxy/connect/1.0.0")
+	log.Printf("Successfully connected to proxy node: %s\n", targetProvider.ID)
+
+	// Open a stream to the connected provider
+	stream, err := global.DHTNode.Host.NewStream(context.Background(), targetProvider.ID, "/proxy/connect/1.0.0")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to establish stream: %v", err), http.StatusInternalServerError)
 		return
@@ -264,8 +281,10 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 
 	// Respond to the client
 	if responseMessage.Status == 1 {
-		node.Status = "busy"
+		mu.Lock()
 		activeSessions[req.UserID] = true
+		mu.Unlock()
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(responseMessage)
 	} else {
