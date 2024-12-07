@@ -239,6 +239,8 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 			targetProvider = provider
 			found = true
 			break
+		} else {
+			log.Printf("HEREEEEEEEEEE! PROVIDERID:%s\nREQID: %s", provider.ID, req.NodeID)
 		}
 	}
 
