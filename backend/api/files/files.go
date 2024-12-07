@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,8 +44,8 @@ var mutex2 = &sync.Mutex{}
 const (
 	jsonFilePath      = "./api/files/files.json"
 	providersFilePath = "./api/files/providers.txt"
-	maxProviders      = 300
-	popAmount         = 30 // number of oldest providers to remove from cache when maxProviders is reached
+	maxProviders      = 50
+	popAmount         = 5 // number of oldest providers to remove from cache when maxProviders is reached
 )
 
 // Handles uploading new file or updating existing file metadata
@@ -618,10 +619,19 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	peers := global.DHTNode.Host.Peerstore().Peers()
-	var peerIDs []string
-	for _, peer := range peers {
-		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peer, otternetPeersProtocol)
+	providerIDs, err := readProviders()
+	if err != nil {
+		http.Error(w, "Error reading providers file", http.StatusInternalServerError)
+		return
+	}
+	returnIDs := make([]string, 0)
+	for _, peerID := range providerIDs {
+		peerID_, err := peer.Decode(peerID)
+		if err != nil {
+			fmt.Printf("Error decoding peer ID: %v\n", err)
+			continue
+		}
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerID_, otternetPeersProtocol)
 		if err != nil {
 			fmt.Printf("Error opening stream: %v\n", err)
 			continue
@@ -629,24 +639,41 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 		defer stream.Close()
 		_, err = stream.Write([]byte("otternet1\n"))
 		if err != nil {
-			fmt.Printf("Error sending request: %v\n", err)
+			fmt.Printf("Error sending secret message: %v\n", err)
 			continue
 		}
-		decoder := json.NewDecoder(stream)
-		var secretMessage string
-		err = decoder.Decode(&secretMessage)
+		r := bufio.NewReader(stream)
+		secretMessage, err := r.ReadString('\n')
 		if err != nil {
-			fmt.Printf("Error decoding secret message: %v\n", err)
+			fmt.Printf("Error reading from stream: %v\n", err)
 			continue
 		}
-		if secretMessage != "otternet2" {
-			fmt.Printf("Invalid secret message!!!!\n")
-			continue
+		secretMessage = strings.ToLower(strings.TrimSpace(secretMessage))
+		if secretMessage == "otternet2" {
+			fmt.Printf("Peer %s is an otternet peer\n", peerID)
+			returnIDs = append(returnIDs, peerID)
 		}
-		peerIDs = append(peerIDs, peer.String())
 	}
+	response := map[string][]string{"otternetPeers": returnIDs}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(peerIDs)
+	json.NewEncoder(w).Encode(response)
+}
+
+func readProviders() ([]string, error) {
+	file, err := os.Open(providersFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening providers file: %w", err)
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	var providerIDs []string
+	for scanner.Scan() {
+		providerIDs = append(providerIDs, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading providers file: %w", err)
+	}
+	return providerIDs, nil
 }
 
 // Gets the goods from peerstore
