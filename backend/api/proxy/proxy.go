@@ -225,8 +225,16 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 	var targetProvider peer.AddrInfo
 	found := false
 
-	// Look for the requested NodeID among providers
+	// Look for the requested NodeID among providers and skip self
+	selfID := global.DHTNode.Host.ID()
 	for _, provider := range providers {
+		log.Printf("Found provider: %s, Multiaddrs: %+v\n", provider.ID, provider.Addrs)
+
+		if provider.ID == selfID {
+			log.Printf("Skipping self provider: %s\n", provider.ID)
+			continue // Skip self
+		}
+
 		if provider.ID.String() == req.NodeID {
 			targetProvider = provider
 			found = true
@@ -239,7 +247,7 @@ func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("debug: %+v\n", targetProvider)
+	log.Printf("Target provider selected: %+v\n", targetProvider)
 
 	// Try connecting to the target provider
 	if err := global.DHTNode.Host.Connect(context.Background(), targetProvider); err != nil {
