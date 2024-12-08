@@ -114,3 +114,22 @@ export const lockWallet = async (walletName: string) => {
     console.error("Error locking wallet:", error);
   }
 };
+
+export const backupWallet = async (walletName: string, destination: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/backupwallet/${walletName}/${destination}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to backup wallet");
+    } 
+    const data = await response.json();
+    console.log("Status:", data.status);
+    return data.status;
+  } catch (error) {
+    console.error("Error backing up wallet:", error);
+  }
+};

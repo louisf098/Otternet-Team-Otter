@@ -292,3 +292,28 @@ func LoadAllWalletsHandler(w http.ResponseWriter, r *http.Request) {
 
     json.NewEncoder(w).Encode(map[string]string{"status": "all wallets loaded"})
 }
+
+func BackupWalletsHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+    walletName, walletNameExists := vars["walletName"]
+	if !walletNameExists || walletName == "" {
+		http.Error(w, "Invalid walletName", http.StatusBadRequest)
+		return
+	}
+	destination, destinationExists := vars["destination"]
+	if !destinationExists || destination == "" {
+		http.Error(w, "Invalid destination", http.StatusBadRequest)
+		return
+	}
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    if err := btcClient.BackupWallet(walletName, destination); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{"status": "wallet backup successful"})
+}

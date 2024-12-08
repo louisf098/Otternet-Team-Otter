@@ -190,7 +190,7 @@ func (bc *BitcoinClient) SetPassphrase(walletName string, passphrase string) (st
     }
     result, ok := response["result"].(string)
     if !ok {
-        return "", fmt.Errorf("Failed to set passphrase.")
+        return "", fmt.Errorf("failed to set passphrase")
     }
     return result, nil
 }
@@ -212,7 +212,7 @@ func (bc *BitcoinClient) LoadWallet(walletName string) (map[string]interface{}, 
 func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) error  {
     response, err := bc.call("walletpassphrase", []interface{}{passphrase, 600}, walletName)
     if err != nil {
-        return fmt.Errorf("Failed to unlock wallet: %w", err)
+        return fmt.Errorf("failed to unlock wallet: %w", err)
     }
     if response != nil {
         if response["error"]!= nil {
@@ -249,7 +249,20 @@ func (bc *BitcoinClient) ListWallets() ([]string, error)   {
 func (bc *BitcoinClient) LockWallet(walletName string) error   {
     _, err := bc.call("walletlock", []interface{}{}, walletName)
     if err != nil {
-        return fmt.Errorf("Failed to lock wallet: %w", err)
+        return fmt.Errorf("failed to lock wallet: %w", err)
+    }
+    return nil
+}
+
+func (bc *BitcoinClient) BackupWallet(walletName string, destination string) error {
+    response, err := bc.call("backupwallet", []interface{}{destination}, walletName)
+    if err != nil {
+        return fmt.Errorf("failed to backup wallet: %w", err)
+    }
+    if response != nil {
+        if response["error"]!= nil {
+            return fmt.Errorf(response["error"].(map[string]interface{})["message"].(string))
+        }
     }
     return nil
 }

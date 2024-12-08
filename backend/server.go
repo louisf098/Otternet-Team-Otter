@@ -72,6 +72,7 @@ func main() {
 	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
 	r.HandleFunc("/unlockwallet/{address}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
 	r.HandleFunc("/lockwallet/{walletName}", bitcoin.LockWalletHandler).Methods("GET")
+	r.HandleFunc("/backupwallet/{walletName}/{destination}", bitcoin.BackupWalletsHandler).Methods("GET")
 
 	// Register Bitcoin routes
 	r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")

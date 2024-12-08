@@ -2,25 +2,41 @@ import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
-import { lockWallet } from "../apis/bitcoin-core";
+import { backupWallet, lockWallet } from "../apis/bitcoin-core";
 
 const Settings = () => {
   const navigate = useNavigate();
 
-  const { publicKey, setPublicKey } = useContext(AuthContext);
+  const { publicKey, setPublicKey, walletName } = useContext(AuthContext);
 
-  const handleSignOut = async() => {
-    console.log(publicKey)
-    let status = await lockWallet(publicKey)
+  const [backupPath, setBackupPath] = useState("");
+
+  const handleSignOut = async () => {
+    let status = await lockWallet(publicKey);
     if (status !== "locked") {
       return;
     }
-
     navigate("/", { replace: true });
     setPublicKey("");
   };
+
+  const handleBackupWallet = async () => {
+    console.log(walletName, encodeURIComponent(backupPath));
+    await backupWallet(
+      walletName,
+      encodeURIComponent(backupPath) + "%5Cwalletbackup"
+    );
+  };
+
+  const selectFolder = async () => {
+    const path = await window.electronAPI.selectDownloadPath();
+    if (path) {
+      setBackupPath(path);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -38,6 +54,9 @@ const Settings = () => {
         Wallet ID: {publicKey}
       </Typography>
       <Button onClick={handleSignOut}>Sign Out</Button>
+      <Button onClick={selectFolder}>Select Backup Folder</Button>
+      {backupPath && <p>Selected Folder: {backupPath}</p>}
+      <Button onClick={handleBackupWallet}>Backup Wallet</Button>
     </Box>
   );
 };
