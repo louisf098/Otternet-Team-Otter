@@ -302,9 +302,10 @@ func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
     walletName := vars["walletName"]
     toAddress := vars["toAddress"]
     amountStr := vars["amount"]
+    label := vars["label"]
 
     // Validate parameters
-    if walletName == "" || toAddress == "" || amountStr == "" {
+    if walletName == "" || toAddress == "" || amountStr == "" || label == "" {
         http.Error(w, "'walletName', 'toAddress', or 'amount' parameter(s) are missing", http.StatusBadRequest)
         return
     }
@@ -321,7 +322,7 @@ func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
     btcClient := NewBitcoinClient(cfg)
 
     // Perform coin transfer using Bitcoin RPC
-    transactionID, err := btcClient.TransferCoins(walletName, toAddress, amount)
+    transactionID, err := btcClient.TransferCoins(walletName, toAddress, amount, label)
     if err != nil {
         fmt.Printf("Error with coin transaction: %v\n", err)
         http.Error(w, fmt.Sprintf("Failed to transfer coins: %v\n", err), http.StatusInternalServerError)

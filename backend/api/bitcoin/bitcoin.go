@@ -254,8 +254,9 @@ func (bc *BitcoinClient) LockWallet(walletName string) error   {
     return nil
 }
 
-func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64) (string, error) {
-    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount}, walletName)
+func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64, label string) (string, error) {
+    // label for determining whether transaction is file or proxy related
+    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount, "", label}, walletName)
     if err != nil {
         return "", fmt.Errorf("failed to send coins: %w", err)
     }
