@@ -6,21 +6,31 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-
 	"github.com/gorilla/mux"
 )
 
 func GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Println("GetBalanceHandler triggered")
+    w.Header().Set("Content-Type", "application/json")
+    vars := mux.Vars(r)
+    walletName, exists := vars["walletName"]
+    if !exists || walletName == "" {
+        http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+        return
+    }
+
+    fmt.Printf("Fetching balance for wallet: %s\n", walletName)
 
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
-    balance, err := btcClient.GetBalance()
+
+    balance, err := btcClient.GetBalance(walletName)
     if err != nil {
-        fmt.Printf("Error fetching balance: %v\n", err)
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+        fmt.Printf("Error fetching balance for wallet %s: %v\n", walletName, err)
+        http.Error(w, "Failed to fetch balance", http.StatusInternalServerError)
         return
     }
+
+    fmt.Printf("Balance for wallet %s: %f\n", walletName, balance)
     json.NewEncoder(w).Encode(map[string]float64{"balance": balance})
 }
 
@@ -149,15 +159,102 @@ func CreateWalletAndAddressHandler(w http.ResponseWriter, r *http.Request) {
     _, err = btcClient.SetPassphrase(walletName, passStr)
     if err != nil {
         fmt.Printf("Error setting passphrase: %v\n", err)
+        return
     }
 
     json.NewEncoder(w).Encode(map[string]string{
         "walletName": walletName,
         "address":    address,
-        "privkey":      passStr,
+        "passphrase": passStr,
     })
 }
 
+func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	address, addressExists := vars["address"]
+	if !addressExists || address == "" {
+		http.Error(w, "Invalid bitcoin address", http.StatusBadRequest)
+		return
+	}
+    passphrase, passphraseExists := vars["passphrase"] 
+    if !passphraseExists || passphrase == "" {
+		http.Error(w, "Invalid passphrase", http.StatusBadRequest)
+		return
+	}
+    fmt.Println("UnlockWalletHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // get all wallets
+    walletNames, listWalletErr := btcClient.ListWallets()
+    if listWalletErr != nil {
+        fmt.Printf("Error getting all wallets: %v\n", listWalletErr)
+        return
+    }
+
+    walletName := ""
+
+    for i := 0; i < len(walletNames); i++ {
+        ismywallet, ismywalletErr := btcClient.IsMyWallet(address, walletNames[i])
+        if listWalletErr != nil {
+            fmt.Printf("Error check if wallet belongs to user: %v\n", ismywalletErr)
+            return
+        }
+        if ismywallet {
+            walletName = walletNames[i]
+            break
+        }
+    }
+
+    if walletName == "" {
+        fmt.Printf("Wallet not found.\n")
+        return
+    }
+
+    // load wallet
+    // walletName, err := btcClient.LoadWallet(walletName)
+    // if err != nil {
+    //     fmt.Printf("Error loading wallet: %v\n", err)
+    //     return
+    // }
+
+    // unlock wallet
+    unlockWalletErr := btcClient.UnlockWallet(walletName, passphrase)
+    if unlockWalletErr != nil {
+        fmt.Printf("Error unlocking wallet: %v\n", unlockWalletErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": unlockWalletErr.Error()})
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{"status": "unlocked", "walletName": walletName})
+}
+func LockWalletHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletName, exists := vars["walletName"]
+	if !exists || walletName == "" {
+		http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+		return
+	}
+    fmt.Println("LockWalletHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // get all wallets
+    err := btcClient.LockWallet(walletName)
+    if err != nil {
+        fmt.Printf("Error locking wallet: %v\n", err)
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{"status": "locked"})
+}
+
+func LoadAllWallets() error {
+    fmt.Println("Loading all wallets...")
 
 func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Println("TransferCoinsHandler triggered")
@@ -195,4 +292,39 @@ func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
 
     // Encode JSON response with transaction ID
     json.NewEncoder(w).Encode(map[string]string{"transactionID": transactionID})
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // Get all loaded wallets
+    walletNames, listWalletErr := btcClient.ListWallets()
+    if listWalletErr != nil {
+        return fmt.Errorf("Error listing wallets: %v", listWalletErr)
+    }
+
+    for _, walletName := range walletNames {
+        response, err := btcClient.LoadWallet(walletName)
+        if err != nil {
+            fmt.Printf("Error loading wallet %s: %v\n", walletName, err)
+            continue // Skip this wallet and move to the next
+        }
+
+        name, ok := response["name"].(string)
+        if !ok || name != walletName {
+            fmt.Printf("Warning: Wallet %s not loaded as expected\n", walletName)
+            continue
+        }
+    }
+
+    fmt.Println("All wallets loaded successfully")
+    return nil
+}
+
+func LoadAllWalletsHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    if err := LoadAllWallets(); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{"status": "all wallets loaded"})
 }

@@ -68,10 +68,16 @@ func main() {
 	r.HandleFunc("/json", jsonResponse)
 	r.HandleFunc("/", baseHandler)
 
+	r.HandleFunc("/createwallet/{walletName}", bitcoin.GenerateWalletHandler).Methods("GET")
+	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
+	r.HandleFunc("/unlockwallet/{address}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
+	r.HandleFunc("/lockwallet/{walletName}", bitcoin.LockWalletHandler).Methods("GET")
+
 	// Register Bitcoin routes
-	r.HandleFunc("/balance", bitcoin.GetBalanceHandler).Methods("GET")
 	r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")
 	r.HandleFunc("/newaddress/{walletName}/{label}", bitcoin.GenerateAddressWithLabelHandler).Methods("GET")
+
+	r.HandleFunc("/getbalance/{walletName}", bitcoin.GetBalanceHandler).Methods("GET")
 
 	// Label from address route
 	r.HandleFunc("/labelfromaddress/{walletName}/{address}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
@@ -99,6 +105,7 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 	shutdownComplete := make(chan bool)
+	bitcoin.LoadAllWallets()
 	go func() {
 		println("Preparing to listen on port 9378")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

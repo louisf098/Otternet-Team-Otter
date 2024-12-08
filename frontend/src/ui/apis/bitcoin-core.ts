@@ -5,7 +5,7 @@ const rpcHost = "http://127.0.0.1"; // Default Bitcoin Core RPC host
 const rpcPort = "8332"; // Default Bitcoin Core RPC port
 
 // Function to create a wallet if it doesn't exist and generate an address
-export const createWalletAndGenerateAddress = async (walletName: string) => {
+export const createWallet = async (walletName: string, passphrase: string) => {
   try {
     const response = await fetch(
       `http://localhost:9378/createwalletandaddress/${walletName}/${passphrase}`,
@@ -17,7 +17,7 @@ export const createWalletAndGenerateAddress = async (walletName: string) => {
       throw new Error("Failed to create wallet");
     }
     const data = await response.json();
-    console.log("Wallet created:", data);
+    console.log("Wallet created:");
     return data;
   } catch (error) {
     console.error("Error generating wallet:", error);
@@ -58,21 +58,59 @@ export const generateAddress = async () => {
   }
 };
 
-export const getBalance = async (address: string) => {
+export const getBalance = async (walletName: string) => {
   try {
-    const response = await fetch("http://localhost:9378/getbalance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ address }),
-    });
+    const response = await fetch(
+      `http://localhost:9378/getbalance/${walletName}`,
+      {
+        method: "GET",
+      }
+    );
     if (!response.ok) {
-      throw new Error("Failed to fetch balance");
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch balance: ${errorText}`);
     }
     const data = await response.json();
-    console.log("Balance:", data.balance);
+    return data.balance;
   } catch (error) {
     console.error("Error fetching balance:", error);
+  }
+};
+
+export const unlockWallet = async (address: string, passphrase: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/unlockwallet/${address}/${passphrase}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to unlock wallet");
+    }
+    const data = await response.json();
+    console.log("Status:", data.status);
+    return data;
+  } catch (error) {
+    console.error("Error unlocking wallet:", error);
+  }
+};
+
+export const lockWallet = async (walletName: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/lockwallet/${walletName}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to lock wallet");
+    }
+    const data = await response.json();
+    console.log("Status:", data.status);
+    return data.status;
+  } catch (error) {
+    console.error("Error locking wallet:", error);
   }
 };
