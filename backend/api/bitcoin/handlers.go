@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -291,4 +292,42 @@ func LoadAllWalletsHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     json.NewEncoder(w).Encode(map[string]string{"status": "all wallets loaded"})
+}
+
+func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("TransferCoinsHandler triggered")
+
+    // Parse parameters from path variables
+    vars := mux.Vars(r)
+    walletName := vars["walletName"]
+    toAddress := vars["toAddress"]
+    amountStr := vars["amount"]
+
+    // Validate parameters
+    if walletName == "" || toAddress == "" || amountStr == "" {
+        http.Error(w, "'walletName', 'toAddress', or 'amount' parameter(s) are missing", http.StatusBadRequest)
+        return
+    }
+
+    // Check if transaction amount is valid
+    amount, err := strconv.ParseFloat(amountStr, 64)
+    if err != nil || amount <= 0 {
+        http.Error(w, "'amount' must be a valid positive number", http.StatusBadRequest)
+        return
+    }
+
+    // Initialize config and Bitcoin client
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // Perform coin transfer using Bitcoin RPC
+    transactionID, err := btcClient.TransferCoins(walletName, toAddress, amount)
+    if err != nil {
+        fmt.Printf("Error with coin transaction: %v\n", err)
+        http.Error(w, fmt.Sprintf("Failed to transfer coins: %v\n", err), http.StatusInternalServerError)
+        return
+    }
+
+    // Encode JSON response with transaction ID
+    json.NewEncoder(w).Encode(map[string]string{"transactionID": transactionID})
 }
