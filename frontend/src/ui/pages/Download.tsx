@@ -85,6 +85,7 @@ const Download = () => {
 
     // Get the list of providers, only the walletID is needed
     const providerListWalletID = providerList.map(provider => provider.walletID);
+    const requestBody = {list: providerListWalletID};
 
     // send a POST request to the backend to cache the list of providers
     try {
@@ -94,7 +95,7 @@ const Download = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(providerListWalletID),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
