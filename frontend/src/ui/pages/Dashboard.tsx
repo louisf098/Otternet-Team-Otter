@@ -146,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         >
           {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-              Filter
+              Filter  
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
               <MenuItem value={1}>Date (Latest)</MenuItem>

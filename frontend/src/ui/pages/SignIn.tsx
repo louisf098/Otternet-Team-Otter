@@ -32,6 +32,7 @@ const SignIn = () => {
       return ;
     }
     let res = await unlockWallet(address.value, passphrase.value);
+    if (!res) return;
     if (res.status != "unlocked") {
       setError(true);
       return ;

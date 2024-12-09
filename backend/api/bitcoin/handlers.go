@@ -188,6 +188,12 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
 
+    addressFormatErr := btcClient.ValidateBitcoinAddress(address)
+    if addressFormatErr != nil {
+        fmt.Printf("Error getting all wallets: %v\n", addressFormatErr)
+        return
+    }
+
     // get all wallets
     walletNames, listWalletErr := btcClient.ListWallets()
     if listWalletErr != nil {
@@ -203,6 +209,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
             fmt.Printf("Error check if wallet belongs to user: %v\n", ismywalletErr)
             return
         }
+        fmt.Printf("ismywallet: %v\n", ismywallet)
         if ismywallet {
             walletName = walletNames[i]
             break
