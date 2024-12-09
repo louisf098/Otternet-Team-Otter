@@ -17,7 +17,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance } from "../apis/bitcoin-core";
+import { getBalance, getTransactions } from "../apis/bitcoin-core";
 
 interface TransactionData {
   transactionID: string;
@@ -86,8 +86,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
+
+  const fetchTransactions = async () => {
+    let transactions = getTransactions(walletName);
+  };
+
   useEffect(() => {
     fetchBalance();
+    fetchTransactions();
   }, []);
 
   return (

@@ -254,6 +254,31 @@ func (bc *BitcoinClient) LockWallet(walletName string) error   {
     return nil
 }
 
+func (bc *BitcoinClient) GetTransactions(walletName string) ([]map[string]interface{}, error) {
+    response, err := bc.call("listtransactions", []interface{}{}, walletName)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get transactions: %w", err)
+    }
+
+    // Parse the result from the response
+    result, ok := response["result"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected result type: expected []interface{}, got %T", response["result"])
+    }
+
+    // Convert []interface{} to []map[string]interface{} for better type safety
+    transactions := make([]map[string]interface{}, len(result))
+    for i, tx := range result {
+        transaction, ok := tx.(map[string]interface{})
+        if !ok {
+            return nil, fmt.Errorf("unexpected transaction format: expected map[string]interface{}, got %T", tx)
+        }
+        transactions[i] = transaction
+    }
+
+    return transactions, nil
+}
+
 func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64, label string) (string, error) {
     // label for determining whether transaction is file or proxy related
     response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount, "", label}, walletName)
