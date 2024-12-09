@@ -129,6 +129,7 @@ export const getTransactions = async (walletName: string) => {
       status: tx.confirmations > 0 ? "completed" : "pending", // Assume category is the status
       timeReceived: new Date(tx.time * 1000), // Convert UNIX timestamp to Date
       category: tx.category || "",
+      blockhash: tx.blockhash,
     }));
 
     console.log("Parsed Transactions:", transactions);
