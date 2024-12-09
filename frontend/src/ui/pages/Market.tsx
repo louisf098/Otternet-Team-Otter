@@ -32,20 +32,13 @@ interface FileItem {
 const ITEMS_PER_PAGE = 7;
 
 const dummyData: { [walletId: string]: FileItem[] } = {
-    dbf8b58dec30242dd3e1a64331b9dacdb58cfa0f7742aa47e0984cf4098997ab: [
+    '12D3KooWCAuJSTUtqqAYjS6Xu9WL79vZ98hNYck7zy2pDyg2UuWY': [
         { id: 1, name: "Document.pdf", size: "2MB", type: "PDF", dateUploaded: "2024-10-10", price: "5", bundlable: true },
         { id: 2, name: "Photo.jpg", size: "1.5MB", type: "Image", dateUploaded: "2024-09-15", price: "10", bundlable: false },
         { id: 5, name: "Report.docx", size: "3MB", type: "Word Document", dateUploaded: "2024-10-05", price: "12", bundlable: true },
         { id: 6, name: "Data.csv", size: "1MB", type: "CSV", dateUploaded: "2024-09-20", price: "7", bundlable: true },
         { id: 7, name: "Graph.png", size: "2.5MB", type: "Image", dateUploaded: "2024-09-30", price: "9", bundlable: false },
-    ],
-    e9fc6c0177c6270bd3dd58b7ef506630cd3279b1e4f7bce3c9d65f8f6f85f5a7: [
-        { id: 3, name: "Presentation.pptx", size: "5MB", type: "PowerPoint", dateUploaded: "2024-10-12", price: "15", bundlable: true },
-        { id: 4, name: "Spreadsheet.xlsx", size: "3MB", type: "Excel", dateUploaded: "2024-09-25", price: "8", bundlable: true },
-        { id: 8, name: "Audio.mp3", size: "4MB", type: "Audio", dateUploaded: "2024-08-15", price: "6", bundlable: true },
-        { id: 9, name: "Video.mp4", size: "10MB", type: "Video", dateUploaded: "2024-07-10", price: "20", bundlable: false },
-        { id: 10, name: "Ebook.epub", size: "2MB", type: "Ebook", dateUploaded: "2024-08-20", price: "4", bundlable: true },
-    ],
+    ]
 };
 
 const Market: React.FC = () => {
