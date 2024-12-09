@@ -44,7 +44,15 @@ const SignIn = () => {
       return;
     }
 
+    const response = await fetch("http://localhost:9378/startDHT/address.value", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log(response);
     setPublicKey(address.value);
+
     navigate("/dashboard", { replace: true });
   };
 

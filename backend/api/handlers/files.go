@@ -1,4 +1,4 @@
-package files
+package handlers
 
 import (
 	"bufio"
@@ -15,14 +15,21 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-var fileRequestProtocol = protocol.ID("/otternet/fileRequest")
-var priceRequestProtocol = protocol.ID("/otternet/priceRequest")
-var catalogRequestProtocol = protocol.ID("/otternet/catalogRequest")
-var otternetPeersProtocol = protocol.ID("/otternet/peers")
+var FileRequestProtocol = protocol.ID("/otternet/fileRequest")
+var PriceRequestProtocol = protocol.ID("/otternet/priceRequest")
+var CatalogRequestProtocol = protocol.ID("/otternet/catalogRequest")
+var OtternetPeersProtocol = protocol.ID("/otternet/peers")
+
+// FormData represents the metadata of a file
+type FormData struct {
+	FileHash string  `json:"fileHash"`
+	FilePath string  `json:"filePath"`
+	Price    float64 `json:"price"`
+}
 
 // Handles incoming file requests using a stream handler
 func HandleFileRequests(h host.Host) {
-	h.SetStreamHandler(fileRequestProtocol, func(s network.Stream) {
+	h.SetStreamHandler(FileRequestProtocol, func(s network.Stream) {
 		defer s.Close()
 
 		// Read the incoming file hash from the stream
@@ -89,7 +96,7 @@ func getMetadataByHash(fileHash string) (FormData, error) {
 
 // Handles incoming price requests using a stream handler
 func HandlePriceRequests(h host.Host) {
-	h.SetStreamHandler(priceRequestProtocol, func(s network.Stream) {
+	h.SetStreamHandler(PriceRequestProtocol, func(s network.Stream) {
 		defer s.Close()
 
 		// Read the incoming file hash from the stream
@@ -117,7 +124,7 @@ func HandlePriceRequests(h host.Host) {
 }
 
 func HandleCatalogRequests(h host.Host) {
-	h.SetStreamHandler(catalogRequestProtocol, func(s network.Stream) {
+	h.SetStreamHandler(CatalogRequestProtocol, func(s network.Stream) {
 		defer s.Close()
 		fmt.Print("Catalog request received\n")
 		// send files.json to requester
@@ -137,7 +144,7 @@ func HandleCatalogRequests(h host.Host) {
 
 // Handles incoming isOtternet requesets. If receive "otternet1" then send "otternet2"
 func HandleOtternetPeersRequests(h host.Host) {
-	h.SetStreamHandler(otternetPeersProtocol, func(s network.Stream) {
+	h.SetStreamHandler(OtternetPeersProtocol, func(s network.Stream) {
 		defer s.Close()
 		r := bufio.NewReader(s)
 

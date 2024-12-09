@@ -1,6 +1,7 @@
 package dhtnode
 
 import (
+	"Otternet/backend/global_wallet"
 	"bufio"
 	"bytes"
 	"context"
@@ -26,7 +27,7 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var id = []byte("/orcanet/114295852") // Seed used to generate node's private key & peer ID
+var id = []byte("/orcanet/" + global_wallet.WalletAddr) // Seed used to generate node's private key & peer ID
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
 var BootstrapNodeAddr = "/ip4/130.245.68.63/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
 

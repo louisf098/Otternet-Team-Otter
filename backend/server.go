@@ -2,11 +2,10 @@ package main
 
 import (
 	"Otternet/backend/api/bitcoin"
-	"Otternet/backend/api/dhtnode"
+	dhtHandlers "Otternet/backend/api/dht_handlers"
 	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
-	"Otternet/backend/global"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -64,22 +63,6 @@ func jsonResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var err error
-	global.DHTNode, err = dhtnode.CreateLibp2pHost()
-	if err != nil {
-		log.Fatalf("Failed to instantiate the DHT node: %v", err)
-	}
-	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
-	global.DHTNode.MakeReservation()
-	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
-	files.HandleFileRequests(global.DHTNode.Host)
-	files.HandlePriceRequests(global.DHTNode.Host)
-	files.HandleCatalogRequests(global.DHTNode.Host)
-	files.HandleOtternetPeersRequests(global.DHTNode.Host)
-	go global.DHTNode.HandlePeerExchange()
-
-	defer global.DHTNode.Close()
-
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
 	r.HandleFunc("/hello/{name}", nameReader)
@@ -123,6 +106,9 @@ func main() {
 	r.HandleFunc("/getOtternetPeers", files.GetOtternetPeers).Methods("GET") // get otternet peers that HAVE FILES UPLOADED
 	r.HandleFunc("/putPeersInCache", files.PutPeersInCache).Methods("POST")
 
+	// DHT Routes
+	r.HandleFunc("/startDHT/{walletAddr}", dhtHandlers.StartDHTHandler).Methods("GET")
+	r.HandleFunc("/stopDHT", dhtHandlers.CloseDHTHandler).Methods("GET")
 	handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{

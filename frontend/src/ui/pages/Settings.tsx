@@ -17,7 +17,13 @@ const Settings = () => {
     if (status !== "locked") {
       return;
     }
-
+    const response = await fetch("http://localhost:9378/stopDHT", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log(response);
     navigate("/", { replace: true });
     setPublicKey("");
   };

@@ -2,6 +2,7 @@ package files
 
 import (
 	"Otternet/backend/api/download"
+	"Otternet/backend/api/handlers"
 	"Otternet/backend/global"
 	"bufio"
 	"encoding/json"
@@ -334,7 +335,7 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 	prices := make(map[string]float64)
 	for _, provider := range providers {
 		// open stream to provider using priceRequest protocol
-		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, priceRequestProtocol)
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, provider.ID, handlers.PriceRequestProtocol)
 		if err != nil {
 			fmt.Printf("Error opening stream: %v\n", err)
 			continue
@@ -544,7 +545,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
-	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
+	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, handlers.FileRequestProtocol)
 	if err != nil {
 		fmt.Printf("Error opening stream: %v\n", err)
 		return
@@ -643,7 +644,7 @@ func GetCatalog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error finding peer", http.StatusInternalServerError)
 		return
 	}
-	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, catalogRequestProtocol)
+	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, handlers.CatalogRequestProtocol)
 	if err != nil {
 		http.Error(w, "Error opening stream: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -687,7 +688,7 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Error decoding peer ID: %v\n", err)
 			continue
 		}
-		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerID_, otternetPeersProtocol)
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerID_, handlers.OtternetPeersProtocol)
 		if err != nil {
 			fmt.Printf("Error opening stream: %v\n", err)
 			continue
