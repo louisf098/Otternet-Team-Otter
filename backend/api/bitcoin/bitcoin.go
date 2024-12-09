@@ -279,3 +279,18 @@ func (bc *BitcoinClient) GetTransactions(walletName string) ([]map[string]interf
     return transactions, nil
 }
 
+func (bc *BitcoinClient) TransferCoins(walletName string, toAddress string, amount float64, label string) (string, error) {
+    // label for determining whether transaction is file or proxy related
+    response, err := bc.call("sendtoaddress", []interface{}{toAddress, amount, "", label}, walletName)
+    if err != nil {
+        return "", fmt.Errorf("failed to send coins: %w", err)
+    }
+
+    // Extract Transaction ID
+    transactionID, ok := response["result"].(string)
+    if !ok {
+        return "", fmt.Errorf("unexpected response format; no transaction ID found")
+    }
+
+    return transactionID, nil
+}
