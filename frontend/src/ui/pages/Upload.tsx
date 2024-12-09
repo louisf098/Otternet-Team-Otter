@@ -13,10 +13,12 @@ import Radio from "@mui/material/Radio";
 import { FileMetadata } from "../interfaces/File";
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from "../contexts/AuthContext";
 
 
 interface FormData {
-  userID: string,
+  walletID: string,
+  srcID: string,
   price: number,
   fileName: string,
   filePath: string,
@@ -42,6 +44,7 @@ const Upload: React.FC<UploadProps> = () => {
     const [snackbarColor, setSnackbarColor] = useState<'success' | 'error' | 'info' | 'warning'>('success');
     const fileName = '';
     const navigate = useNavigate();
+    const { publicKey, walletName } = React.useContext(AuthContext);
 
     //Form validation useStates
     const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<SubmitData>();
@@ -128,7 +131,7 @@ const Upload: React.FC<UploadProps> = () => {
         // const price = parseFloat(formData.get('price') as string);
         // const bundleMode = formData.get('bundleMode') === 'Bundled';
         // const fileName = formData.get('fileName') as string;
-        const userID = "user12345"; // Hardcoded for now
+        const userID = publicKey; // Hardcoded for now
         const price = parseFloat(data.price); // Use `data.price` from React Hook Form
         const bundleMode = data.bundleMode === 'Bundled'; // Check the bundle mode from data
         const fileName = data.fileName;
@@ -141,7 +144,8 @@ const Upload: React.FC<UploadProps> = () => {
         }
 
         const postData: FormData = {
-            userID,
+            walletID: userID,
+            srcID: userID,
             price,
             fileName,
             filePath: fileMetadata.file_path,

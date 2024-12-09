@@ -13,7 +13,8 @@ import (
 )
 
 type FormData struct {
-	UserID     string  `json:"userID"`
+	WalletID   string  `json:"walletID"`
+	SrcID      string  `json:"srcID"`
 	Price      float64 `json:"price"`
 	FileName   string  `json:"fileName"`
 	FilePath   string  `json:"filePath"`

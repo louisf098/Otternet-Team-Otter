@@ -6,18 +6,21 @@ import { ProxyData } from "../interfaces/File";
 import { IconButton, Snackbar, SnackbarCloseReason } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import "../stylesheets/NodesSection.css";
+import { AuthContext } from "../contexts/AuthContext";
 
 const NodesSection: React.FC = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const { publicKey } = useContext(AuthContext);
 
   const handleSelect = async (
     node: (typeof proxyNodes)[0]
   ): Promise<boolean> => {
     try {
       const proxyData: ProxyData = {
-        id: node.id,
+        walletID: publicKey,
+        srcID: node.id,
         ipAddr: node.ip,
         price: node.rate,
         timestamp: new Date().toISOString(),

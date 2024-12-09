@@ -4,9 +4,12 @@ import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "
 import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { AuthContext } from "../contexts/AuthContext";
+import React from "react";
 
 interface FormData {
-  userID: string,
+  walletID: string,
+  srcID: string,
   price: number,
   fileName: string,
   filePath: string,
@@ -42,6 +45,8 @@ const Download = () => {
   const [selectedWallet, setSelectedWallet] = useState<string>("");
   const [isValidHash, setIsValidHash] = useState<boolean | null>(null);
 
+  const { publicKey, walletName } = React.useContext(AuthContext);
+
   const handleSearchClick = () => {
     if (!fileHash.trim()) {
       setIsValidHash(false);
@@ -65,7 +70,8 @@ const Download = () => {
   const handleDownloadClick = async (phash: string, pprice: number) => {
     try {
       const postData: FormData = {
-        userID: phash, 
+        walletID: publicKey,
+        srcID: phash, 
         price: pprice,
         fileName: dummyFileDetails.name,
         filePath: downloadLocation,

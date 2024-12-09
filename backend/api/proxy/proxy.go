@@ -10,7 +10,8 @@ import (
 )
 
 type ProxyData struct {
-	ID        string  `json:"id"`
+	WalletID  string  `json:"walletID"`
+	SrcID     string  `json:"srcID"`
 	IPAddr    string  `json:"ipAddr"`
 	Price     float64 `json:"price"`
 	Timestamp string  `json:"timestamp"`
