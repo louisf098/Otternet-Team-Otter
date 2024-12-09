@@ -28,7 +28,7 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "DHT node already started", http.StatusInternalServerError)
 		return
 	}
-
+	global_wallet.WalletAddr = walletAddr
 	global.DHTNode, initErr = dhtnode.CreateLibp2pHost()
 	if initErr != nil {
 		log.Fatalf("Failed to instantiate the DHT node: %v", initErr)
@@ -52,8 +52,6 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "DHT node not initialized", http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("walletAddr: %s\n", walletAddr)
-	global_wallet.WalletAddr = walletAddr
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "DHT node started successfully"})
 }
