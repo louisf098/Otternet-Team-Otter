@@ -6,6 +6,22 @@ import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { Snackbar } from "@mui/material";
 import { set } from "react-hook-form";
+import { AuthContext } from "../contexts/AuthContext";
+import React from "react";
+import { Wallet } from "@mui/icons-material";
+
+interface FormData {
+  walletID: string,
+  srcID: string,
+  price: number,
+  fileName: string,
+  filePath: string,
+  fileSize: number,
+  fileType: string,
+  timestamp: string,
+  fileHash: string,
+  bundleMode: boolean
+}
 
 const Download = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +36,7 @@ const Download = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
-
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   const handleSnackbarClose = (
     event?: React.SyntheticEvent | Event,
@@ -93,6 +109,7 @@ const Download = () => {
     try {
 
       const postData = {
+        WalletID : publicKey,
         ProviderID : phash,
         DownloadPath : downloadLocation,
         FileHash : searchedHash
