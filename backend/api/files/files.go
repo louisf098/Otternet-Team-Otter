@@ -376,10 +376,16 @@ func AppendProviderIDs(providerIDs []string) error {
 	mutex2.Lock()
 	defer mutex2.Unlock()
 	// append and read-write to providers.txt. create if it doesn't exist
+	fmt.Printf("Appending %d provider IDs to cache\n", len(providerIDs))
+	fmt.Printf("Providers: %v\n", providerIDs)
 	providerList, providerSet, err := readProviders()
 	if err != nil {
-		return fmt.Errorf("error reading provider IDs: %w", err)
+		fmt.Printf("Provider file not found. Creating new file\n")
+		providerList = &ProviderList{List: []string{}}
+		providerSet = make(map[string]struct{})
 	}
+
+	fmt.Printf("REACHED AFTER READPROVIDERS\n")
 
 	for _, providerID := range providerIDs {
 		if _, exists := providerSet[providerID]; !exists {
@@ -387,6 +393,8 @@ func AppendProviderIDs(providerIDs []string) error {
 			providerSet[providerID] = struct{}{}
 		}
 	}
+
+	fmt.Printf("REACHED AFTER LOOP\n")
 
 	if len(providerList.List) > maxProviders {
 		providerList.List = providerList.List[popAmount:]
@@ -400,6 +408,8 @@ func AppendProviderIDs(providerIDs []string) error {
 
 // creates temp file, writes provider IDs to it, then renames it to providers.txt (for atomicity)
 func writeProviders(providers []string) error {
+	fmt.Printf("Writing %d provider IDs to file\n", len(providers))
+	fmt.Printf("Providers: %v\n", providers)
 	dir := filepath.Dir(providersFilePath)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
@@ -493,6 +503,7 @@ func PutPeersInCache(w http.ResponseWriter, r *http.Request) {
 	}
 
 	AppendProviderIDs(peerInfos)
+	fmt.Printf("Peers added to cache: %v\n", peerInfos)
 
 	response := map[string]string{"message": "Peers added to cache successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
@@ -577,6 +588,8 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	// Download file from peer
 
 	fmt.Println("Creating the File in Download Location")
+	fmt.Println("Download Path: ", downloadPath)
+	fmt.Println("File Name: ", metadata.FileName)
 
 	file, err := os.Create(downloadPath + "/" + metadata.FileName)
 	if err != nil {

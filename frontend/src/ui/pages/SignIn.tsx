@@ -26,6 +26,8 @@ const SignIn = () => {
       "passphrase"
     ) as HTMLInputElement;
 
+
+    
     if (!address.value || !passphrase.value) {
       setError(true);
       setErrorMessage("Please fill out both wallet ID and private key");

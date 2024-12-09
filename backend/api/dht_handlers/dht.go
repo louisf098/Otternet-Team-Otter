@@ -53,6 +53,8 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	fmt.Printf("DHT node started successfully\n")
+	fmt.Printf("Global.DHTNode: %v\n", global.DHTNode)
 	json.NewEncoder(w).Encode(map[string]string{"message": "DHT node started successfully"})
 }
 
