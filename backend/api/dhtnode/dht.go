@@ -30,7 +30,7 @@ var id = []byte("114306801") // Seed used to generate node's private key & peer 
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
 
 // var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWHvjhLXNGWQ8uYXXs5kCSsq7aZZMYv7MW8mRde8TpSQcf"
-var BootstrapNodeAddr = "/ip4/130.245.68.30/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
+var BootstrapNodeAddr = "/ip4/130.245.68.63/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
 
 // Encapsulates the host and DHT for easy access
 type DHTNode struct {

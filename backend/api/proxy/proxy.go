@@ -2,22 +2,41 @@ package proxy
 
 import (
 	"Otternet/backend/global"
+	"bufio"
+	//"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
+	"io/ioutil"
+	//"net"
 	"net/http"
-	"net/http/httptest"
-	"sync"
-	"bytes"
 	"strings"
+	"sync"
 
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/elazarl/goproxy"
-	"github.com/ipfs/go-cid"  // Correct import for CID
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/host"
+	//"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	//"github.com/multiformats/go-multiaddr"
+	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
 )
+
+var (
+	// In-memory data stores
+	proxyNodes        = []ProxyNode{}
+	authorizedClients = make(map[string]bool) // Multiaddress of authorized clients
+	mu                sync.Mutex
+	proxyServer       *http.Server
+)
+
+// Constants
+var ProxyProviderHash = "proxy-louis-test"
+var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
+var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 
 // ProxyNode represents a proxy node's details
 type ProxyNode struct {
@@ -28,410 +47,253 @@ type ProxyNode struct {
 	Status       string  `json:"status"` // "available", "busy"
 }
 
-// In-memory data stores (replace with database in production)
-var (
-	proxyNodes     = []ProxyNode{}
-	activeSessions = map[string]bool{} // Tracks active sessions by user ID
-	mu             sync.Mutex
-	proxyServer    *http.Server
-)
-
-var ProxyProviderHash = "proxy-louis-test"
-
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
-    if global.DHTNode == nil {
-        return fmt.Errorf("DHT node is not initialized")
-    }
+	if global.DHTNode == nil {
+		return fmt.Errorf("DHT node is not initialized")
+	}
 
-    // Hash the ProxyProviderHash to create a CID
-    hash := sha256.Sum256([]byte(ProxyProviderHash))
-    mh, err := multihash.EncodeName(hash[:], "sha2-256")
-    if err != nil {
-        return fmt.Errorf("failed to create multihash: %v", err)
-    }
-    c := cid.NewCidV1(cid.Raw, mh)
+	// Hash the ProxyProviderHash to create a CID
+	hash := sha256.Sum256([]byte(ProxyProviderHash))
+	mh, err := multihash.EncodeName(hash[:], "sha2-256")
+	if err != nil {
+		return fmt.Errorf("failed to create multihash: %v", err)
+	}
+	c := cid.NewCidV1(cid.Raw, mh)
 
-    // Announce this node as a provider for the CID in the DHT
-    err = global.DHTNode.ProvideKey(c.String())
-    if err != nil {
-        return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
-    }
+	// Announce this node as a provider for the CID in the DHT
+	err = global.DHTNode.ProvideKey(c.String())
+	if err != nil {
+		return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
+	}
 
-    log.Printf("Advertised as a provider for hash: %s (CID: %s)\n", ProxyProviderHash, c)
+	log.Printf("Advertised as a provider for hash: %s (CID: %s)\n", ProxyProviderHash, c)
 
-    // Add the proxy node to the local list with metadata
-    mu.Lock()
-    defer mu.Unlock()
-    proxyNodes = append(proxyNodes, ProxyNode{
-        ID:           global.DHTNode.Host.ID().String(), // Use the libp2p peer ID
-        IP:           ip,
-        Port:         port,
-        PricePerHour: pricePerHour,
-        Status:       "available",
-    })
+	// Add the proxy node to the local list with metadata
+	mu.Lock()
+	defer mu.Unlock()
+	proxyNodes = append(proxyNodes, ProxyNode{
+		ID:           global.DHTNode.Host.ID().String(), // Use the libp2p peer ID
+		IP:           ip,
+		Port:         port,
+		PricePerHour: pricePerHour,
+		Status:       "available",
+	})
 
-    return nil
+	return nil
 }
 
-func parseMultiAddr(multiAddr string) (string, string, error) {
-    parts := strings.Split(multiAddr, "/")
-    if len(parts) < 5 {
-        return "", "", fmt.Errorf("invalid multiaddress format")
+func getPublicIP() (string, error) {
+	resp, err := http.Get("https://api.ipify.org?format=text") // API to fetch public IP
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch public IP: %w", err)
+	}
+	defer resp.Body.Close()
+
+	ip, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read public IP response: %w", err)
+	}
+
+	return strings.TrimSpace(string(ip)), nil
+}
+
+// StartProxyServer starts the proxy server and advertises it as a provider on the DHT
+func StartProxyServer(port string) error {
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.Verbose = true
+
+	// Automatically add the server itself as an authorized client (IPv4 and IPv6 loopback addresses)
+	mu.Lock()
+	authorizedClients["127.0.0.1"] = true // IPv4 loopback
+	authorizedClients["::1"] = true      // IPv6 loopback
+	mu.Unlock()
+	log.Printf("Server added as an authorized client for addresses: 127.0.0.1 and ::1")
+
+	// Add custom authorization logic for HTTP and HTTPS traffic
+	proxy.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+		clientAddr := ctx.Req.RemoteAddr
+		log.Printf("Raw client address: %s", clientAddr)
+
+		// Ensure RemoteAddr is valid
+		if clientAddr == "" {
+			log.Println("Empty client address in request; rejecting.")
+			return goproxy.RejectConnect, ""
+		}
+
+		normalizedAddr := normalizeAddress(clientAddr)
+		log.Printf("Normalized client address: %s", normalizedAddr)
+
+		mu.Lock()
+		authorized := authorizedClients[normalizedAddr]
+		mu.Unlock()
+
+		if !authorized {
+			log.Printf("Unauthorized client attempted to connect: %s", normalizedAddr)
+			return goproxy.RejectConnect, ""
+		}
+
+		log.Printf("Authorized client request from: %s", normalizedAddr)
+		return goproxy.OkConnect, host
+	})
+
+	// Allow HTTPS traffic by intercepting CONNECT requests
+	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
+
+	// Advertise this proxy node on the DHT
+	go func() {
+		ip, err := getPublicIP()
+		if err != nil {
+			log.Printf("Failed to fetch public IP: %v. Falling back to 127.0.0.1", err)
+			ip = "127.0.0.1" // Fallback to localhost if public IP cannot be fetched
+		}
+
+		err = AdvertiseSelfAsNode(global.DHTNode.Ctx, ip, port, 0.01) // Adjust pricePerHour as needed
+		if err != nil {
+			log.Printf("Failed to advertise self as a proxy node: %v", err)
+		} else {
+			log.Printf("Successfully advertised proxy node on the DHT: IP=%s, Port=%s", ip, port)
+		}
+	}()
+
+	// Start the HTTP proxy server
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: proxy,
+	}
+	proxyServer = server
+
+	log.Printf("Starting proxy server on port %s...", port)
+	return server.ListenAndServe()
+}
+
+func normalizeAddress(addr string) string {
+    // Split the address into host and port
+    if strings.Contains(addr, "]") { // IPv6 literal with port
+        // Extract the IPv6 literal by trimming brackets
+        addr = strings.Split(addr, "]")[0]
+        addr = strings.TrimPrefix(addr, "[")
+    } else if strings.Contains(addr, ":") { // IPv4 or IPv6 without brackets
+        addr = strings.Split(addr, ":")[0]
     }
 
-    ip := parts[2]
-    port := parts[4]
-    return ip, port, nil
+    // Normalize IPv6 loopback to IPv4 loopback for consistency
+    if addr == "::1" {
+        return "127.0.0.1"
+    }
+
+    return addr
+}
+
+// HandleConnectToProxy adds a client to the authorized list and starts servicing
+func HandleConnectToProxy(h host.Host) {
+	h.SetStreamHandler(proxyConnectProtocol, func(s network.Stream) {
+		defer s.Close()
+
+		// Read client multiaddress
+		r := bufio.NewReader(s)
+		clientAddr, err := r.ReadString('\n')
+		if err != nil {
+			log.Printf("Error reading from stream: %v", err)
+			return
+		}
+		clientAddr = strings.TrimSpace(clientAddr)
+
+		// Add client to authorized list
+		mu.Lock()
+		authorizedClients[clientAddr] = true
+		mu.Unlock()
+
+		log.Printf("Client %s connected to proxy", clientAddr)
+
+		// Send positive response
+		response := map[string]string{"message": "Connected to proxy"}
+		json.NewEncoder(s).Encode(response)
+	})
+}
+
+// HandleDisconnectFromProxy removes a client from the authorized list
+func HandleDisconnectFromProxy(h host.Host) {
+	h.SetStreamHandler(proxyDisconnectProtocol, func(s network.Stream) {
+		defer s.Close()
+
+		// Read client multiaddress
+		r := bufio.NewReader(s)
+		clientAddr, err := r.ReadString('\n')
+		if err != nil {
+			log.Printf("Error reading from stream: %v", err)
+			return
+		}
+		clientAddr = strings.TrimSpace(clientAddr)
+
+		// Remove client from authorized list
+		mu.Lock()
+		delete(authorizedClients, clientAddr)
+		mu.Unlock()
+
+		log.Printf("Client %s disconnected from proxy", clientAddr)
+
+		// Send positive response
+		response := map[string]string{"message": "Disconnected from proxy"}
+		json.NewEncoder(s).Encode(response)
+	})
 }
 
 // FetchAvailableProxies retrieves a list of proxy nodes currently providing the ProxyProviderHash
 func FetchAvailableProxies(ctx context.Context) ([]ProxyNode, error) {
-    if global.DHTNode == nil {
-        return nil, fmt.Errorf("DHT node is not initialized")
-    }
-
-    // Hash the ProxyProviderHash to create a CID
-    hash := sha256.Sum256([]byte(ProxyProviderHash))
-    mh, err := multihash.EncodeName(hash[:], "sha2-256")
-    if err != nil {
-        return nil, fmt.Errorf("failed to create multihash: %v", err)
-    }
-    c := cid.NewCidV1(cid.Raw, mh)
-
-    // Find providers for the CID
-    providers, err := global.DHTNode.FindProviders(c.String())
-    if err != nil {
-        return nil, fmt.Errorf("failed to fetch providers: %v", err)
-    }
-
-    log.Printf("Found %d providers for hash: %s\n", len(providers), ProxyProviderHash)
-    log.Printf("Providers found: %+v\n", providers)
-
-    // Transform providers into ProxyNode objects
-    proxyList := []ProxyNode{}
-    for _, provider := range providers {
-        for _, addr := range provider.Addrs {
-            // Parse the multiaddress to extract IP and Port
-            ip, port, err := parseMultiAddr(addr.String())
-            if err != nil {
-                log.Printf("Failed to parse address %s: %v\n", addr.String(), err)
-                continue
-            }
-
-            proxyList = append(proxyList, ProxyNode{
-                ID:     provider.ID.String(),
-                IP:     ip,
-                Port:   port,
-                Status: "available", // Assumes nodes are available unless further metadata is retrieved
-            })
-        }
-    }
-
-    return proxyList, nil
-}
-
-
-// StartServer starts the proxy server on the specified port
-func StartServer(w http.ResponseWriter, r *http.Request) {
-	type StartRequest struct {
-		Port string `json:"port"`
-	}
-
-	var req StartRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Port == "" {
-		http.Error(w, "Invalid port provided", http.StatusBadRequest)
-		return
-	}
-
-	// Prevent multiple server instances
-	if proxyServer != nil {
-		http.Error(w, "Proxy server is already running", http.StatusConflict)
-		return
-	}
-
-	// Start the proxy server
-	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
-
-	proxyServer = &http.Server{
-		Addr:    ":" + req.Port,
-		Handler: proxy,
-	}
-
-	go func() {
-		log.Printf("Starting proxy server on port %s...\n", req.Port)
-		if err := proxyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Proxy server error: %v\n", err)
-		}
-	}()
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy server started"})
-}
-
-// ShutdownServer gracefully shuts down the proxy server
-func ShutdownServer(w http.ResponseWriter, r *http.Request) {
-	if proxyServer == nil {
-		http.Error(w, "Proxy server is not running", http.StatusConflict)
-		return
-	}
-
-	log.Println("Shutting down proxy server...")
-	if err := proxyServer.Close(); err != nil {
-		log.Fatalf("Error shutting down proxy server: %v\n", err)
-	}
-
-	proxyServer = nil
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy server shut down"})
-}
-
-// ConnectToProxy handles user connection to a proxy node
-func ConnectToProxy(w http.ResponseWriter, r *http.Request) {
-	type ConnectRequest struct {
-		UserID string `json:"userId"`
-		NodeID string `json:"nodeId"` // PeerID of the proxy node
-	}
-
-	var req ConnectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
 	if global.DHTNode == nil {
-		http.Error(w, "DHT node is not initialized", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("DHT node is not initialized")
 	}
 
-	log.Printf("Attempting to connect to proxy node: %s\n", req.NodeID)
-
-	// Use DHT to find providers for the hardcoded hash
+	// Hash the ProxyProviderHash to create a CID
 	hash := sha256.Sum256([]byte(ProxyProviderHash))
 	mh, err := multihash.EncodeName(hash[:], "sha2-256")
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to create multihash: %v", err), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("failed to create multihash: %v", err)
 	}
 	c := cid.NewCidV1(cid.Raw, mh)
 
+	// Find providers for the CID
 	providers, err := global.DHTNode.FindProviders(c.String())
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to find providers: %v", err), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("failed to fetch providers: %v", err)
 	}
 
-	var targetProvider peer.AddrInfo
-	found := false
+	log.Printf("Found %d providers for hash: %s\n", len(providers), ProxyProviderHash)
 
-	// Look for the requested NodeID among providers and skip self
-	selfID := global.DHTNode.Host.ID()
+	// Transform providers into ProxyNode objects
+	proxyList := []ProxyNode{}
 	for _, provider := range providers {
-		log.Printf("Found provider: %s, Multiaddrs: %+v\n", provider.ID, provider.Addrs)
+		for _, addr := range provider.Addrs {
+			// Parse the multiaddress to extract IP and Port
+			ip, port, err := parseMultiAddr(addr.String())
+			if err != nil {
+				log.Printf("Failed to parse address %s: %v\n", addr.String(), err)
+				continue
+			}
 
-		if provider.ID == selfID {
-			log.Printf("Skipping self provider: %s\n", provider.ID)
-			continue // Skip self
-		}
-
-		if provider.ID.String() == req.NodeID {
-			targetProvider = provider
-			found = true
-			break
-		} else {
-			log.Printf("HEREEEEEEEEEE! PROVIDERID:%s\nREQID: %s", provider.ID, req.NodeID)
-		}
-	}
-
-	if !found {
-		http.Error(w, fmt.Sprintf("Proxy node with ID %s not found", req.NodeID), http.StatusNotFound)
-		return
-	}
-
-	log.Printf("Target provider selected: %+v\n", targetProvider)
-
-	// Try connecting to the target provider
-	if err := global.DHTNode.Host.Connect(context.Background(), targetProvider); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to connect to proxy node: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully connected to proxy node: %s\n", targetProvider.ID)
-
-	// Open a stream to the connected provider
-	stream, err := global.DHTNode.Host.NewStream(context.Background(), targetProvider.ID, "/proxy/connect/1.0.0")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to establish stream: %v", err), http.StatusInternalServerError)
-		return
-	}
-	defer stream.Close()
-
-	// Send connection request to the proxy node
-	requestMessage := struct {
-		UserID string `json:"userId"`
-		Action string `json:"action"` // e.g., "connect"
-	}{
-		UserID: req.UserID,
-		Action: "connect",
-	}
-
-	if err := json.NewEncoder(stream).Encode(requestMessage); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to send connection request: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Read response from the proxy node
-	responseMessage := struct {
-		Status  int    `json:"status"`
-		Message string `json:"message"`
-	}{}
-	if err := json.NewDecoder(stream).Decode(&responseMessage); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read response: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Respond to the client
-	if responseMessage.Status == 1 {
-		mu.Lock()
-		activeSessions[req.UserID] = true
-		mu.Unlock()
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(responseMessage)
-	} else {
-		http.Error(w, responseMessage.Message, http.StatusServiceUnavailable)
-	}
-}
-
-// GetProxyHistory fetches active session details
-func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	sessionDetails := []string{}
-	for userID := range activeSessions {
-		sessionDetails = append(sessionDetails, userID)
-	}
-
-	json.NewEncoder(w).Encode(sessionDetails)
-}
-
-// HandleRequest processes proxy-specific HTTP requests
-func HandleRequest(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Handling request: %s %s\n", r.Method, r.URL.Path)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Request handled"})
-}
-
-// GetStatus returns the current status of the proxy server
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	status := "stopped"
-	if proxyServer != nil {
-		status = "running"
-	}
-
-	json.NewEncoder(w).Encode(map[string]string{"status": status})
-}
-
-// GetNodesHandler retrieves a list of available proxy nodes
-func GetNodesHandler(w http.ResponseWriter, r *http.Request) {
-    // Fetch the list of proxies from the DHT
-    proxies, err := FetchAvailableProxies(global.DHTNode.Ctx)
-    if err != nil {
-        log.Printf("Failed to fetch available proxies: %v", err)
-        http.Error(w, "Failed to fetch available proxies", http.StatusInternalServerError)
-        return
-    }
-
-    // Match fetched providers with local metadata
-    enrichedProxies := []ProxyNode{}
-    for _, proxy := range proxies {
-        for _, localProxy := range proxyNodes {
-            if proxy.ID == localProxy.ID {
-                enrichedProxies = append(enrichedProxies, localProxy)
-                break
-            }
-        }
-    }
-
-    // Return the enriched list as JSON
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(enrichedProxies)
-}
-
-
-// RegisterNodeHandler handles the registration of a new proxy node
-func RegisterNodeHandler(w http.ResponseWriter, r *http.Request) {
-	var newNode ProxyNode
-	if err := json.NewDecoder(r.Body).Decode(&newNode); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	// Check for duplicate node ID
-	for _, node := range proxyNodes {
-		if node.ID == newNode.ID {
-			http.Error(w, "Node with this ID already exists", http.StatusConflict)
-			return
+			proxyList = append(proxyList, ProxyNode{
+				ID:     provider.ID.String(),
+				IP:     ip,
+				Port:   port,
+				Status: "available",
+			})
 		}
 	}
 
-	// Add the new node to the list
-	proxyNodes = append(proxyNodes, newNode)
-	log.Printf("Node registered: %+v\n", newNode)
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Node registered successfully"})
+	return proxyList, nil
 }
 
-func StartProxyModeHandler(w http.ResponseWriter, r *http.Request) {
-	type ProxyConfig struct {
-		IP          string  `json:"ip"`
-		Port        string  `json:"port"`
-		PricePerHour float64 `json:"pricePerHour"`
+func parseMultiAddr(multiAddr string) (string, string, error) {
+	parts := strings.Split(multiAddr, "/")
+	if len(parts) < 5 {
+		return "", "", fmt.Errorf("invalid multiaddress format")
 	}
 
-	var config ProxyConfig
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Starting proxy mode with config: %+v\n", config)
-
-	go func() {
-		// Start the proxy server
-		reqBody, _ := json.Marshal(map[string]string{"port": config.Port})
-		req, err := http.NewRequest("POST", "http://localhost/startProxy", bytes.NewBuffer(reqBody))
-		if err != nil {
-			log.Printf("Failed to create request for starting proxy server: %v\n", err)
-			return
-		}
-		w := httptest.NewRecorder()
-		StartServer(w, req)
-		resp := w.Result()
-		if resp.StatusCode != http.StatusOK {
-			log.Printf("Failed to start proxy server: %v\n", resp.Status)
-			return
-		}
-
-		// Advertise the node as a proxy on the DHT
-		err = AdvertiseSelfAsNode(global.DHTNode.Ctx, config.IP, config.Port, config.PricePerHour)
-		if err != nil {
-			log.Printf("Failed to advertise proxy node: %v\n", err)
-			return
-		}
-
-		log.Println("Proxy mode started successfully")
-	}()
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Proxy mode started"})
+	ip := parts[2]
+	port := parts[4]
+	return ip, port, nil
 }
+
+var Mu = &mu // Export mutex
+var AuthorizedClients = authorizedClients // Export the map

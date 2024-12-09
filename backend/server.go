@@ -35,6 +35,33 @@ type TestJSON struct {
     Name string `json:"name"`
 }
 
+func registerHandleConnectEndpoint(router *mux.Router) {
+    router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
+        var req struct {
+            ClientAddr string `json:"clientAddr"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            http.Error(w, "Invalid request body", http.StatusBadRequest)
+            return
+        }
+
+        if req.ClientAddr == "" {
+            http.Error(w, "Client address is required", http.StatusBadRequest)
+            return
+        }
+
+        // Authorize the client
+        proxy.Mu.Lock() // Ensure thread-safe access
+        proxy.AuthorizedClients[req.ClientAddr] = true
+        proxy.Mu.Unlock()
+
+        log.Printf("Client %s connected to proxy via API", req.ClientAddr)
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{"message": "Client authorized successfully"})
+    }).Methods("POST")
+}
+
+
 func baseHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World")
 }
@@ -111,18 +138,49 @@ func main() {
 	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
 
 	// Proxy-related routes
-	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
-	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
-	r.HandleFunc("/registerNode", proxy.RegisterNodeHandler).Methods("POST")
-	r.HandleFunc("/startProxy", proxy.StartServer).Methods("POST")
-	r.HandleFunc("/shutdownProxy", proxy.ShutdownServer).Methods("POST")
-	r.HandleFunc("/handleRequest", proxy.HandleRequest).Methods("POST")
-	r.HandleFunc("/getProxyStatus", proxy.GetStatus).Methods("GET")
-	r.HandleFunc("/getNodes", proxy.GetNodesHandler).Methods("GET")
+	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
+		type StartRequest struct {
+			Port string `json:"port"`
+		}
+		var req StartRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Port == "" {
+			http.Error(w, "Invalid port provided", http.StatusBadRequest)
+			return
+		}
+		go func() {
+			if err := proxy.StartProxyServer(req.Port); err != nil {
+				log.Printf("Error starting proxy server: %v", err)
+			}
+		}()
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Proxy server started"})
+	}).Methods("POST")
 
-	// New routes for enabling/disabling proxy advertisement
-	r.HandleFunc("/startProxyMode", proxy.StartProxyModeHandler).Methods("POST")
-	r.HandleFunc("/stopProxyMode", stopProxyModeHandler).Methods("POST")
+	r.HandleFunc("/fetchAvailableProxies", func(w http.ResponseWriter, r *http.Request) {
+		// Use the global DHT context to fetch available proxies
+		proxies, err := proxy.FetchAvailableProxies(global.DHTNode.Ctx)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error fetching available proxies: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(proxies)
+	}).Methods("GET")
+
+	registerHandleConnectEndpoint(r)
+
+	// r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
+	// r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
+	// r.HandleFunc("/registerNode", proxy.RegisterNodeHandler).Methods("POST")
+	// r.HandleFunc("/startProxy", proxy.StartServer).Methods("POST")
+	// r.HandleFunc("/shutdownProxy", proxy.ShutdownServer).Methods("POST")
+	// r.HandleFunc("/handleRequest", proxy.HandleRequest).Methods("POST")
+	// r.HandleFunc("/getProxyStatus", proxy.GetStatus).Methods("GET")
+	// r.HandleFunc("/getNodes", proxy.GetNodesHandler).Methods("GET")
+
+	// // New routes for enabling/disabling proxy advertisement
+	// r.HandleFunc("/startProxyMode", proxy.StartProxyModeHandler).Methods("POST")
+	// r.HandleFunc("/stopProxyMode", stopProxyModeHandler).Methods("POST")
 
 	handlerWithCORS := corsOptions(r)
 
@@ -181,20 +239,20 @@ func main() {
 // }
 
 // stopping proxy mode
-func stopProxyModeHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Stopping proxy mode")
+// func stopProxyModeHandler(w http.ResponseWriter, r *http.Request) {
+// 	log.Println("Stopping proxy mode")
 
-	// remove the provider from the hard coded file hash (available proxy nodes)
-	response := struct {
-        Status int    `json:"status"` // 0 indicates failure (not available as a proxy)
-        Message string `json:"message"`
-    }{
-        Status:  0,
-        Message: "Node is no longer available as a proxy",
-    }
+// 	// remove the provider from the hard coded file hash (available proxy nodes)
+// 	response := struct {
+//         Status int    `json:"status"` // 0 indicates failure (not available as a proxy)
+//         Message string `json:"message"`
+//     }{
+//         Status:  0,
+//         Message: "Node is no longer available as a proxy",
+//     }
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+// 	w.WriteHeader(http.StatusOK)
+// 	json.NewEncoder(w).Encode(response)
 
-	log.Printf("Node removed as a proxy for hard coded file hash")
-}
+// 	log.Printf("Node removed as a proxy for hard coded file hash")
+// }
