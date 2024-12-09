@@ -514,6 +514,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 	var postData = struct {
+		WalletID     string `json:"walletID"`
 		ProviderID   string `json:"providerID"`
 		DownloadPath string `json:"downloadPath"`
 		FileHash     string `json:"fileHash"`
@@ -524,6 +525,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	walletID := postData.WalletID
 	providerID := postData.ProviderID
 	downloadPath := postData.DownloadPath
 	fileHash := postData.FileHash
@@ -594,7 +596,8 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Save file metadata to local file.json
 	downloadedFile := FormData{
-		UserID:     providerID,
+		WalletID:   walletID,
+		SrcID:      providerID,
 		Price:      metadata.Price,
 		FileName:   metadata.FileName,
 		FilePath:   downloadPath,
