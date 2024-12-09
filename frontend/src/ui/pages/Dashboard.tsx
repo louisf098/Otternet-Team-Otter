@@ -10,14 +10,17 @@ import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
 import TabSelector from "../components/TabSelector";
-import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
-import { Snackbar } from "@mui/material";
-import { IconButton } from "@mui/material";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import { SnackbarCloseReason } from "@mui/material";
+import Snackbar from "@mui/material/Snackbar";
+import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance } from "../apis/bitcoin-core";
+import { getBalance, mineCoins } from "../apis/bitcoin-core";
 
 interface TransactionData {
   transactionID: string;
@@ -80,12 +83,27 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
-  const [mining, toggleMining] = React.useState(false);
-
   const fetchBalance = async () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
+
+  const [amountToMine, setAmountToMine] = useState<number>(1);
+
+  const handleMineCoins = async () => {
+    const blockHashes = mineCoins(publicKey, amountToMine);
+  };
+
+  const handleSetAmountToMine = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    if (Number(event.target.value) < 1) {
+      setAmountToMine(1);
+      return;
+    }
+    setAmountToMine(Number(event.target.value));
+  };
+
   useEffect(() => {
     fetchBalance();
   }, []);
@@ -124,12 +142,18 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 p: 1,
               }}
             >
-              <Typography variant="h5">Miner</Typography>
-              <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
-              <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
-              <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
-              <Button variant="contained" onClick={() => toggleMining(!mining)}>
-                {mining ? "Pause Mining" : "Start Mining"}
+              <Typography variant="h5" sx={{ mb: 1 }}>
+                Miner
+              </Typography>
+              <TextField
+                size="small"
+                sx={{ mb: 1 }}
+                type="number"
+                value={amountToMine}
+                onChange={handleSetAmountToMine}
+              ></TextField>
+              <Button variant="contained" onClick={() => handleMineCoins()}>
+                Mine Coins
               </Button>
             </Box>
           </Grid>

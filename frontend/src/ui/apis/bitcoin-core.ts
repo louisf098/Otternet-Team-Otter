@@ -114,3 +114,22 @@ export const lockWallet = async (walletName: string) => {
     console.error("Error locking wallet:", error);
   }
 };
+
+export const mineCoins = async (address: string, amount: number) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/minecoins/${address}/${amount}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to mine coins");
+    }
+    const data = await response.json();
+    console.log("Mined coins:", data);
+    return data
+  } catch (error) {
+    console.error("Error mining coins:", error);
+  }
+};

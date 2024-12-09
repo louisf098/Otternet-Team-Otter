@@ -139,6 +139,30 @@ func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
     return result["name"].(string), nil
 }
 
+func (bc *BitcoinClient) MineCoins(address string, amount int) ([]string, error) {
+    // Call the "generatetoaddress" RPC
+    response, err := bc.call("generatetoaddress", []interface{}{amount, address}, "")
+    if err != nil {
+        return nil, fmt.Errorf("failed to mine coins: %w", err)
+    }
+
+    // Extract the "result" field as a slice of strings (block hashes)
+    blockHashes, ok := response["result"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected type for 'result': expected []interface{}, got %T", response["result"])
+    }
+
+    // Convert []interface{} to []string
+    hashes := make([]string, len(blockHashes))
+    for i, hash := range blockHashes {
+        hashes[i], ok = hash.(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected type in block hashes: expected string, got %T", hash)
+        }
+    }
+
+    return hashes, nil
+}
 
 // func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
 //     // Call the "getaddressinfo" RPC method
