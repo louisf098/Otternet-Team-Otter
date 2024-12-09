@@ -34,7 +34,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-test"
+var ProxyProviderHash = "proxy-louis-test1"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 
@@ -148,7 +148,7 @@ func StartProxyServer(port string) error {
 			ip = "127.0.0.1" // Fallback to localhost if public IP cannot be fetched
 		}
 
-		err = AdvertiseSelfAsNode(global.DHTNode.Ctx, ip, port, 0.01) // Adjust pricePerHour as needed
+		err = AdvertiseSelfAsNode(global.DHTNode.Ctx, ip, port, 0.01) // Adjust pricePerHour as needed - change later to bytes?
 		if err != nil {
 			log.Printf("Failed to advertise self as a proxy node: %v", err)
 		} else {
@@ -177,7 +177,7 @@ func normalizeAddress(addr string) string {
         addr = strings.Split(addr, ":")[0]
     }
 
-    // Normalize IPv6 loopback to IPv4 loopback for consistency
+    // Normalize the IPv6 to IPv4 consistenticy and less bugs
     if addr == "::1" {
         return "127.0.0.1"
     }
@@ -295,5 +295,6 @@ func parseMultiAddr(multiAddr string) (string, string, error) {
 	return ip, port, nil
 }
 
-var Mu = &mu // Export mutex
-var AuthorizedClients = authorizedClients // Export the map
+ // Export the mu and map, used in server.go
+var Mu = &mu
+var AuthorizedClients = authorizedClients
