@@ -21,6 +21,7 @@ import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
 import { getBalance, getTransactions, mineCoins } from "../apis/bitcoin-core";
+import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
   transactionID: string;
@@ -87,10 +88,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
-  
-  const fetchTransactions = async () => {
-    let transactions = getTransactions(walletName);
 
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const fetchTransactions = async () => {
+    let fetchedTransactions = await getTransactions(walletName);
+    setTransactions(fetchedTransactions);
+  };
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
@@ -128,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           Dashboard
         </Typography>
         <Box sx={{ display: "flex" }}>
-          <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
+          <Paper sx={{ p: 1, height: "157px", mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: {publicKey}
@@ -148,6 +152,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
             >
               <Typography variant="h5" sx={{ mb: 1 }}>
                 Miner
+              </Typography>
+              <Typography sx={{ mb: 1 }}>
+                Blocks mining in progress:
+                {
+                  (transactions || []).filter((tx) => tx.category === "immature")
+                    .length
+                }
               </Typography>
               <TextField
                 size="small"

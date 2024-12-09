@@ -3,4 +3,6 @@ export interface Transaction {
   amount: number;
   status: string;
   timeReceived: Date;
+  category: string;
+  blockhash: string;
 }

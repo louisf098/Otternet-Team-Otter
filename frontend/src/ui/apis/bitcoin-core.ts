@@ -136,6 +136,9 @@ export const getTransactions = async (walletName: string) => {
     return transactions;
   } catch (error) {
     console.error("Error fetching transactions:", error);
+  }
+  return [];
+};
 export const mineCoins = async (address: string, amount: number) => {
   try {
     const response = await fetch(
@@ -149,7 +152,7 @@ export const mineCoins = async (address: string, amount: number) => {
     }
     const data = await response.json();
     console.log("Mined coins:", data);
-    return data
+    return data;
   } catch (error) {
     console.error("Error mining coins:", error);
   }

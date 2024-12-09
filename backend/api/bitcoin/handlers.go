@@ -404,4 +404,4 @@ func MineCoinsHandler (w http.ResponseWriter, r *http.Request) {
         "status": "success",
         "blocks": blockHashes,
     })
-
+}
