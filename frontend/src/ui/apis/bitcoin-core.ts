@@ -1,4 +1,4 @@
-import Transaction from "../interfaces/Transaction";
+import { Transaction } from "../interfaces/Transactions";
 
 // Function to create a wallet if it doesn't exist and generate an address
 export const createWallet = async (walletName: string, passphrase: string) => {
