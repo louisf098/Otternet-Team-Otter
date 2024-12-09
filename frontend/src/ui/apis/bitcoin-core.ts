@@ -128,6 +128,7 @@ export const getTransactions = async (walletName: string) => {
       amount: tx.amount || 0, // Default to 0 if amount is missing
       status: tx.confirmations > 0 ? "completed" : "pending", // Assume category is the status
       timeReceived: new Date(tx.time * 1000), // Convert UNIX timestamp to Date
+      category: tx.category || "",
     }));
 
     console.log("Parsed Transactions:", transactions);
