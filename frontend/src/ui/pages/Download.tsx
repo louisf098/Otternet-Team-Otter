@@ -4,7 +4,21 @@ import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "
 import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { AuthContext } from "../contexts/AuthContext";
+import React from "react";
 
+interface FormData {
+  walletID: string,
+  srcID: string,
+  price: number,
+  fileName: string,
+  filePath: string,
+  fileSize: number,
+  fileType: string,
+  timestamp: string,
+  fileHash: string,
+  bundleMode: boolean
+}
 
 // dummy data for download demo
 const dummyProviders = [
@@ -23,6 +37,8 @@ const Download = () => {
   const [selectedPrice, setSelectedPrice] = useState<number>();
   const [selectedWallet, setSelectedWallet] = useState<string>("");
   const [isValidHash, setIsValidHash] = useState<boolean | null>(null);
+
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   const handleSearchClick = async () => {
     if (!fileHash.trim()) {
@@ -62,25 +78,18 @@ const Download = () => {
 
   const handleDownloadClick = async (phash: string) => {
     try {
-      // const postData: FormData = {
-      //   userID: phash, 
-      //   price: pprice,
-      //   fileName: dummyFileDetails.name,
-      //   filePath: downloadLocation,
-      //   fileSize: dummyFileDetails.size,
-      //   fileType: dummyFileDetails.type,
-      //   timestamp: new Date().toISOString(),
-      //   fileHash: searchedHash,
-      //   bundleMode: false
-      // };
-
-
-
-      const postData = {
-        ProviderID : phash,
-        DownloadPath : downloadLocation,
-        FileHash : searchedHash
-      }
+      const postData: FormData = {
+        walletID: publicKey,
+        srcID: phash, 
+        price: pprice,
+        fileName: dummyFileDetails.name,
+        filePath: downloadLocation,
+        fileSize: dummyFileDetails.size,
+        fileType: dummyFileDetails.type,
+        timestamp: new Date().toISOString(),
+        fileHash: searchedHash,
+        bundleMode: false
+      };
       
       const response = await fetch("http://localhost:9378/download", {
         method: 'POST',

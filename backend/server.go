@@ -21,9 +21,9 @@ import (
 )
 
 var corsOptions = handlers.CORS(
-	handlers.AllowedOrigins([]string{"*"}),
-	handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-	handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+    handlers.AllowedOrigins([]string{"*"}),
+    handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+    handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 )
 
 var (
@@ -32,7 +32,7 @@ var (
 )
 
 type TestJSON struct {
-    Name string `json:"name"`
+	Name string `json:"name"`
 }
 
 // Endpoint function to connect
@@ -122,49 +122,37 @@ func jsonResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var err error
-	global.DHTNode, err = dhtnode.CreateLibp2pHost()
-	if err != nil {
-		log.Fatalf("Failed to instantiate the DHT node: %v", err)
-	}
-	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
-	global.DHTNode.MakeReservation()
-	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
-	files.HandleFileRequests(global.DHTNode.Host)
-	files.HandlePriceRequests(global.DHTNode.Host)
-	go global.DHTNode.HandlePeerExchange()
-
-	defer global.DHTNode.Close()
-
-	// Create a cancellable context for proxy mode
-	globalCtx, cancelGlobalCtx = context.WithCancel(context.Background())
-	defer cancelGlobalCtx()
-
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
 	r.HandleFunc("/hello/{name}", nameReader)
 	r.HandleFunc("/json", jsonResponse)
 	r.HandleFunc("/", baseHandler)
 
+	r.HandleFunc("/createwallet/{walletName}", bitcoin.GenerateWalletHandler).Methods("GET")
+	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
+	r.HandleFunc("/unlockwallet/{address}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
+	r.HandleFunc("/lockwallet/{walletName}", bitcoin.LockWalletHandler).Methods("GET")
+
 	// Register Bitcoin routes
-	r.HandleFunc("/balance", bitcoin.GetBalanceHandler).Methods("GET")
-	r.HandleFunc("/newaddress", bitcoin.GenerateAddressHandler).Methods("GET")
+	r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")
+	r.HandleFunc("/newaddress/{walletName}/{label}", bitcoin.GenerateAddressWithLabelHandler).Methods("GET")
+
+	r.HandleFunc("/getbalance/{walletName}", bitcoin.GetBalanceHandler).Methods("GET")
 
 	// Label from address route
-	r.HandleFunc("/labelfromaddress", bitcoin.GetLabelFromAddressHandler).Methods("GET")
+	r.HandleFunc("/labelfromaddress/{walletName}/{address}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
 
-	// Other existing routes
-	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
-	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
-	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
-	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
-	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
-	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
-	r.HandleFunc("/getProviders/{fileHash}", files.GetProviders).Methods("GET")
-	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
-	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
+	// Coin transaction route
+	r.HandleFunc("/transferCoins/{walletName}/{toAddress}/{amount}/{label}", bitcoin.TransferCoinsHandler).Methods("POST")
 
-	// Proxy-related routes
+    // Other existing routes
+    r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
+    r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
+    r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
+    r.HandleFunc("/download", download.DownloadFile).Methods("POST")
+    r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
+
+		// Proxy-related routes
 	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
 		type StartRequest struct {
 			Port string `json:"port"`
@@ -196,7 +184,8 @@ func main() {
 
 	registerHandleConnectEndpoint(r)
 	RegisterHandleDisconnectEndpoint(r)
-	handlerWithCORS := corsOptions(r)
+
+    handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{
 		Addr:    ":9378",
@@ -206,6 +195,7 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 	shutdownComplete := make(chan bool)
+	bitcoin.LoadAllWallets()
 	go func() {
 		println("Preparing to listen on port 9378")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

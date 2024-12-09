@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
 import { AuthContext } from "../contexts/AuthContext";
+import { unlockWallet } from "../apis/bitcoin-core";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -17,46 +18,34 @@ const SignIn = () => {
   const [error, setError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const { walletKeyPair, setPublicKey } = React.useContext(AuthContext);
+  const { setPublicKey, setWalletName } = React.useContext(AuthContext);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    if (error) {
-      event.preventDefault();
-      return;
-    }
-    const walletId = document.getElementById("walletID") as HTMLInputElement;
-
-    setPublicKey(walletId.value);
-    navigate("/dashboard", { replace: true });
-  };
-
-  const validateInputs = () => {
-    const walletID = document.getElementById("walletID") as HTMLInputElement;
-    const privateKey = document.getElementById(
-      "privateKey"
+  const validateInputs = async () => {
+    const address = document.getElementById("address") as HTMLInputElement;
+    const passphrase = document.getElementById(
+      "passphrase"
     ) as HTMLInputElement;
 
-    if (!walletID.value || !privateKey.value) {
+    if (!address.value || !passphrase.value) {
       setError(true);
       setErrorMessage("Please fill out both wallet ID and private key");
-      return false;
+      return ;
     }
-
-    if (!Object.keys(walletKeyPair).includes(walletID.value)) {
-      console.log(Object.keys(walletKeyPair));
+    let res = await unlockWallet(address.value, passphrase.value);
+    if (res.status != "unlocked") {
       setError(true);
-      setErrorMessage("Invalid Wallet ID");
-      return false;
+      return ;
+    } else{
+      setWalletName(res.walletName)
+      setError(false);
     }
 
-    if (walletKeyPair[walletID.value] !== privateKey.value) {
-      setError(true);
-      setErrorMessage("Incorrect Private Key");
-      return false;
+    if (error) {
+      return;
     }
-    setError(false);
 
-    return true;
+    setPublicKey(address.value);
+    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -111,7 +100,6 @@ const SignIn = () => {
         </Typography>
         <Box
           component="form"
-          onSubmit={handleSubmit}
           noValidate
           sx={{
             display: "flex",
@@ -121,15 +109,15 @@ const SignIn = () => {
           }}
         >
           <FormControl>
-            <FormLabel>Wallet ID</FormLabel>
+            <FormLabel>Address</FormLabel>
             <TextField
               error={error && errorMessage != "Incorrect Private Key"}
               helperText={
                 errorMessage == "Incorrect Private Key" ? "" : errorMessage
               }
-              id="walletID"
+              id="address"
               type="text"
-              name="walletID"
+              name="address"
               placeholder="nf28y4ofb3y8ogf8gfy8g8ygo8"
               autoFocus
               required
@@ -140,17 +128,14 @@ const SignIn = () => {
           </FormControl>
           <FormControl>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <FormLabel htmlFor="privateKey">Private Key</FormLabel> {}
+              <FormLabel htmlFor="privateKey">Passphrase</FormLabel> {}
             </Box>
             <TextField
               error={error && errorMessage != "Invalid Wallet ID"}
-              helperText={
-                errorMessage == "Invalid Wallet ID" ? "" : errorMessage
-              }
-              name="privateKey"
+              name="passphrase"
               placeholder="••••••"
               type="password"
-              id="privateKey"
+              id="passphrase"
               autoFocus
               required
               fullWidth
@@ -158,12 +143,7 @@ const SignIn = () => {
               color={error ? "error" : "primary"}
             />
           </FormControl>
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            onClick={validateInputs}
-          >
+          <Button fullWidth variant="contained" onClick={validateInputs}>
             Sign In
           </Button>
           <Typography sx={{ textAlign: "center" }}>
