@@ -20,11 +20,17 @@ var PriceRequestProtocol = protocol.ID("/otternet/priceRequest")
 var CatalogRequestProtocol = protocol.ID("/otternet/catalogRequest")
 var OtternetPeersProtocol = protocol.ID("/otternet/peers")
 
-// FormData represents the metadata of a file
 type FormData struct {
-	FileHash string  `json:"fileHash"`
-	FilePath string  `json:"filePath"`
-	Price    float64 `json:"price"`
+	WalletID   string  `json:"walletID"`
+	SrcID      string  `json:"srcID"`
+	Price      float64 `json:"price"`
+	FileName   string  `json:"fileName"`
+	FilePath   string  `json:"filePath"`
+	FileSize   int64   `json:"fileSize"`
+	FileType   string  `json:"fileType"`
+	Timestamp  string  `json:"timestamp"`
+	FileHash   string  `json:"fileHash"`
+	BundleMode bool    `json:"bundleMode"`
 }
 
 // Handles incoming file requests using a stream handler
@@ -54,6 +60,7 @@ func HandleFileRequests(h host.Host) {
 		}
 
 		// Send the file metadata back to the requester
+		fmt.Printf("Sending metadata: %v\n", metadata)
 		var meta []byte
 		meta, err = json.Marshal(metadata)
 		if err != nil {
