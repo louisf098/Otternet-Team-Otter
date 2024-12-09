@@ -82,6 +82,8 @@ func main() {
 	// Label from address route
 	r.HandleFunc("/labelfromaddress/{walletName}/{address}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
 
+	r.HandleFunc("/gettransactions/{walletName}", bitcoin.GetTransactionsHandler).Methods("GET")
+
 	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
