@@ -44,7 +44,7 @@ const SignIn = () => {
       return;
     }
 
-    const response = await fetch("http://localhost:9378/startDHT/address.value", {
+    const response = await fetch(`http://localhost:9378/startDHT/${address.value}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
