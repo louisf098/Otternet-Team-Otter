@@ -71,7 +71,7 @@ func (bc *BitcoinClient) call(method string, params []interface{}, walletName st
 
 func (bc *BitcoinClient) ValidateBitcoinAddress(address string) error {
 	// Regular expression for validating Bitcoin addresses
-	bitcoinAddressRegex := `^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$`
+	bitcoinAddressRegex :=  `^(1|3|bc1|tb1|bcrt1)[a-zA-HJ-NP-Z0-9]{25,62}$`
 
 	re := regexp.MustCompile(bitcoinAddressRegex)
 	if !re.MatchString(address) {
