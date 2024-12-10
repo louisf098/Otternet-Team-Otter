@@ -9,6 +9,7 @@ import Paper from "@mui/material/Paper";
 import { ProxyData } from "../interfaces/File";
 import { Tooltip } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { AuthContext } from "../contexts/AuthContext";
 
 interface proxyHistoryTableProps {
     setSnackbarOpen: (open: boolean) => void;
@@ -18,6 +19,7 @@ interface proxyHistoryTableProps {
 
 const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy }) => {
   const [proxies, setProxies] = React.useState<ProxyData[]>([]);
+  const { publicKey } = React.useContext(AuthContext);
 
   useEffect(() => {
     fetchProxyData();
@@ -25,7 +27,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
 
   const fetchProxyData = async () => {
     try {
-      const response = await fetch("http://localhost:9378/getProxyHistory", {
+      const response = await fetch(`http://localhost:9378/getProxyHistory/${publicKey}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json"

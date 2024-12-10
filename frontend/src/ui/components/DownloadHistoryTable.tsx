@@ -9,6 +9,7 @@ import Paper from "@mui/material/Paper";
 import { FormData } from "../interfaces/File";
 import { Tooltip } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { AuthContext } from "../contexts/AuthContext";
 
 interface downloadHistoryTableProps {
   setSnackbarOpen: (open: boolean) => void;
@@ -18,13 +19,14 @@ interface downloadHistoryTableProps {
 
 const DownloadHistoryTable: React.FC<downloadHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy }) => {
   const [downloads, setDownloads] = React.useState<FormData[]>([]);
+  const { publicKey } = React.useContext(AuthContext);
   useEffect(() => {
     fetchDownloadData();
   }, [])
   
   const fetchDownloadData = async () => {
     try {
-      const response = await fetch("http://localhost:9378/getDownloadHistory", {
+      const response = await fetch(`http://localhost:9378/getDownloadHistory/${publicKey}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json"
