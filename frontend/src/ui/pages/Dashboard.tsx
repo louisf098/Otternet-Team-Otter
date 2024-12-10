@@ -93,9 +93,17 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const fetchTransactions = async () => {
-    let fetchedTransactions = await getTransactions(walletName);
-    setTransactions(fetchedTransactions);
-  };
+    try {
+      const transactions = await getTransactions(walletName);
+      setTransactions(transactions || []); // Default to an empty array if data is undefined
+      if (transactions?.length == 0) {
+        setSnackbarMessage("No transaction history found");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch transaction history of the the user:", error);
+    }
+  }
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
@@ -114,6 +122,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   useEffect(() => {
     fetchBalance();
+    fetchTransactions();
   }, []);
 
   return (
@@ -137,8 +146,20 @@ const Dashboard: React.FC<DashboardProps> = () => {
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: {publicKey}
               <Typography variant="body1">Balance: {balance}</Typography>
-              <Typography variant="body1">Mining Revenue: 555 OTC</Typography>
-              <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
+              <Typography variant="body1">
+                Coins Mined:{" "}
+                {transactions
+                  .filter((tx) => tx.category === "generate") // Filter wallet transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
+              <Typography variant="body1">
+                Total Revenue:{" "}
+                {transactions
+                  .filter((tx) => tx.category !== "generate" && tx.category != "immature") // Filter other transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
             </Typography>
           </Paper>
           <Grid size={2.4}>
@@ -289,7 +310,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
-            walletName={walletName}
+            transactions={transactions}
           />
         </TabSelector>
       </Box>
