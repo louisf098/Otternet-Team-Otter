@@ -78,7 +78,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({ setSn
               <TableCell>{transaction.amount}</TableCell>
               <TableCell
                 onClick={() => {
-                  handleCopy(transaction.category);
+                  handleCopy(transaction.address);
                 }}
                 sx={{ cursor: "pointer",
                   maxWidth: "200px",
