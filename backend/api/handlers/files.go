@@ -77,6 +77,16 @@ func HandleFileRequests(h host.Host) {
 		if err != nil {
 			log.Printf("Error sending file: %v", err)
 		}
+
+		walletAddr, err := json.Marshal(global_wallet.WalletAddr)
+		if err != nil {
+			log.Printf("Error marshalling wallet address: %v", err)
+		}
+		_, err = s.Write(walletAddr)
+		if err != nil {
+			log.Printf("Error sending wallet address: %v", err)
+		}
+
 	})
 }
 
