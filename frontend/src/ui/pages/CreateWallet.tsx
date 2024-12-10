@@ -1,5 +1,4 @@
-import { useContext, useState } from "react";
-import React from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import Box from "@mui/material/Box";
@@ -26,8 +25,7 @@ const CreateWallet = () => {
   const [confirmPassphrase, setConfirmPassphrase] = useState<string>("");
   const [openCopyNotif, setOpenCopyNotif] = useState<boolean>(false);
 
-  const [error, setError] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState("");
+  const [error, setError] = useState<string>("");
 
   const { setPublicKey, setWalletName, walletName } = useContext(AuthContext);
 
@@ -38,12 +36,10 @@ const CreateWallet = () => {
 
   const checkMatchingPassphrase = () => {
     if (passphrase === confirmPassphrase) {
-      setError(false);
-      setErrorMessage("");
+      setError("");
       return true;
     } else {
-      setError(true);
-      setErrorMessage("Passphrases do not match");
+      setError("Passphrases do not match");
       return false;
     }
   };
@@ -252,8 +248,8 @@ const CreateWallet = () => {
                   type="password"
                   name="confirmPassphrase"
                   fullWidth
-                  helperText={errorMessage}
-                  color={error ? "error" : "primary"}
+                  helperText={error}
+                  error={error != ""}
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
                 />
