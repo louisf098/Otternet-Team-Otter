@@ -35,6 +35,10 @@ const CreateWallet = () => {
   };
 
   const checkMatchingPassphrase = () => {
+    if (!passphrase ||!confirmPassphrase) {
+      setError("Please enter a passphrase and confirm your passphrase");
+      return false;
+    }
     if (passphrase === confirmPassphrase) {
       setError("");
       return true;
@@ -232,11 +236,13 @@ const CreateWallet = () => {
             <>
               <FormControl>
                 <FormLabel>Passphrase</FormLabel>
-                <OutlinedInput
+                <TextField
                   id="passphrase"
                   type="password"
                   name="passphrase"
                   fullWidth
+                  helperText={error}
+                  error={error != ""}
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                 />
