@@ -154,6 +154,30 @@ func (bc *BitcoinClient) CreateNewWallet(walletName string) (string, error) {
     return result["name"].(string), nil
 }
 
+func (bc *BitcoinClient) MineCoins(address string, amount int) ([]string, error) {
+    // Call the "generatetoaddress" RPC
+    response, err := bc.call("generatetoaddress", []interface{}{amount, address}, "")
+    if err != nil {
+        return nil, fmt.Errorf("failed to mine coins: %w", err)
+    }
+
+    // Extract the "result" field as a slice of strings (block hashes)
+    blockHashes, ok := response["result"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected type for 'result': expected []interface{}, got %T", response["result"])
+    }
+
+    // Convert []interface{} to []string
+    hashes := make([]string, len(blockHashes))
+    for i, hash := range blockHashes {
+        hashes[i], ok = hash.(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected type in block hashes: expected string, got %T", hash)
+        }
+    }
+
+    return hashes, nil
+}
 
 // func (bc *BitcoinClient) GetLabelFromAddress(addressStr string) (string, error) {
 //     // Call the "getaddressinfo" RPC method
@@ -238,24 +262,36 @@ func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) erro
 }
 
 func (bc *BitcoinClient) ListWallets() ([]string, error)   {
-    response, err := bc.call("listwallets", []interface{}{}, "")
+    response, err := bc.call("listwalletdir", []interface{}{}, "")
     if err != nil {
         return nil, fmt.Errorf("failed to list all wallets: %w", err)
     }
 
     // parse the result from the response
-    result, ok := response["result"].([]interface{})
+    result, ok := response["result"].(map[string]interface{})
     if !ok {
         return nil, fmt.Errorf("unexpected result type: %T", response["result"])
     }
 
+    walletsData, ok := result["wallets"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected wallets type: %T", result["wallets"])
+    }
+
     // convert []interface{} to []string
-    wallets := make([]string, len(result))
-    for i, wallet := range result {
-        wallets[i], ok = wallet.(string)
+    wallets := make([]string, len(walletsData))
+    for i, wallet := range walletsData {
+        walletObj, ok := wallet.(map[string]interface{})
         if !ok {
-            return nil, fmt.Errorf("unexpected wallet name type: %T", wallet)
+            return nil, fmt.Errorf("unexpected wallet object type: %T", wallet)
         }
+
+        walletName, ok := walletObj["name"].(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected wallet name type: %T", walletObj["name"])
+        }
+
+        wallets[i] = walletName
     }
 
     return wallets, nil

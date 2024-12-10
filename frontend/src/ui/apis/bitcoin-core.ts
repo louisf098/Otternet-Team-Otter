@@ -139,4 +139,23 @@ export const getTransactions = async (walletName: string) => {
   } catch (error) {
     console.error("Error fetching transactions:", error);
   }
+  return [];
+};
+export const mineCoins = async (address: string, amount: number) => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/minecoins/${address}/${amount}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to mine coins");
+    }
+    const data = await response.json();
+    console.log("Mined coins:", data);
+    return data;
+  } catch (error) {
+    console.error("Error mining coins:", error);
+  }
 };
