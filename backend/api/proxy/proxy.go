@@ -8,8 +8,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
 	"io/ioutil"
+	"log"
+
 	//"net"
 	"net/http"
 	"strings"
@@ -21,9 +22,9 @@ import (
 	//"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	//"github.com/multiformats/go-multiaddr"
+	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
-	"github.com/gorilla/mux"
 )
 
 var (
@@ -162,6 +163,11 @@ func StartProxyServer(port string) error {
         log.Printf("Authorized HTTPS request from: %s", normalizedAddr)
         return goproxy.OkConnect, host
     })
+
+	if global.DHTNode == nil {
+        log.Println("DHT node is not initialized. Skipping proxy advertisement.")
+        return fmt.Errorf("DHT node is not initialized")
+    }
 
     // Advertise this proxy node on the DHT
     go func() {

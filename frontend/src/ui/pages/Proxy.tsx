@@ -9,6 +9,7 @@ const Proxy = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
   const [pDisconnect, setPDisconnect] = useState<boolean>(false);
 
+
   const handleDisconnect = async (nodeId: string) => {
     const node = proxyNodes.find((n) => n.id === nodeId);
     if (node) {

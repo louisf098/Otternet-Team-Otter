@@ -8,7 +8,8 @@ export interface FileMetadata {
 }
 
 export interface FormData {
-    userID: string,
+    walletID: string,
+    srcID: string,
     price: number,
     fileName: string,
     filePath: string,
@@ -20,7 +21,8 @@ export interface FormData {
 }
 
 export interface ProxyData {
-    id: string;
+    walletID: string;
+    srcID: string;
     ipAddr: string;
     price: number;
     timestamp: string;

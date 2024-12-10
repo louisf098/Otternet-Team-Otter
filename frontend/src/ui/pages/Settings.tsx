@@ -4,13 +4,20 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
+import { lockWallet } from "../apis/bitcoin-core";
 
 const Settings = () => {
   const navigate = useNavigate();
 
   const { publicKey, setPublicKey } = useContext(AuthContext);
 
-  const handleSignOut = () => {
+  const handleSignOut = async() => {
+    console.log(publicKey)
+    let status = await lockWallet(publicKey)
+    if (status !== "locked") {
+      return;
+    }
+
     navigate("/", { replace: true });
     setPublicKey("");
   };

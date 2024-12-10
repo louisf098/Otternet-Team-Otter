@@ -14,6 +14,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { AuthContext } from "../contexts/AuthContext";
 
 interface UploadHistoryTableProps {
   setSnackbarOpen: (open: boolean) => void;
@@ -25,7 +26,8 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
   const [uploads, setUploads] = useState<FormData[]>([]);
   const [anchor, setAnchor] = React.useState<null | HTMLElement>(null);
   const [menuRowId, setMenuRowId] = React.useState<string | null>(null);
-  
+  const { publicKey } = React.useContext(AuthContext);
+
   const [editRowId, setEditRowId] = React.useState<string | null>(null);
   const [editValues, setEditValues] = React.useState<{
     fileName: string;
@@ -63,7 +65,7 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
   
   const fetchUploads = async () => {
     // fetch all uploads
-    const response = await fetch("http://localhost:9378/getUploads", {
+    const response = await fetch(`http://localhost:9378/getUploads/${publicKey}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

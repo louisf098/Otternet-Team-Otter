@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
-import { Button, CircularProgress } from "@mui/material";
+import { Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import "../stylesheets/NodeBox.css";
 
 export interface ProxyNode {
@@ -26,9 +26,10 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   const [pConnect, setPConnect] = useState<boolean>(false);
   const [pDisconnect, setPDisconnect] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
+  const [showModal, setShowModal] = useState<boolean>(false); // State for modal
 
   const handleSelect = () => {
-    setPConnect(true);
+    setShowModal(true); // Open modal on Connect click
   };
 
   const handlePConnect = async () => {
@@ -40,6 +41,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
         setTimeout(() => {
           setPConnect(false);
           setIsLoading(false);
+          setShowModal(false); // Close modal after successful connection
         }, 2000);
       } else {
         alert("Failed to connect to proxy. Please check the server.");
@@ -54,6 +56,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
 
   const handleCancel = () => {
     setPConnect(false);
+    setShowModal(false); // Close modal on Cancel
   };
 
   const handleDisconnect = (e: React.MouseEvent) => {
@@ -71,7 +74,6 @@ const NodeBox: React.FC<NodeBoxProps> = ({
         <span style={{ fontWeight: "bold" }}>{node.id}</span>
       </Typography>
       <Typography variant="body1">Rate: {node.rate} OTTC/KB</Typography>
-      <Typography variant="body1">IP: {node.ip}</Typography>
       {!isSelected && !pConnect && (
         <Button onClick={handleSelect}>Connect</Button>
       )}
@@ -101,6 +103,30 @@ const NodeBox: React.FC<NodeBoxProps> = ({
           )}
         </>
       )}
+
+      {/* Modal for IP and Port */}
+      <Dialog open={showModal} onClose={handleCancel}>
+        <DialogTitle>Proxy Node Connection Details</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            <strong>Public IP:</strong> {node.ip}
+          </Typography>
+          <Typography variant="body1">
+            <strong>Port:</strong> {node.port}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Confirm connection to this proxy node.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancel} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handlePConnect} color="primary" disabled={isLoading}>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

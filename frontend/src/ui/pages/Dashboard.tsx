@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid2";
 import Paper from "@mui/material/Paper";
@@ -9,13 +9,20 @@ import Button from "@mui/material/Button";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
+import DownloadHistoryTable from "../components/DownloadHistoryTable";
 import TabSelector from "../components/TabSelector";
-import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
-import { Snackbar } from "@mui/material";
-import { IconButton } from "@mui/material";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import { SnackbarCloseReason } from "@mui/material";
+import Snackbar from "@mui/material/Snackbar";
+import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { AuthContext } from "../contexts/AuthContext";
+import { getBalance, mineCoins, getTransactions } from "../apis/bitcoin-core";
+import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
   transactionID: string;
@@ -35,10 +42,13 @@ function createData(
 
 interface DashboardProps {}
 const Dashboard: React.FC<DashboardProps> = () => {
-  const [selectedTableTab, setSelectedTableTab] = React.useState(0);
-  const [selectedInfoTab, setSelectedInfoTab] = React.useState(0);
-  const [selectedFilter, setSelectedFilter] = React.useState(1);
-  const [selectedStats, setSelectedStats] = React.useState(1);
+  const [selectedTableTab, setSelectedTableTab] = useState<number>(0);
+  const [selectedInfoTab, setSelectedInfoTab] = useState<number>(0);
+  const [selectedFilter, setSelectedFilter] = useState<number>(1);
+  const [selectedStats, setSelectedStats] = useState<number>(1);
+  const [balance, setBalance] = useState<number>(0);
+
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setSelectedTableTab(newValue);
@@ -75,7 +85,48 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
-  const [mining, toggleMining] = React.useState(false);
+  const fetchBalance = async () => {
+    let fetchedBalance = await getBalance(walletName);
+    setBalance(fetchedBalance);
+  };
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const fetchTransactions = async () => {
+    try {
+      const transactions = await getTransactions(walletName);
+      setTransactions(transactions || []); // Default to an empty array if data is undefined
+      if (transactions?.length == 0) {
+        setSnackbarMessage("No transaction history found");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch transaction history of the the user:",
+        error
+      );
+    }
+  };
+  const [amountToMine, setAmountToMine] = useState<number>(1);
+
+  const handleMineCoins = async () => {
+    const blockHashes = mineCoins(publicKey, amountToMine);
+  };
+
+  const handleSetAmountToMine = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    if (Number(event.target.value) < 1) {
+      setAmountToMine(1);
+      return;
+    }
+    setAmountToMine(Number(event.target.value));
+  };
+
+  useEffect(() => {
+    fetchBalance();
+    fetchTransactions();
+  }, []);
 
   return (
     <>
@@ -93,13 +144,28 @@ const Dashboard: React.FC<DashboardProps> = () => {
           Dashboard
         </Typography>
         <Box sx={{ display: "flex" }}>
-          <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
+          <Paper sx={{ p: 1, mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
-              Wallet ID: qsfjlkwjf923urjfwoijfjefipjwf
-              <Typography variant="body1">Balance: 555 OTC</Typography>
-              <Typography variant="body1">Mining Revenue: 555 OTC</Typography>
-              <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
+              Wallet ID: {publicKey}
+              <Typography variant="body1">Balance: {balance}</Typography>
+              <Typography variant="body1">
+                Coins Mined:{" "}
+                {transactions
+                  .filter((tx) => tx.category === "generate") // Filter wallet transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
+              <Typography variant="body1">
+                Total Revenue:{" "}
+                {transactions
+                  .filter(
+                    (tx) =>
+                      tx.category !== "generate" && tx.category != "immature"
+                  ) // Filter other transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
             </Typography>
           </Paper>
           <Grid size={2.4}>
@@ -111,12 +177,26 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 p: 1,
               }}
             >
-              <Typography variant="h5">Miner</Typography>
-              <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
-              <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
-              <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
-              <Button variant="contained" onClick={() => toggleMining(!mining)}>
-                {mining ? "Pause Mining" : "Start Mining"}
+              <Typography variant="h5" sx={{ mb: 1 }}>
+                Miner
+              </Typography>
+              {/* <Typography sx={{ mb: 1 }}>
+                Blocks mining in progress:
+                {
+                  (transactions || []).filter(
+                    (tx) => tx.category === "immature"
+                  ).length
+                }
+              </Typography> */}
+              <TextField
+                size="small"
+                sx={{ mb: 1 }}
+                type="number"
+                value={amountToMine}
+                onChange={handleSetAmountToMine}
+              ></TextField>
+              <Button variant="contained" onClick={() => handleMineCoins()}>
+                Mine Coins
               </Button>
             </Box>
           </Grid>
@@ -202,8 +282,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }
             id="dashboard-tab-upload"
           />
-          <Tab label="Download History" id="dashboard-tab-history" />
+          <Tab label="Download History" id="dashboard-tab-download-history" />
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
+          <Tab
+            label="Transaction History"
+            id="dashboard-tab-transaction-history"
+          />
         </Tabs>
 
         <TabSelector value={selectedTableTab} index={0}>
@@ -214,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={1}>
-          <TransactionHistoryTable
+          <DownloadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
@@ -225,6 +309,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
+          />
+        </TabSelector>
+        <TabSelector value={selectedTableTab} index={3}>
+          <TransactionHistoryTable
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+            transactions={transactions}
           />
         </TabSelector>
       </Box>

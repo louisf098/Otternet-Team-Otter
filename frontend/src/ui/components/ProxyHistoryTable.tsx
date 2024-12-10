@@ -9,6 +9,7 @@ import Paper from "@mui/material/Paper";
 import { ProxyData } from "../interfaces/File";
 import { Tooltip } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { AuthContext } from "../contexts/AuthContext";
 
 interface proxyHistoryTableProps {
     setSnackbarOpen: (open: boolean) => void;
@@ -18,6 +19,7 @@ interface proxyHistoryTableProps {
 
 const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy }) => {
   const [proxies, setProxies] = React.useState<ProxyData[]>([]);
+  const { publicKey } = React.useContext(AuthContext);
 
   useEffect(() => {
     fetchProxyData();
@@ -25,7 +27,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
 
   const fetchProxyData = async () => {
     try {
-      const response = await fetch("http://localhost:9378/getProxyHistory", {
+      const response = await fetch(`http://localhost:9378/getProxyHistory/${publicKey}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json"
@@ -81,7 +83,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
               <TableCell>{proxy.ipAddr}</TableCell>
               <TableCell>{proxy.price}</TableCell>
               <TableCell
-                onClick={() => handleCopy(proxy.id)}
+                onClick={() => handleCopy(proxy.srcID)}
                 sx={{
                   maxWidth: "200px",
                   wordWrap: "break-word",
@@ -90,7 +92,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
                 }}
               >
                 <Tooltip title="Click to copy" arrow>
-                  <span>{proxy.id}</span>
+                  <span>{proxy.srcID}</span>
                 </Tooltip>
               </TableCell>
             </TableRow>
