@@ -20,31 +20,24 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { ShoppingCart, ArrowBack } from "@mui/icons-material";
 
 interface FileItem {
-    id: number;
-    name: string;
-    size: string;
-    type: string;
-    dateUploaded: string;
-    price: string;
-    bundlable: boolean;
-}
+    walletID: string,
+    srcID: string,
+    price: number,
+    fileName: string,
+    filePath: string,
+    fileSize: number,
+    fileType: string,
+    timestamp: string,
+    fileHash: string,
+    bundleMode: boolean
+  }
 
 const ITEMS_PER_PAGE = 7;
-
-const dummyData: { [walletId: string]: FileItem[] } = {
-    '12D3KooWCAuJSTUtqqAYjS6Xu9WL79vZ98hNYck7zy2pDyg2UuWY': [
-        { id: 1, name: "Document.pdf", size: "2MB", type: "PDF", dateUploaded: "2024-10-10", price: "5", bundlable: true },
-        { id: 2, name: "Photo.jpg", size: "1.5MB", type: "Image", dateUploaded: "2024-09-15", price: "10", bundlable: false },
-        { id: 5, name: "Report.docx", size: "3MB", type: "Word Document", dateUploaded: "2024-10-05", price: "12", bundlable: true },
-        { id: 6, name: "Data.csv", size: "1MB", type: "CSV", dateUploaded: "2024-09-20", price: "7", bundlable: true },
-        { id: 7, name: "Graph.png", size: "2.5MB", type: "Image", dateUploaded: "2024-09-30", price: "9", bundlable: false },
-    ]
-};
 
 const Market: React.FC = () => {
     const [searchInput, setSearchInput] = useState<string>("");
     const [walletId, setWalletId] = useState<string>("");
-    const [files, setFiles] = useState<FileItem[]>(Object.values(dummyData).flat());
+    const [files, setFiles] = useState<FileItem[]>([]);
     const [error, setError] = useState<string>("");
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
@@ -56,7 +49,6 @@ const Market: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
     const [downloadLocation, setDownloadLocation] = useState<string>("");
 
-    const allFiles: FileItem[] = Object.values(dummyData).flat();
 
     useEffect(() => {
         /* Display list of walletIDs (providers) */
@@ -70,14 +62,17 @@ const Market: React.FC = () => {
                     throw new Error("Problem fetching providers");
                 }
                 const providersData = await response.json();
-                const providers = providersData.map((provider: any) => ({ walletID: provider.walletID }));
-                setProviders(providers);
+                console.log("Providers Data: ", providersData);
+                const providersMap = providersData.map((walletID: string) => ({ walletID }));
+
+                setProviders(providersMap);
+                console.log("Providers: ", providers);
             } catch (err: any) {
                 console.error("Error fetching providers: ", err);
             }
         }
         fetchProviders();
-    });
+    }, []);
 
     const handleSearch = () => {
         /* Search for provider by walletID */
@@ -92,28 +87,28 @@ const Market: React.FC = () => {
                 setError("No providers found for the provided wallet ID.");
             }
         }
-        setFiles(allFiles);
         setWalletId("");
         setCurrentPage(1);
         setSelectedFiles([]);
     };
 
-    const handleCheckCatalog = (walletID: string) => {
+    const handleCheckCatalog = async (walletID: string) => {
         setWalletId(walletID);
-        const fetchedFiles = dummyData[walletID];
-        if (fetchedFiles) {
-            setFiles(fetchedFiles);
-            setError("");
-        } else {
+        const response = await fetch(`http://localhost:9378/getCatalog/${walletID}`);
+        if (!response.ok) {
+            setError("Problem fetching files for the provided wallet ID.");
             setFiles([]);
-            setError("No files found for the provided wallet ID.");
-        }
+            setCurrentPage(1);
+            setSelectedFiles([]);
+            return;
+        }  
+        const files = await response.json();
+        setFiles(files);
+        setError("");
         setCurrentPage(1);
-        setSelectedFiles([]);
     };
 
     const handleBackToProviders = () => {
-        setFiles(allFiles);
         setError("");
         setWalletId("");
         setCurrentPage(1);
@@ -149,7 +144,7 @@ const Market: React.FC = () => {
 
     const handleDownloadConfirm = () => {
         if (selectedFile && downloadLocation) {
-            console.log(`Downloading file: ${selectedFile.name} to ${downloadLocation}`);
+            console.log(`Downloading file: ${selectedFile.fileName} to ${downloadLocation}`);
         }
         setDownloadModalOpen(false);
         setSelectedFile(null);
@@ -175,22 +170,22 @@ const Market: React.FC = () => {
             let sorted: FileItem[] = [];
             switch (sortOption) {
                 case "Alphabetically":
-                    sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
+                    sorted = [...files].sort((a, b) => a.fileName.localeCompare(b.fileName));
                     break;
                 case "Price":
-                    sorted = [...files].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+                    sorted = [...files].sort((a, b) => (a.price) - (b.price));
                     break;
                 case "Upload Time":
-                    sorted = [...files].sort((a, b) => new Date(b.dateUploaded).getTime() - new Date(a.dateUploaded).getTime());
+                    sorted = [...files].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
                     break;
                 case "Size":
-                    sorted = [...files].sort((a, b) => parseFloat(a.size) - parseFloat(b.size));
+                    sorted = [...files].sort((a, b) => (a.fileSize) - (b.fileSize));
                     break;
                 case "Type":
-                    sorted = [...files].sort((a, b) => a.type.localeCompare(b.type));
+                    sorted = [...files].sort((a, b) => a.fileType.localeCompare(b.fileType));
                     break;
                 case "Wallet ID":
-                    sorted = [...files].sort((a, b) => a.id - b.id);
+                    sorted = [...files].sort((a, b) => a.srcID.localeCompare(b.srcID));
                     break;
                 default:
                     sorted = files;
@@ -200,14 +195,14 @@ const Market: React.FC = () => {
         handleSortClose();
     };
 
-    const handleCheckboxChange = (fileId: number) => {
-        setSelectedFiles((prevSelected) => {
-            if (prevSelected.includes(fileId)) {
-                return prevSelected.filter((id) => id !== fileId);
-            } else {
-                return [...prevSelected, fileId];
-            }
-        });
+    const handleCheckboxChange = (fileId: string) => {
+        // setSelectedFiles((prevSelected) => {
+        //     if (prevSelected.includes(fileId)) {
+        //         return prevSelected.filter((id) => id !== fileId);
+        //     } else {
+        //         return [...prevSelected, fileId];
+        //     }
+        // });
     };
 
     const handleCheckoutOpen = () => {
@@ -233,21 +228,21 @@ const Market: React.FC = () => {
     };
 
     const calculateTotalCost = () => {
-        const total = selectedFiles.reduce((sum, fileId) => {
-            const file = allFiles.find((f) => f.id === fileId);
-            return file ? sum + parseFloat(file.price) : sum;
-        }, 0);
-        const discountRate = Math.min(selectedFiles.length * 1, 5); // 1% per file, max 5%
-        const discountedTotal = total * (1 - discountRate / 100);
-        return discountedTotal.toFixed(2);
+        // const total = selectedFiles.reduce((sum, fileId) => {
+        //     const file = allFiles.find((f) => f. === fileId);
+        //     return file ? sum + parseFloat(file.price) : sum;
+        // }, 0);
+        // const discountRate = Math.min(selectedFiles.length * 1, 5); // 1% per file, max 5%
+        // const discountedTotal = total * (1 - discountRate / 100);
+        // return discountedTotal.toFixed(2);
     };
 
     const currentFiles = files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-    const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
-        const file = allFiles.find(f => f.id === fileId);
-        return file?.bundlable;
-    }).length;
+    // const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
+    //     const file = allFiles.find(f => f.id === fileId);
+    //     return file?.bundlable;
+    // }).length;
 
     return (
         <Box sx={{ m: 4, width: "100vw" }}>
@@ -309,16 +304,16 @@ const Market: React.FC = () => {
                 </Typography>
                 {walletId ? (<List>
                     {files.map((file) => (
-                        <ListItem key={file.id} divider>
+                        <ListItem key={file.fileHash} divider>
                         <Checkbox
-                        checked={selectedFiles.includes(file.id)}
-                        onChange={() => handleCheckboxChange(file.id)}
-                        disabled={!file.bundlable}
-                        sx={{ mr: 2, color: file.bundlable ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
+                        // checked={selectedFiles.includes(file.fileHash)}
+                        // onChange={() => handleCheckboxChange(file.fileHash)}
+                        // disabled={!file.bundleMode}
+                        // sx={{ mr: 2, color: file.bundleMode ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
                         />
                         <ListItemText
-                            primary={file.name}
-                            secondary={`Size: ${file.size} | Type: ${file.type} | Uploaded: ${file.dateUploaded} | Price: ${file.price} OTTC`}
+                            primary={file.fileName}
+                            secondary={`Size: ${file.fileSize} | Type: ${file.fileType} | Uploaded: ${file.timestamp} | Price: ${file.price} OTTC`}
                         />
                         <Button
                             variant="contained"
@@ -385,7 +380,7 @@ const Market: React.FC = () => {
                 color="primary"
                 onClick={handleCheckoutOpen}
                 sx={{ position: "fixed", bottom: 20, right: 20 }}
-                disabled={bundlableSelectedFilesCount < 2} // Disable if less than 2 bundlable files are selected
+                //disabled={bundlableSelectedFilesCount < 2} // Disable if less than 2 bundlable files are selected
             >
                 Checkout
             </Button>
@@ -415,10 +410,10 @@ const Market: React.FC = () => {
                     <Typography id="download-modal-description" sx={{ mt: 2 }}>
                         {selectedFile && (
                             <>
-                                <strong>Name:</strong> {selectedFile.name} <br />
-                                <strong>Size:</strong> {selectedFile.size} <br />
-                                <strong>Type:</strong> {selectedFile.type} <br />
-                                <strong>Uploaded:</strong> {selectedFile.dateUploaded} <br />
+                                <strong>Name:</strong> {selectedFile.fileName} <br />
+                                <strong>Size:</strong> {selectedFile.fileSize} <br />
+                                <strong>Type:</strong> {selectedFile.fileType} <br />
+                                <strong>Uploaded:</strong> {selectedFile.timestamp} <br />
                                 <strong>Price:</strong> {selectedFile.price} OTTC <br />
                                 <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
                             </>
@@ -471,8 +466,8 @@ const Market: React.FC = () => {
                         Selected Files:
                     </Typography>
                     <List>
-                        {selectedFiles.map((fileId) => {
-                            const file = allFiles.find((f) => f.id === fileId);
+                        {/* {selectedFiles.map((fileId) => {
+                            const file = .find((f) => f.id === fileId);
                             return (
                                 file && (
                                     <ListItem key={file.id}>
@@ -483,7 +478,7 @@ const Market: React.FC = () => {
                                     </ListItem>
                                 )
                             );
-                        })}
+                        })} */}
                     </List>
                     <Box>
                         <Box sx={{ display: "flex" }}>
@@ -504,7 +499,7 @@ const Market: React.FC = () => {
                                 Total Cost (after discount):
                             </Typography>
                             <Typography>
-                                {calculateTotalCost()} OTTC
+                                {} OTTC
                             </Typography>
                         </Box>
                     </Box>

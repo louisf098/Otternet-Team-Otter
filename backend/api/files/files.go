@@ -724,7 +724,7 @@ func GetOtternetPeers(w http.ResponseWriter, r *http.Request) {
 			returnIDs = append(returnIDs, peerID)
 		}
 	}
-	response := map[string][]string{"otternetPeers": returnIDs}
+	response := returnIDs
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
