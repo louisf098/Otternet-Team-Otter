@@ -1,6 +1,7 @@
 package files
 
 import (
+	"Otternet/backend/api/bitcoin"
 	"Otternet/backend/api/download"
 	"Otternet/backend/api/handlers"
 	"Otternet/backend/global"
@@ -643,6 +644,14 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error storing file in downloads.json", http.StatusInternalServerError)
 		return
 	}
+
+	// get wallet address of destination
+	destAddr, err := bitcoin.GetDestinationAddress(peerInfo)
+	if err != nil {
+		http.Error(w, "Error getting destination address", http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Destination Address: %s\n", destAddr)
 
 	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
