@@ -9,6 +9,7 @@ import Button from "@mui/material/Button";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
+import DownloadHistoryTable from "../components/DownloadHistoryTable";
 import TabSelector from "../components/TabSelector";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
@@ -131,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           Dashboard
         </Typography>
         <Box sx={{ display: "flex" }}>
-          <Paper sx={{ p: 1, height: "157px", mr: 2 }}>
+          <Paper sx={{ p: 1, mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: {publicKey}
@@ -152,13 +153,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
               <Typography variant="h5" sx={{ mb: 1 }}>
                 Miner
               </Typography>
-              <Typography sx={{ mb: 1 }}>
+              {/* <Typography sx={{ mb: 1 }}>
                 Blocks mining in progress:
                 {
-                  (transactions || []).filter((tx) => tx.category === "immature")
-                    .length
+                  (transactions || []).filter(
+                    (tx) => tx.category === "immature"
+                  ).length
                 }
-              </Typography>
+              </Typography> */}
               <TextField
                 size="small"
                 sx={{ mb: 1 }}
@@ -253,8 +255,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }
             id="dashboard-tab-upload"
           />
-          <Tab label="Download History" id="dashboard-tab-history" />
+          <Tab label="Download History" id="dashboard-tab-download-history" />
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
+          <Tab
+            label="Transaction History"
+            id="dashboard-tab-transaction-history"
+          />
         </Tabs>
 
         <TabSelector value={selectedTableTab} index={0}>
@@ -265,11 +271,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={1}>
-          <TransactionHistoryTable
+          <DownloadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
-            walletName={walletName}
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={2}>
@@ -277,6 +282,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
+          />
+        </TabSelector>
+        <TabSelector value={selectedTableTab} index={3}>
+          <TransactionHistoryTable
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+            walletName={walletName}
           />
         </TabSelector>
       </Box>
