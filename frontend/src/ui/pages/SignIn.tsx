@@ -25,6 +25,8 @@ const SignIn = () => {
       "passphrase"
     ) as HTMLInputElement;
 
+
+    
     if (!address.value || !passphrase.value) {
       setError("Please fill out both wallet ID and private key");
       return;
@@ -39,7 +41,15 @@ const SignIn = () => {
       setError("");
     }
 
+    const response = await fetch(`http://localhost:9378/startDHT/${address.value}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log(response);
     setPublicKey(address.value);
+
     navigate("/dashboard", { replace: true });
   };
 

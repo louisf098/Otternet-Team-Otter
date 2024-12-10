@@ -1,11 +1,14 @@
-import { Box } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Typography, Card, Grid, CardContent, CardActions, Modal, Alert } from "@mui/material";
 import { Button, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { Snackbar } from "@mui/material";
+import { set } from "react-hook-form";
 import { AuthContext } from "../contexts/AuthContext";
 import React from "react";
+import { Wallet } from "@mui/icons-material";
 
 interface FormData {
   walletID: string,
@@ -20,19 +23,6 @@ interface FormData {
   bundleMode: boolean
 }
 
-// dummy data for download demo
-const dummyProviders = [
-  {walletID: 'e0d123e5f316bef78bfdf5a008837577', price: 12}, 
-  {walletID: '95982461e7db28fb0d0ea25bd2fc9d7f', price: 15}, 
-  {walletID: '06adac43bac94634b3773f13296cf6d9', price: 19}
-];
-
-const dummyFileDetails = {
-  name: "Cookie_Monster_Script.txt",
-  type: "Text Document(.txt)",
-  size: 174
-};
-
 const Download = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
@@ -40,59 +30,119 @@ const Download = () => {
   const [fileHash, setFileHash] = useState("");
   const [searchedHash, setSearchedHash] = useState("");
   const [providers, setProviders] = useState<{walletID: string; price: number;}[]>([]);
-  const [fileDetails, setFileDetails] = useState<{name: string; type: string; size: number;} | null >(null);
   const [selectedPrice, setSelectedPrice] = useState<number>();
   const [selectedWallet, setSelectedWallet] = useState<string>("");
   const [isValidHash, setIsValidHash] = useState<boolean | null>(null);
-
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
   const { publicKey, walletName } = React.useContext(AuthContext);
 
-  const handleSearchClick = () => {
+  const handleSnackbarClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbarOpen(false);
+  }
+
+  const handleSearchClick = async () => {
     if (!fileHash.trim()) {
       setIsValidHash(false);
       setProviders([]);
-      setFileDetails(null);
       return;
     }
 
+    // send HTTP GET request to backend to get providers and their set prices
     setIsLoading(true);
-    setIsValidHash(null);
 
-    setTimeout(() => {
-      setProviders(dummyProviders);
-      setSearchedHash(fileHash);
-      setFileDetails(dummyFileDetails);
-      setIsValidHash(true);
+    const response = await fetch(`http://localhost:9378/getPrices/${fileHash}`);
+    if (!response.ok) {
+      setIsValidHash(false);
+      setProviders([]);
+      return;
+    }
+
+    const data = await response.json();
+
+    // check if no providers available (i.e, data is an empty object)
+    // TODO: Create an error message for this case and display it to the user
+    if (Object.keys(data).length === 0) {
+      setIsValidHash(false);
+      setProviders([]);
       setIsLoading(false);
-    }, 2000);
+      return;
+    }
+    
+    // data is a map of walletID to price, loop through the map and create an array of objects to set as providers
+    const providerList = Object.entries(data).map(([walletID, price]) => ({walletID, price: Number(price)})); // potential casting error here
+    setProviders(providerList);
+    setSearchedHash(fileHash);
+    setIsValidHash(true);
+    setIsLoading(false);
+
+    // Get the list of providers, only the walletID is needed
+    const providerListWalletID = providerList.map(provider => provider.walletID);
+    const requestBody = {list: providerListWalletID};
+
+    // send a POST request to the backend to cache the list of providers
+    try {
+
+      const response = await fetch("http://localhost:9378/putPeersInCache", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        console.error("Error caching providers");
+      }
+    } catch (err: any) {
+      console.error("Error caching providers: ", err);
+    }
   }
 
-  const handleDownloadClick = async (phash: string, pprice: number) => {
+  const handleDownloadClick = async (phash: string) => {
     try {
-      const postData: FormData = {
-        walletID: publicKey,
-        srcID: phash, 
-        price: pprice,
-        fileName: dummyFileDetails.name,
-        filePath: downloadLocation,
-        fileSize: dummyFileDetails.size,
-        fileType: dummyFileDetails.type,
-        timestamp: new Date().toISOString(),
-        fileHash: searchedHash,
-        bundleMode: false
-      };
+
+      const postData = {
+        WalletID : publicKey,
+        ProviderID : phash,
+        DownloadPath : downloadLocation,
+        FileHash : searchedHash
+      }
+      
+      console.log("WalletID: ", phash);
       
       const response = await fetch("http://localhost:9378/download", {
         method: 'POST',
         body: JSON.stringify(postData),
       });
-      
+
       console.log("Response: ", response);
       setDownloadModalOpen(false);
       setDownloadLocation("");
 
+      if (response.ok) {
+        setSnackbarMessage("Download successful");
+        setSnackbarSeverity("success");
+      } else {
+        const error = await response.json();
+        setSnackbarMessage(error.message || "An error occurred during download");
+        setSnackbarSeverity("error");
+      }
+
+      setSnackbarOpen(true);
+
     } catch (err: any) {
       console.error("An error occurred during download:", err);
+      setSnackbarMessage("An error occurred during download");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
       setDownloadModalOpen(false);
       setDownloadLocation("");
     }
@@ -101,6 +151,7 @@ const Download = () => {
   const handleDownload = (walletid: string, price: number) => {
     setSelectedWallet(walletid);
     setSelectedPrice(price);
+    console.log("Selected Wallet: ", walletid);
     setDownloadModalOpen(true);
   };
 
@@ -162,7 +213,7 @@ const Download = () => {
           </Alert>
         )}
 
-        {isValidHash && fileDetails && (
+        {isValidHash && (
           <Box sx={{ mt: 2, textAlign: 'left' }}>
             <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mr: 1}}>
@@ -170,10 +221,6 @@ const Download = () => {
               </Typography>
               <VerifiedUserIcon />
             </Box>
-            <Typography variant="subtitle2"><strong>Hash:</strong> {searchedHash}</Typography>
-            <Typography variant="subtitle2"><strong>Name:</strong> {fileDetails.name}</Typography>
-            <Typography variant="subtitle2"><strong>Type:</strong> {fileDetails.type}</Typography>
-            <Typography variant="subtitle2"><strong>Size:</strong> {fileDetails.size} KB</Typography>
           </Box>
         )}
 
@@ -185,8 +232,10 @@ const Download = () => {
                   <Card>
                     <CardContent>
                       <Box display="flex" justifyContent="space-between">
-                        <Box display="flex" flexDirection="column" alignItems="flex-start">
-                          <Typography variant="body2">WalletID: {provider.walletID}</Typography>
+                        <Box display="flex" flexDirection="column" alignItems="flex-start" >
+                          <Tooltip title={provider.walletID} arrow>
+                          <Typography variant="body2" noWrap sx={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>WalletID: {provider.walletID}</Typography>
+                          </Tooltip>
                           <Typography variant="body2">Price: {provider.price} OTTC</Typography>
                         </Box>
                         <CardActions>
@@ -229,11 +278,8 @@ const Download = () => {
             Confirm Download
           </Typography>
           <Typography id="download-modal-description" sx={{ mt: 2 }}>
-            {fileDetails && (
+            {(
               <>
-                <strong>Name:</strong> {fileDetails.name} <br />
-                <strong>Size:</strong> {fileDetails.size} KB<br />
-                <strong>Type:</strong> {fileDetails.type} <br />
                 <strong>Price:</strong> {selectedPrice} OTTC <br />
                 <strong>Download Location:</strong> {downloadLocation || "Not Selected"}
               </>
@@ -249,7 +295,7 @@ const Download = () => {
               Cancel
             </Button>
             <Button
-              onClick={() => handleDownloadClick(selectedWallet, selectedPrice!)}
+              onClick={() => handleDownloadClick(selectedWallet)}
               variant="contained"
               color="primary"
               disabled={!downloadLocation}
@@ -259,6 +305,15 @@ const Download = () => {
           </Box>
         </Box>
       </Modal>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

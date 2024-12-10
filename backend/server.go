@@ -2,6 +2,7 @@ package main
 
 import (
 	"Otternet/backend/api/bitcoin"
+	dhtHandlers "Otternet/backend/api/dht_handlers"
 	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
@@ -91,12 +92,26 @@ func main() {
 	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
+	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
 	r.HandleFunc("/getUploads/{walletAddr}", files.GetAllFiles).Methods("GET")
-	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
+	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
+	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
+	r.HandleFunc("/getProviders/{fileHash}", files.GetProviders).Methods("GET")
+	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
 	r.HandleFunc("/getDownloadHistory/{walletAddr}", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
 	r.HandleFunc("/getProxyHistory/{walletAddr}", proxy.GetProxyHistory).Methods("GET")
 
+	// Peers Routes
+	r.HandleFunc("/getPeers", files.GetPeers).Methods("GET")
+	r.HandleFunc("/getClosestPeers", files.GetClosestPeers).Methods("GET")
+	r.HandleFunc("/getCatalog/{providerID}", files.GetCatalog).Methods("GET")
+	r.HandleFunc("/getOtternetPeers", files.GetOtternetPeers).Methods("GET") // get otternet peers that HAVE FILES UPLOADED
+	r.HandleFunc("/putPeersInCache", files.PutPeersInCache).Methods("POST")
+
+	// DHT Routes
+	r.HandleFunc("/startDHT/{walletAddr}", dhtHandlers.StartDHTHandler).Methods("GET")
+	r.HandleFunc("/stopDHT", dhtHandlers.CloseDHTHandler).Methods("GET")
 	handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{
