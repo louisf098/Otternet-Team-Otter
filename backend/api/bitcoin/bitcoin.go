@@ -268,18 +268,30 @@ func (bc *BitcoinClient) ListWallets() ([]string, error)   {
     }
 
     // parse the result from the response
-    result, ok := response["result"].([]interface{})
+    result, ok := response["result"].(map[string]interface{})
     if !ok {
         return nil, fmt.Errorf("unexpected result type: %T", response["result"])
     }
 
+    walletsData, ok := result["wallets"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected wallets type: %T", result["wallets"])
+    }
+
     // convert []interface{} to []string
-    wallets := make([]string, len(result))
-    for i, wallet := range result {
-        wallets[i], ok = wallet.(string)
+    wallets := make([]string, len(walletsData))
+    for i, wallet := range walletsData {
+        walletObj, ok := wallet.(map[string]interface{})
         if !ok {
-            return nil, fmt.Errorf("unexpected wallet name type: %T", wallet)
+            return nil, fmt.Errorf("unexpected wallet object type: %T", wallet)
         }
+
+        walletName, ok := walletObj["name"].(string)
+        if !ok {
+            return nil, fmt.Errorf("unexpected wallet name type: %T", walletObj["name"])
+        }
+
+        wallets[i] = walletName
     }
 
     return wallets, nil
