@@ -154,12 +154,14 @@ func HandleOtternetPeersRequests(h host.Host) {
 	h.SetStreamHandler(OtternetPeersProtocol, func(s network.Stream) {
 		defer s.Close()
 		r := bufio.NewReader(s)
+		fmt.Printf("Otternet peers request received\n")
 
 		secretMessage, err := r.ReadString('\n')
 		if err != nil {
 			log.Printf("Error reading from stream: %v", err)
 			return
 		}
+		fmt.Printf("Secret message: %v\n", secretMessage)
 
 		secretMessage = strings.ToLower(strings.TrimSpace(secretMessage))
 
@@ -181,17 +183,20 @@ func HandleOtternetPeersRequests(h host.Host) {
 				log.Printf("Error decoding JSON: %v", err)
 			} else {
 				if len(files) > 0 {
-					returnMessage = "otternet2"
+					returnMessage = "otternet2\n"
 				} else {
 					returnMessage = ""
 				}
 			}
 		}
 
+		fmt.Printf("Generated eturn message: %v\n", returnMessage)
+
 		// Send the appropriate return message back through the stream
 		_, err = s.Write([]byte(returnMessage))
 		if err != nil {
 			log.Printf("Error sending message: %v", err)
 		}
+		fmt.Printf("Sent return message: %v\n", returnMessage)
 	})
 }

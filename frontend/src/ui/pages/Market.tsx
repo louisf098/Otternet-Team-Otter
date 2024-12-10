@@ -60,10 +60,10 @@ const Market: React.FC = () => {
 
     useEffect(() => {
         /* Display list of walletIDs (providers) */
-        const providers = Object.keys(dummyData).map(walletID => ({ walletID }));
-        setProviders(providers);
+        //const providers = Object.keys(dummyData).map(walletID => ({ walletID }));
 
-        /*const fetchProviders = async () => {
+        // Send HTTP request to get list of providers
+        const fetchProviders = async () => {
             try {
                 const response = await fetch("http://localhost:9378/getOtternetPeers");
                 if (!response.ok) {
@@ -76,7 +76,7 @@ const Market: React.FC = () => {
                 console.error("Error fetching providers: ", err);
             }
         }
-        fetchProviders();*/
+        fetchProviders();
     });
 
     const handleSearch = () => {
