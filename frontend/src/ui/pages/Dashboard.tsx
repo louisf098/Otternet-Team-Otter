@@ -20,7 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, getTransactions, mineCoins } from "../apis/bitcoin-core";
+import { getBalance, mineCoins, getTransactions } from "../apis/bitcoin-core";
 import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
@@ -113,7 +113,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   useEffect(() => {
     fetchBalance();
-    fetchTransactions();
   }, []);
 
   return (
@@ -185,7 +184,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         >
           {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-              Filter  
+              Filter
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
               <MenuItem value={1}>Date (Latest)</MenuItem>
@@ -270,6 +269,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
+            walletName={walletName}
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={2}>

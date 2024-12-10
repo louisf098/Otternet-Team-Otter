@@ -91,11 +91,11 @@ func main() {
 	// Other existing routes
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
-	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/getUploads/{walletAddr}", files.GetAllFiles).Methods("GET")
 	r.HandleFunc("/download", download.DownloadFile).Methods("POST")
-	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
+	r.HandleFunc("/getDownloadHistory/{walletAddr}", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
-	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
+	r.HandleFunc("/getProxyHistory/{walletAddr}", proxy.GetProxyHistory).Methods("GET")
 
 	handlerWithCORS := corsOptions(r)
 
