@@ -38,6 +38,7 @@ interface UploadProps{}
 const Upload: React.FC<UploadProps> = () => {
 
     //UseState to hold the file added
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [fileMetadata, setFileMetadata] = useState<FileMetadata | null>(null);
     const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
     const [snackbarMessage, setSnackbarMessage] = useState<string>('');
@@ -124,7 +125,6 @@ const Upload: React.FC<UploadProps> = () => {
 
     const handleFormSubmit = async (data: SubmitData) => {
         // event.preventDefault();
-
         // FormData wrap the data
         // const formData = new FormData(event.currentTarget);
         // const userID = "user12345"; // Hardcoded for now
@@ -135,11 +135,12 @@ const Upload: React.FC<UploadProps> = () => {
         const price = parseFloat(data.price); // Use `data.price` from React Hook Form
         const bundleMode = data.bundleMode === 'Bundled'; // Check the bundle mode from data
         const fileName = data.fileName;
-
+        setIsLoading(true);
         if (!fileMetadata) {
             setSnackbarMessage("No file has been processed");
             setSnackbarColor('error');
             setSnackbarOpen(true);
+            setIsLoading(false);
             return;
         }
 
@@ -162,13 +163,14 @@ const Upload: React.FC<UploadProps> = () => {
             body: JSON.stringify(postData),
         });
         console.log("Response: ", response);
+        setIsLoading(false);
         setSnackbarMessage("File uploaded successfully. Redirecting to dashboard...");
         setSnackbarColor('success');
         setSnackbarOpen(true);
         await new Promise(resolve => setTimeout(resolve, 1500));
         navigate('/dashboard')
         } catch(err) {
-            console.error("An error occurred when attempting to upload the file.")
+            console.error("An error occurred when attempting to upload the file.");
             setSnackbarMessage("The following error occurred when attempting to upload the file: " + (err as Error).message);
             setSnackbarColor('error');
             setSnackbarOpen(true);
@@ -269,8 +271,8 @@ const Upload: React.FC<UploadProps> = () => {
                     helperText={errors.fileName ? errors.fileName.message : ""}
                 />
                  )}/>
-                <Button variant="contained" sx={{ mt: 2 }} type="submit" fullWidth>
-                    Submit
+                <Button variant="contained" sx={{ mt: 2 }} type="submit" disabled={isLoading} fullWidth>
+                    {isLoading ? <CircularProgress size={24} /> : "Submit"}
                 </Button>
                 </form>
             </Box>
