@@ -18,6 +18,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import SortIcon from "@mui/icons-material/Sort";
 import DownloadIcon from "@mui/icons-material/Download";
 import { ShoppingCart, ArrowBack } from "@mui/icons-material";
+import { AuthContext } from "../contexts/AuthContext";
+import { set } from "react-hook-form";
 
 interface FileItem {
     walletID: string,
@@ -48,7 +50,7 @@ const Market: React.FC = () => {
     const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
     const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
     const [downloadLocation, setDownloadLocation] = useState<string>("");
-
+    const { publicKey } = React.useContext(AuthContext);
 
     useEffect(() => {
         /* Display list of walletIDs (providers) */
@@ -141,13 +143,34 @@ const Market: React.FC = () => {
         }
     };
 
-    const handleDownloadConfirm = () => {
-        if (selectedFile && downloadLocation) {
-            console.log(`Downloading file: ${selectedFile.fileName} to ${downloadLocation}`);
+    const handleDownloadConfirm = async () => {
+        try {
+            
+            console.log("Selected File: ", selectedFile);
+            console.log("Download Location: ", downloadLocation);
+
+            const postData = {
+                WalletID : publicKey,
+                ProviderID : walletId,
+                DownloadPath : downloadLocation,
+                FileHash : selectedFile?.fileHash,
+            }
+
+            const response = await fetch("http://localhost:9378/download", {
+                method: "POST",
+                body: JSON.stringify(postData),
+            });
+
+            console.log("Response: ", response);
+            if (!response.ok) {
+                throw new Error("Problem downloading the file");
+            }
+            console.log("File downloaded successfully");
+            handleDownloadModalClose();
+        } catch (err: any) {
+            console.error("Error downloading file: ", err);
+            handleDownloadModalClose();
         }
-        setDownloadModalOpen(false);
-        setSelectedFile(null);
-        setDownloadLocation("");
     };
 
     const handleDownloadModalClose = () => {
@@ -236,7 +259,7 @@ const Market: React.FC = () => {
         // return discountedTotal.toFixed(2);
     };
 
-    const currentFiles = files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    const currentFiles = files.length > 0 ? files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE) : [];
 
     // const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
     //     const file = allFiles.find(f => f.id === fileId);
