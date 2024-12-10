@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type FormData struct {
@@ -101,6 +103,12 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletAddr, exists := vars["walletAddr"]
+	if !exists || walletAddr == "" {
+		http.Error(w, "Invalid wallet address", http.StatusBadRequest)
+		return
+	}
 	mutex.Lock()
 	defer mutex.Unlock()
 	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
@@ -112,9 +120,34 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error reading file data", http.StatusInternalServerError)
 		return
 	}
+	var postDatas []FormData
+	err = json.Unmarshal(fileData, &postDatas)
+	if err != nil {
+		http.Error(w, "Error unmarshalling file data", http.StatusInternalServerError)
+		return
+	}
+	var filteredData []FormData
+	for _, data := range postDatas {
+		fmt.Printf("WalletID: %s\n", data.WalletID)
+		fmt.Printf("WalletAddr: %s\n", walletAddr)
+		fmt.Printf("Data: %v\n", data)
+		if data.WalletID == walletAddr {
+			fmt.Print("HI\n")
+			filteredData = append(filteredData, data)
+		}
+	}
+	if len(filteredData) == 0 {
+		http.Error(w, "No downloads found for the given wallet address", http.StatusNotFound)
+		return
+	}
+	responseData, err := json.MarshalIndent(filteredData, "", " ")
+	if err != nil {
+		http.Error(w, "Error marshalling filtered data", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(fileData)
-	fmt.Println("Displaying Download History")
+	w.Write(responseData)
+	fmt.Println("Get Download History API Hit")
 }
 
 // Handles adding to download history - used by download file in files.go !!!!!!
