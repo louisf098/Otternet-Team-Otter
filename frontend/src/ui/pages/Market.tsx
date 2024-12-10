@@ -205,9 +205,6 @@ const Market: React.FC = () => {
                 case "Type":
                     sorted = [...files].sort((a, b) => a.fileType.localeCompare(b.fileType));
                     break;
-                case "Wallet ID":
-                    sorted = [...files].sort((a, b) => a.srcID.localeCompare(b.srcID));
-                    break;
                 default:
                     sorted = files;
             }
@@ -236,9 +233,38 @@ const Market: React.FC = () => {
     };
 
     const handleCheckoutConfirm = () => {
-        if (downloadLocation && selectedFiles.length > 0) {
-            console.log(`Downloading selected files to ${downloadLocation}`);
-        }
+        // Send HTTP request to download selected files
+        console.log("Selected Files: ", selectedFiles);
+        console.log("Download Location: ", downloadLocation);
+
+
+        selectedFiles.forEach(async (fileId) => {
+            const file = files.find((f) => f.fileHash === fileId);
+            if (file) {
+                const postData = {
+                    WalletID: publicKey,
+                    ProviderID: walletId,
+                    DownloadPath: downloadLocation,
+                    FileHash: file.fileHash,
+                };
+
+                try {
+                    const response = await fetch("http://localhost:9378/download", {
+                        method: "POST",
+                        body: JSON.stringify(postData),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Problem downloading the file: ${file.fileName}`);
+                    }
+                    console.log(`File ${file.fileName} downloaded successfully`);
+                } catch (err: any) {
+                    console.error(`Error downloading file ${file.fileName}: `, err);
+                }
+            }
+        });
+
+
         setCheckoutOpen(false);
         setSelectedFiles([]);
         setDownloadLocation("");
@@ -253,7 +279,7 @@ const Market: React.FC = () => {
             const file = files.find((f) => f.fileHash === fileId);
             return file ? sum + (file.price) : sum;
         }, 0);
-        const discountRate = Math.min(selectedFiles.length * 5, 25); // 1% per file, max 5%
+        const discountRate = Math.min(selectedFiles.length * 5, 25);
         const discountedTotal = total * (1 - discountRate / 100);
         return {
             total: total.toFixed(2),
@@ -311,7 +337,6 @@ const Market: React.FC = () => {
                         <MenuItem onClick={() => handleSort("Upload Time")}>Sort by Upload Time</MenuItem>
                         <MenuItem onClick={() => handleSort("Size")}>Sort by Size</MenuItem>
                         <MenuItem onClick={() => handleSort("Type")}>Sort by Type</MenuItem>
-                        <MenuItem onClick={() => handleSort("Wallet ID")}>Sort by Wallet ID</MenuItem>
                     </Menu>
                 </Box>
             </Box>
