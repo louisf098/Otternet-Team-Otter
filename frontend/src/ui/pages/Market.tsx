@@ -40,7 +40,7 @@ const Market: React.FC = () => {
     const [files, setFiles] = useState<FileItem[]>([]);
     const [error, setError] = useState<string>("");
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-    const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+    const [selectedFiles, setSelectedFiles] = useState<String[]>([]);
     const [providers, setProviders] = useState<{ walletID: string }[]>([]);
     const [searchedProviders, setSearchedProviders] = useState<{ walletID: string }[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState<boolean>(false);
@@ -52,8 +52,6 @@ const Market: React.FC = () => {
 
     useEffect(() => {
         /* Display list of walletIDs (providers) */
-        //const providers = Object.keys(dummyData).map(walletID => ({ walletID }));
-
         // Send HTTP request to get list of providers
         const fetchProviders = async () => {
             try {
@@ -106,6 +104,7 @@ const Market: React.FC = () => {
         setFiles(files);
         setError("");
         setCurrentPage(1);
+        setSelectedFiles([]);
     };
 
     const handleBackToProviders = () => {
@@ -196,13 +195,13 @@ const Market: React.FC = () => {
     };
 
     const handleCheckboxChange = (fileId: string) => {
-        // setSelectedFiles((prevSelected) => {
-        //     if (prevSelected.includes(fileId)) {
-        //         return prevSelected.filter((id) => id !== fileId);
-        //     } else {
-        //         return [...prevSelected, fileId];
-        //     }
-        // });
+         setSelectedFiles((prevSelected) => {
+             if (prevSelected.includes(fileId)) {
+                 return prevSelected.filter((id) => id !== fileId);
+             } else {
+                 return [...prevSelected, fileId];
+             }
+         });
     };
 
     const handleCheckoutOpen = () => {
@@ -306,10 +305,10 @@ const Market: React.FC = () => {
                     {files.map((file) => (
                         <ListItem key={file.fileHash} divider>
                         <Checkbox
-                        // checked={selectedFiles.includes(file.fileHash)}
-                        // onChange={() => handleCheckboxChange(file.fileHash)}
-                        // disabled={!file.bundleMode}
-                        // sx={{ mr: 2, color: file.bundleMode ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
+                         checked={selectedFiles.includes(file.fileHash)}
+                         onChange={() => handleCheckboxChange(file.fileHash)}
+                         disabled={!file.bundleMode}
+                         sx={{ mr: 2, color: file.bundleMode ? "primary.main" : "grey.500", "&.Mui-disabled": { color: "grey.400" }}}
                         />
                         <ListItemText
                             primary={file.fileName}
