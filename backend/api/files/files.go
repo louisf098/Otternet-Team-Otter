@@ -32,15 +32,6 @@ type FormData struct {
 	BundleMode bool    `json:"bundleMode"`
 }
 
-type CatalogItem struct {
-	FileName   string  `json:"fileName"`
-	FileHash   string  `json:"fileHash"`
-	FileType   string  `json:"fileType"`
-	Price      float64 `json:"price"`
-	BundleMode bool    `json:"bundleMode"`
-	Timestamp  string  `json:"timestamp"`
-}
-
 type ProviderList struct {
 	List []string `json:"list"`
 }
@@ -695,7 +686,7 @@ func GetCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	// receive files.json and convert into list of catalog items
 	decoder := json.NewDecoder(stream)
-	var catalog []CatalogItem
+	var catalog []FormData
 	err = decoder.Decode(&catalog)
 	if err != nil {
 		http.Error(w, "Error decoding catalog", http.StatusInternalServerError)
