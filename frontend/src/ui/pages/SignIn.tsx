@@ -15,8 +15,7 @@ import { unlockWallet } from "../apis/bitcoin-core";
 const SignIn = () => {
   const navigate = useNavigate();
 
-  const [error, setError] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState("");
+  const [error, setError] = React.useState<string>("");
 
   const { setPublicKey, setWalletName } = React.useContext(AuthContext);
 
@@ -27,22 +26,17 @@ const SignIn = () => {
     ) as HTMLInputElement;
 
     if (!address.value || !passphrase.value) {
-      setError(true);
-      setErrorMessage("Please fill out both wallet ID and private key");
-      return ;
+      setError("Please fill out both wallet ID and private key");
+      return;
     }
     let res = await unlockWallet(address.value, passphrase.value);
-    if (!res) return;
     if (res.status != "unlocked") {
-      setError(true);
-      return ;
-    } else{
-      setWalletName(res.walletName)
-      setError(false);
-    }
-
-    if (error) {
+      setError(res.status);
       return;
+    } else {
+      setWalletName(res.walletName);
+      console.log(res.status);
+      setError("");
     }
 
     setPublicKey(address.value);
@@ -112,9 +106,15 @@ const SignIn = () => {
           <FormControl>
             <FormLabel>Address</FormLabel>
             <TextField
-              error={error && errorMessage != "Incorrect Private Key"}
+              error={
+                error !=
+                  "Error: The wallet passphrase entered was incorrect." &&
+                error != ""
+              }
               helperText={
-                errorMessage == "Incorrect Private Key" ? "" : errorMessage
+                error != "Error: The wallet passphrase entered was incorrect."
+                  ? error
+                  : ""
               }
               id="address"
               type="text"
@@ -124,7 +124,6 @@ const SignIn = () => {
               required
               fullWidth
               variant="outlined"
-              color={error ? "error" : "primary"}
             />
           </FormControl>
           <FormControl>
@@ -132,7 +131,8 @@ const SignIn = () => {
               <FormLabel htmlFor="privateKey">Passphrase</FormLabel> {}
             </Box>
             <TextField
-              error={error && errorMessage != "Invalid Wallet ID"}
+              error={error != "Incorrect address format" && error != ""}
+              helperText={error != "Incorrect address format" ? error : ""}
               name="passphrase"
               placeholder="••••••"
               type="password"
@@ -141,7 +141,6 @@ const SignIn = () => {
               required
               fullWidth
               variant="outlined"
-              color={error ? "error" : "primary"}
             />
           </FormControl>
           <Button fullWidth variant="contained" onClick={validateInputs}>

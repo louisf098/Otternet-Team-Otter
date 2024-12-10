@@ -176,11 +176,13 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
 	address, addressExists := vars["address"]
 	if !addressExists || address == "" {
 		http.Error(w, "Invalid bitcoin address", http.StatusBadRequest)
-		return
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid bitcoin address"})
+		return 
 	}
     passphrase, passphraseExists := vars["passphrase"] 
     if !passphraseExists || passphrase == "" {
 		http.Error(w, "Invalid passphrase", http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid passphrase"})
 		return
 	}
     fmt.Println("UnlockWalletHandler triggered")
@@ -188,9 +190,10 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
 
-    addressFormatErr := btcClient.ValidateBitcoinAddress(address)
-    if addressFormatErr != nil {
-        fmt.Printf("Error getting all wallets: %v\n", addressFormatErr)
+    validAddress, addressErr := btcClient.ValidateBitcoinAddress(address)
+    if !validAddress || addressErr != nil {
+        fmt.Printf("Error getting all wallets: %v\n", addressErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": "Incorrect address format"})
         return
     }
 
@@ -198,6 +201,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     walletNames, listWalletErr := btcClient.ListWallets()
     if listWalletErr != nil {
         fmt.Printf("Error getting all wallets: %v\n", listWalletErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": "error getting all wallets"})
         return
     }
 
@@ -218,6 +222,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
 
     if walletName == "" {
         fmt.Printf("Wallet not found.\n")
+        json.NewEncoder(w).Encode(map[string]string{"error": ""})
         return
     }
 

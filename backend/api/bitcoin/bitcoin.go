@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 )
 
 type BitcoinRPCRequest struct {
@@ -69,15 +68,19 @@ func (bc *BitcoinClient) call(method string, params []interface{}, walletName st
     return result, nil
 }
 
-func (bc *BitcoinClient) ValidateBitcoinAddress(address string) error {
-	// Regular expression for validating Bitcoin addresses
-	bitcoinAddressRegex :=  `^(1|3|bc1|tb1|bcrt1)[a-zA-HJ-NP-Z0-9]{25,62}$`
+func (bc *BitcoinClient) ValidateBitcoinAddress(address string) (bool, error) {
+	response, err := bc.call("validateaddress", []interface{}{address}, "")
+    if err != nil {
+        return false, fmt.Errorf("error validating address: %w", err)
+    }
 
-	re := regexp.MustCompile(bitcoinAddressRegex)
-	if !re.MatchString(address) {
-		return fmt.Errorf("invalid Bitcoin address format")
-	}
-	return nil
+    result, ok := response["result"].(map[string]interface{})
+    if !ok {
+        return false, fmt.Errorf("unexpected result type: %T", response["result"])
+    }
+
+    isValid, _ := result["isvalid"].(bool)
+    return isValid, nil
 }
 
 func (bc *BitcoinClient) IsMyWallet(addressStr string, walletName string) (bool, error) {
