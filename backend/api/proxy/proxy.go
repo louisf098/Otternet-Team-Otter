@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"Otternet/backend/global"
-	"bufio"
+	//"bufio"
 	//"bytes"
 	"context"
 	"crypto/sha256"
@@ -16,13 +16,14 @@ import (
 	"sync"
 
 	"github.com/elazarl/goproxy"
-	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p/core/host"
+	//"github.com/libp2p/go-libp2p/core/network"
+	//"github.com/libp2p/go-libp2p/core/host"
 	//"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	//"github.com/multiformats/go-multiaddr"
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -207,60 +208,6 @@ func normalizeAddress(addr string) string {
     return addr
 }
 
-// HandleConnectToProxy adds a client to the authorized list and starts servicing
-func HandleConnectToProxy(h host.Host) {
-	h.SetStreamHandler(proxyConnectProtocol, func(s network.Stream) {
-		defer s.Close()
-
-		// Read client multiaddress
-		r := bufio.NewReader(s)
-		clientAddr, err := r.ReadString('\n')
-		if err != nil {
-			log.Printf("Error reading from stream: %v", err)
-			return
-		}
-		clientAddr = strings.TrimSpace(clientAddr)
-
-		// Add client to authorized list
-		mu.Lock()
-		authorizedClients[clientAddr] = true
-		mu.Unlock()
-
-		log.Printf("Client %s connected to proxy", clientAddr)
-
-		// Send positive response
-		response := map[string]string{"message": "Connected to proxy"}
-		json.NewEncoder(s).Encode(response)
-	})
-}
-
-// HandleDisconnectFromProxy removes a client from the authorized list
-func HandleDisconnectFromProxy(h host.Host) {
-	h.SetStreamHandler(proxyDisconnectProtocol, func(s network.Stream) {
-		defer s.Close()
-
-		// Read client multiaddress
-		r := bufio.NewReader(s)
-		clientAddr, err := r.ReadString('\n')
-		if err != nil {
-			log.Printf("Error reading from stream: %v", err)
-			return
-		}
-		clientAddr = strings.TrimSpace(clientAddr)
-
-		// Remove client from authorized list
-		mu.Lock()
-		delete(authorizedClients, clientAddr)
-		mu.Unlock()
-
-		log.Printf("Client %s disconnected from proxy", clientAddr)
-
-		// Send positive response
-		response := map[string]string{"message": "Disconnected from proxy"}
-		json.NewEncoder(s).Encode(response)
-	})
-}
-
 // FetchAvailableProxies retrieves a list of proxy nodes currently providing the ProxyProviderHash
 func FetchAvailableProxies(ctx context.Context) ([]ProxyNode, error) {
 	if global.DHTNode == nil {
@@ -315,6 +262,60 @@ func parseMultiAddr(multiAddr string) (string, string, error) {
 	ip := parts[2]
 	port := parts[4]
 	return ip, port, nil
+}
+
+// Endpoint function to connect
+func RegisterHandleConnectEndpoint(router *mux.Router) {
+    router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
+        var req struct {
+            ClientAddr string `json:"clientAddr"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            http.Error(w, "Invalid request body", http.StatusBadRequest)
+            return
+        }
+
+        if req.ClientAddr == "" {
+            http.Error(w, "Client address is required", http.StatusBadRequest)
+            return
+        }
+
+        // Authorize the client
+        mu.Lock() // Ensure thread-safe access
+        authorizedClients[req.ClientAddr] = true
+        mu.Unlock()
+
+        log.Printf("Client %s connected to proxy via API", req.ClientAddr)
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{"message": "Client authorized successfully"})
+    }).Methods("POST")
+}
+
+// endpoint function for disconnect to proxy
+func RegisterHandleDisconnectEndpoint(router *mux.Router) {
+    router.HandleFunc("/disconnectFromProxy", func(w http.ResponseWriter, r *http.Request) {
+        var req struct {
+            ClientAddr string `json:"clientAddr"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            http.Error(w, "Invalid request body", http.StatusBadRequest)
+            return
+        }
+
+        if req.ClientAddr == "" {
+            http.Error(w, "Client address is required", http.StatusBadRequest)
+            return
+        }
+
+        // Remove client from authorized list
+        mu.Lock()
+        delete(authorizedClients, req.ClientAddr)
+        mu.Unlock()
+
+        log.Printf("Client %s disconnected from proxy via API", req.ClientAddr)
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
+    }).Methods("POST")
 }
 
  // Export the mu and map, used in server.go

@@ -35,60 +35,6 @@ type TestJSON struct {
     Name string `json:"name"`
 }
 
-// Endpoint function to connect
-func registerHandleConnectEndpoint(router *mux.Router) {
-    router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
-        var req struct {
-            ClientAddr string `json:"clientAddr"`
-        }
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-            http.Error(w, "Invalid request body", http.StatusBadRequest)
-            return
-        }
-
-        if req.ClientAddr == "" {
-            http.Error(w, "Client address is required", http.StatusBadRequest)
-            return
-        }
-
-        // Authorize the client
-        proxy.Mu.Lock() // Ensure thread-safe access
-        proxy.AuthorizedClients[req.ClientAddr] = true
-        proxy.Mu.Unlock()
-
-        log.Printf("Client %s connected to proxy via API", req.ClientAddr)
-        w.WriteHeader(http.StatusOK)
-        json.NewEncoder(w).Encode(map[string]string{"message": "Client authorized successfully"})
-    }).Methods("POST")
-}
-
-// endpoint function for disconnect to proxy
-func RegisterHandleDisconnectEndpoint(router *mux.Router) {
-    router.HandleFunc("/disconnectFromProxy", func(w http.ResponseWriter, r *http.Request) {
-        var req struct {
-            ClientAddr string `json:"clientAddr"`
-        }
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-            http.Error(w, "Invalid request body", http.StatusBadRequest)
-            return
-        }
-
-        if req.ClientAddr == "" {
-            http.Error(w, "Client address is required", http.StatusBadRequest)
-            return
-        }
-
-        // Remove client from authorized list
-        proxy.Mu.Lock()
-        delete(proxy.AuthorizedClients, req.ClientAddr)
-        proxy.Mu.Unlock()
-
-        log.Printf("Client %s disconnected from proxy via API", req.ClientAddr)
-        w.WriteHeader(http.StatusOK)
-        json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
-    }).Methods("POST")
-}
-
 func baseHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World")
 }
@@ -194,8 +140,8 @@ func main() {
 		json.NewEncoder(w).Encode(proxies)
 	}).Methods("GET")
 
-	registerHandleConnectEndpoint(r)
-	RegisterHandleDisconnectEndpoint(r)
+	proxy.RegisterHandleConnectEndpoint(r)
+	proxy.RegisterHandleDisconnectEndpoint(r)
 	handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{
