@@ -81,7 +81,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
               <TableCell>{proxy.ipAddr}</TableCell>
               <TableCell>{proxy.price}</TableCell>
               <TableCell
-                onClick={() => handleCopy(proxy.id)}
+                onClick={() => handleCopy(proxy.srcID)}
                 sx={{
                   maxWidth: "200px",
                   wordWrap: "break-word",
@@ -90,7 +90,7 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
                 }}
               >
                 <Tooltip title="Click to copy" arrow>
-                  <span>{proxy.id}</span>
+                  <span>{proxy.srcID}</span>
                 </Tooltip>
               </TableCell>
             </TableRow>

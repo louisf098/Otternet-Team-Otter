@@ -20,7 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, mineCoins } from "../apis/bitcoin-core";
+import { getBalance, getTransactions, mineCoins } from "../apis/bitcoin-core";
 
 interface TransactionData {
   transactionID: string;
@@ -87,6 +87,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
+  
+  const fetchTransactions = async () => {
+    let transactions = getTransactions(walletName);
 
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
@@ -106,6 +109,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   useEffect(() => {
     fetchBalance();
+    fetchTransactions();
   }, []);
 
   return (
@@ -170,7 +174,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         >
           {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-              Filter
+              Filter  
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
               <MenuItem value={1}>Date (Latest)</MenuItem>
