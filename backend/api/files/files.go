@@ -646,12 +646,11 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	// get wallet address of destination
 	var walletAddr string
-	err = json.NewDecoder(stream).Decode(&walletAddr)
+	_, err = stream.Read([]byte(walletAddr + "\n"))
 	if err != nil {
-		fmt.Printf("Error decoding wallet address: %v\n", err)
+		fmt.Printf("Error reading wallet address: %v\n", err)
 		return
 	}
-	fmt.Printf("Wallet Address: %s\n", walletAddr)
 
 	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
 	w.WriteHeader(http.StatusOK)
