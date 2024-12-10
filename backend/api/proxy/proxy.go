@@ -100,71 +100,93 @@ func getPublicIP() (string, error) {
 
 // StartProxyServer starts the proxy server and advertises it as a provider on the DHT
 func StartProxyServer(port string) error {
-	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
+    proxy := goproxy.NewProxyHttpServer()
+    proxy.Verbose = true
 
-	// Automatically add the server itself as an authorized client (IPv4 and IPv6 loopback addresses)
-	mu.Lock()
-	authorizedClients["127.0.0.1"] = true // IPv4 loopback
-	authorizedClients["::1"] = true      // IPv6 loopback
-	mu.Unlock()
-	log.Printf("Server added as an authorized client for addresses: 127.0.0.1 and ::1")
+    // Automatically add the server itself as an authorized client (IPv4 and IPv6 loopback addresses)
+    mu.Lock()
+    authorizedClients["127.0.0.1"] = true // IPv4 loopback
+    authorizedClients["::1"] = true      // IPv6 loopback
+    mu.Unlock()
+    log.Printf("Server added as an authorized client for addresses: 127.0.0.1 and ::1")
 
-	// Add custom authorization logic for HTTP and HTTPS traffic
-	proxy.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-		clientAddr := ctx.Req.RemoteAddr
-		log.Printf("Raw client address: %s", clientAddr)
+    // Add custom authorization logic for HTTP traffic
+    proxy.OnRequest().DoFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+        clientAddr := req.RemoteAddr
+        log.Printf("Raw client address for HTTP request: %s", clientAddr)
 
-		// Ensure RemoteAddr is valid
-		if clientAddr == "" {
-			log.Println("Empty client address in request; rejecting.")
-			return goproxy.RejectConnect, ""
-		}
+        if clientAddr == "" {
+            log.Println("Empty client address in HTTP request; rejecting.")
+            return req, goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusForbidden, "Unauthorized client")
+        }
 
-		normalizedAddr := normalizeAddress(clientAddr)
-		log.Printf("Normalized client address: %s", normalizedAddr)
+        normalizedAddr := normalizeAddress(clientAddr)
+        log.Printf("Normalized client address for HTTP request: %s", normalizedAddr)
 
-		mu.Lock()
-		authorized := authorizedClients[normalizedAddr]
-		mu.Unlock()
+        mu.Lock()
+        authorized := authorizedClients[normalizedAddr]
+        mu.Unlock()
 
-		if !authorized {
-			log.Printf("Unauthorized client attempted to connect: %s", normalizedAddr)
-			return goproxy.RejectConnect, ""
-		}
+        if !authorized {
+            log.Printf("Unauthorized HTTP client attempted to connect: %s", normalizedAddr)
+            return req, goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusForbidden, "Unauthorized client")
+        }
 
-		log.Printf("Authorized client request from: %s", normalizedAddr)
-		return goproxy.OkConnect, host
-	})
+        log.Printf("Authorized HTTP request from: %s", normalizedAddr)
+        return req, nil
+    })
 
-	// Allow HTTPS traffic by intercepting CONNECT requests
-	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
+    // Add custom authorization logic for HTTPS traffic
+    proxy.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+        clientAddr := ctx.Req.RemoteAddr
+        log.Printf("Raw client address for HTTPS request: %s", clientAddr)
 
-	// Advertise this proxy node on the DHT
-	go func() {
-		ip, err := getPublicIP()
-		if err != nil {
-			log.Printf("Failed to fetch public IP: %v. Falling back to 127.0.0.1", err)
-			ip = "127.0.0.1" // Fallback to localhost if public IP cannot be fetched
-		}
+        if clientAddr == "" {
+            log.Println("Empty client address in HTTPS request; rejecting.")
+            return goproxy.RejectConnect, ""
+        }
 
-		err = AdvertiseSelfAsNode(global.DHTNode.Ctx, ip, port, 0.01) // Adjust pricePerHour as needed - change later to bytes?
-		if err != nil {
-			log.Printf("Failed to advertise self as a proxy node: %v", err)
-		} else {
-			log.Printf("Successfully advertised proxy node on the DHT: IP=%s, Port=%s", ip, port)
-		}
-	}()
+        normalizedAddr := normalizeAddress(clientAddr)
+        log.Printf("Normalized client address for HTTPS request: %s", normalizedAddr)
 
-	// Start the HTTP proxy server
-	server := &http.Server{
-		Addr:    ":" + port,
-		Handler: proxy,
-	}
-	proxyServer = server
+        mu.Lock()
+        authorized := authorizedClients[normalizedAddr]
+        mu.Unlock()
 
-	log.Printf("Starting proxy server on port %s...", port)
-	return server.ListenAndServe()
+        if !authorized {
+            log.Printf("Unauthorized HTTPS client attempted to connect: %s", normalizedAddr)
+            return goproxy.RejectConnect, ""
+        }
+
+        log.Printf("Authorized HTTPS request from: %s", normalizedAddr)
+        return goproxy.OkConnect, host
+    })
+
+    // Advertise this proxy node on the DHT
+    go func() {
+        ip, err := getPublicIP()
+        if err != nil {
+            log.Printf("Failed to fetch public IP: %v. Falling back to 127.0.0.1", err)
+            ip = "127.0.0.1" // Fallback to localhost if public IP cannot be fetched
+        }
+
+        err = AdvertiseSelfAsNode(global.DHTNode.Ctx, ip, port, 0.01) // Adjust pricePerHour as needed
+        if err != nil {
+            log.Printf("Failed to advertise self as a proxy node: %v", err)
+        } else {
+            log.Printf("Successfully advertised proxy node on the DHT: IP=%s, Port=%s", ip, port)
+        }
+    }()
+
+    // Start the HTTP proxy server
+    server := &http.Server{
+        Addr:    ":" + port,
+        Handler: proxy,
+    }
+    proxyServer = server
+
+    log.Printf("Starting proxy server on port %s...", port)
+    return server.ListenAndServe()
 }
 
 func normalizeAddress(addr string) string {
