@@ -130,7 +130,6 @@ export const getTransactions = async (walletName: string) => {
       timeReceived: new Date(tx.time * 1000), // Convert UNIX timestamp to Date
       category: tx.category || "",
       blockhash: tx.blockhash,
-      label: tx.label,
       txid: tx.txid
     }));
 

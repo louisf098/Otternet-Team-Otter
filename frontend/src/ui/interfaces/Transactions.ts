@@ -5,4 +5,5 @@ export interface Transaction {
   timeReceived: Date;
   category: string;
   blockhash: string;
+  txid: string;
 }
