@@ -1,6 +1,7 @@
 package dhtnode
 
 import (
+	"Otternet/backend/global_wallet"
 	"bufio"
 	"bytes"
 	"context"
@@ -26,10 +27,7 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-var id = []byte("114306801") // Seed used to generate node's private key & peer ID
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
-
-// var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61000/p2p/12D3KooWHvjhLXNGWQ8uYXXs5kCSsq7aZZMYv7MW8mRde8TpSQcf"
 var BootstrapNodeAddr = "/ip4/130.245.68.45/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
 
 // Encapsulates the host and DHT for easy access
@@ -42,7 +40,6 @@ type DHTNode struct {
 // NewDHTNode initializes and configures a libp2p host with DHT support
 func CreateLibp2pHost() (*DHTNode, error) {
 	ctx := context.Background()
-	seed := []byte(id)
 
 	// configure to listen on any port
 	customAddr, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
@@ -51,7 +48,7 @@ func CreateLibp2pHost() (*DHTNode, error) {
 	}
 
 	// generate node identity
-	privKey, err := GeneratePrivateKeyFromSeed(seed)
+	privKey, err := GeneratePrivateKeyFromSeed()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,7 +123,9 @@ func CreateLibp2pHost() (*DHTNode, error) {
 }
 
 // creates a deterministic private key to maintain identity of node
-func GeneratePrivateKeyFromSeed(seed []byte) (crypto.PrivKey, error) {
+func GeneratePrivateKeyFromSeed() (crypto.PrivKey, error) {
+	seed := []byte("/orcanet/" + global_wallet.WalletAddr)
+	fmt.Printf("Seed: %s\n", seed)
 	hash := sha256.Sum256(seed)
 	privKey, _, err := crypto.GenerateEd25519Key(
 		bytes.NewReader(hash[:]),
@@ -268,6 +267,7 @@ func (dhtNode *DHTNode) ProvideKey(key string) error {
 func (dhtNode *DHTNode) PutValue(key string, value string) error {
 	dhtKey := "/orcanet/" + key
 	err := dhtNode.DHT.PutValue(dhtNode.Ctx, dhtKey, []byte(value))
+	fmt.Printf("Wallet Address: %s\n", global_wallet.WalletAddr)
 	if err != nil {
 		return fmt.Errorf("failed to put record: %v", err)
 	}
@@ -300,6 +300,16 @@ func (dhtNode *DHTNode) FindProviders(key string) ([]peer.AddrInfo, error) {
 		return nil, fmt.Errorf("failed to find providers: %v", err)
 	}
 	return providers, nil
+}
+
+func (dhtNode *DHTNode) GetClosestPeers(key string) ([]peer.ID, error) {
+	dhtKey := "/orcanet/" + key
+	peers, err := dhtNode.DHT.GetClosestPeers(dhtNode.Ctx, dhtKey)
+	if err != nil {
+		fmt.Printf("Error getting closest peers: %v", err)
+		return nil, err
+	}
+	return peers, nil
 }
 
 // Shut down DHT Node

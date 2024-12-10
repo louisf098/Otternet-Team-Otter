@@ -36,7 +36,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-test1"
+var ProxyProviderHash = "proxy-louis-test3"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 

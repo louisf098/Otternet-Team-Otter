@@ -147,7 +147,7 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseData)
-	fmt.Println("Get All Downloads API Hit")
+	fmt.Println("Get Download History API Hit")
 }
 
 // Handles adding to download history - used by download file in files.go !!!!!!
