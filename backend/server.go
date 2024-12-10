@@ -83,6 +83,7 @@ func main() {
 	// Label from address route
 	r.HandleFunc("/labelfromaddress/{walletName}/{address}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
 
+	r.HandleFunc("/gettransactions/{walletName}", bitcoin.GetTransactionsHandler).Methods("GET")
 	// Coin transaction route
 	r.HandleFunc("/transferCoins/{walletName}/{toAddress}/{amount}/{label}", bitcoin.TransferCoinsHandler).Methods("POST")
 
@@ -90,14 +91,14 @@ func main() {
 	r.HandleFunc("/uploadFile", files.UploadFile).Methods("POST")
 	r.HandleFunc("/deleteFile/{fileHash}", files.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/confirmFile/{fileHash}", files.ConfirmFileinDHT).Methods("GET")
-	r.HandleFunc("/getUploads", files.GetAllFiles).Methods("GET")
+	r.HandleFunc("/getUploads/{walletAddr}", files.GetAllFiles).Methods("GET")
 	r.HandleFunc("/getPrices/{fileHash}", files.GetFilePrices).Methods("GET")
 	r.HandleFunc("/download", files.DownloadFile).Methods("POST")
 	r.HandleFunc("/getProviders/{fileHash}", files.GetProviders).Methods("GET")
 	// r.HandleFunc("/download", download.DownloadFile).Methods("POST")
-	r.HandleFunc("/getDownloadHistory", download.GetDownloadHistory).Methods("GET")
+	r.HandleFunc("/getDownloadHistory/{walletAddr}", download.GetDownloadHistory).Methods("GET")
 	r.HandleFunc("/connectToProxy", proxy.ConnectToProxy).Methods("POST")
-	r.HandleFunc("/getProxyHistory", proxy.GetProxyHistory).Methods("GET")
+	r.HandleFunc("/getProxyHistory/{walletAddr}", proxy.GetProxyHistory).Methods("GET")
 
 	// Peers Routes
 	r.HandleFunc("/getPeers", files.GetPeers).Methods("GET")

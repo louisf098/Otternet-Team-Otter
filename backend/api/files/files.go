@@ -206,6 +206,8 @@ func GetAllFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletAddr := vars["walletAddr"]
 	mutex.Lock()
 	defer mutex.Unlock()
 	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
@@ -217,8 +219,29 @@ func GetAllFiles(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error reading file data", http.StatusInternalServerError)
 		return
 	}
+	var postDatas []FormData
+	err = json.Unmarshal(fileData, &postDatas)
+	if err != nil {
+		http.Error(w, "Error unmarshalling file data", http.StatusInternalServerError)
+		return
+	}
+	var filteredData []FormData
+	for _, data := range postDatas {
+		if data.WalletID == walletAddr {
+			filteredData = append(filteredData, data)
+		}
+	}
+	if len(filteredData) == 0 {
+		http.Error(w, "No files found for the given wallet address", http.StatusNotFound)
+		return
+	}
+	responseData, err := json.MarshalIndent(filteredData, "", " ")
+	if err != nil {
+		http.Error(w, "Error marshalling filtered file data", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(fileData)
+	w.Write(responseData)
 }
 
 // Confirm that file exists in DHT

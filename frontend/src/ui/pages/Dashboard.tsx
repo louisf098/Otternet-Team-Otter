@@ -17,8 +17,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance } from "../apis/bitcoin-core";
-
+import { getBalance, getTransactions } from "../apis/bitcoin-core";
+import DownloadHistoryTable from "../components/DownloadHistoryTable";
 interface TransactionData {
   transactionID: string;
   dateTime: number;
@@ -86,6 +86,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
+
   useEffect(() => {
     fetchBalance();
   }, []);
@@ -146,7 +147,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         >
           {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-              Filter
+              Filter  
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
               <MenuItem value={1}>Date (Latest)</MenuItem>
@@ -215,8 +216,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }
             id="dashboard-tab-upload"
           />
-          <Tab label="Download History" id="dashboard-tab-history" />
+          <Tab label="Download History" id="dashboard-tab-download-history" />
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
+          <Tab label="Transaction History" id="dashboard-tab-transaction-history" />
         </Tabs>
 
         <TabSelector value={selectedTableTab} index={0}>
@@ -227,17 +229,25 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={1}>
-          <TransactionHistoryTable
+          <DownloadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
-        </TabSelector>
+          </TabSelector>
         <TabSelector value={selectedTableTab} index={2}>
           <ProxyHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
+          />
+        </TabSelector>
+        <TabSelector value={selectedTableTab} index={3}>
+          <TransactionHistoryTable
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+            walletName={walletName}
           />
         </TabSelector>
       </Box>
