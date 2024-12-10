@@ -101,9 +101,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
         setSnackbarOpen(true);
       }
     } catch (error) {
-      console.error("Failed to fetch transaction history of the the user:", error);
+      console.error(
+        "Failed to fetch transaction history of the the user:",
+        error
+      );
     }
-  }
+  };
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
@@ -156,7 +159,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
               <Typography variant="body1">
                 Total Revenue:{" "}
                 {transactions
-                  .filter((tx) => tx.category !== "generate" && tx.category != "immature") // Filter other transactions
+                  .filter(
+                    (tx) =>
+                      tx.category !== "generate" && tx.category != "immature"
+                  ) // Filter other transactions
                   .reduce((total, tx) => total + tx.amount, 0)}{" "}
                 OTC
               </Typography>
