@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Otternet/backend/global_wallet"
 	"bufio"
 	"encoding/json"
 	"errors"
@@ -140,6 +141,31 @@ func HandleCatalogRequests(h host.Host) {
 			log.Printf("Error opening file: %v", err)
 			return
 		}
+		walletAddr := global_wallet.WalletAddr
+		var files []FormData
+		err = json.NewDecoder(file).Decode(&files)
+		if err != nil {
+			log.Printf("Error decoding JSON: %v", err)
+			return
+		}
+
+		var filteredFiles []FormData
+		for _, fileData := range files {
+			if fileData.WalletID == walletAddr {
+				filteredFiles = append(filteredFiles, fileData)
+			}
+		}
+
+		filteredData, err := json.Marshal(filteredFiles)
+		if err != nil {
+			log.Printf("Error marshalling filtered data: %v", err)
+			return
+		}
+
+		_, err = s.Write(filteredData)
+		if err != nil {
+			log.Printf("Error sending filtered data: %v", err)
+		}
 		defer file.Close()
 		_, err = io.Copy(s, file) //might not work. might need to write as bytes to stream
 
@@ -153,6 +179,7 @@ func HandleCatalogRequests(h host.Host) {
 func HandleOtternetPeersRequests(h host.Host) {
 	h.SetStreamHandler(OtternetPeersProtocol, func(s network.Stream) {
 		defer s.Close()
+		walletAddr := global_wallet.WalletAddr
 		r := bufio.NewReader(s)
 		fmt.Printf("Otternet peers request received\n")
 
@@ -179,13 +206,15 @@ func HandleOtternetPeersRequests(h host.Host) {
 			defer file.Close()
 			var files []FormData
 			decoder := json.NewDecoder(file)
-			if err := decoder.Decode(&files); err != nil {
+			err = decoder.Decode(&files)
+			if err != nil {
 				log.Printf("Error decoding JSON: %v", err)
-			} else {
-				if len(files) > 0 {
-					returnMessage = "otternet2\n"
-				} else {
-					returnMessage = ""
+				return
+			}
+			for _, fileData := range files {
+				if fileData.WalletID == walletAddr {
+					returnMessage = "otternet2"
+					break
 				}
 			}
 		}

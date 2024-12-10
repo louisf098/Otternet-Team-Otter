@@ -4,6 +4,7 @@ import (
 	"Otternet/backend/api/download"
 	"Otternet/backend/api/handlers"
 	"Otternet/backend/global"
+	"Otternet/backend/global_wallet"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -109,11 +110,12 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error unmarshalling existing file data", http.StatusInternalServerError)
 		return
 	}
+	walletAddr := global_wallet.WalletAddr
 
 	// Check if file already exists. If it does, replace it with this new entry
 	found := false
 	for i, data := range postDatas {
-		if data.FileHash == postData.FileHash {
+		if data.FileHash == postData.FileHash && data.WalletID == walletAddr {
 			postDatas[i] = postData // Replace existing file metadata with new file metadata
 			found = true
 			break
