@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type ProxyData struct {
@@ -98,6 +100,8 @@ func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("Get Proxy History API Hit")
 	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletAddr := vars["walletAddr"]
 	mutex.Lock()
 	defer mutex.Unlock()
 	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
@@ -107,6 +111,23 @@ func GetProxyHistory(w http.ResponseWriter, r *http.Request) {
 	existingData, err := os.ReadFile(jsonFilePath)
 	if err != nil {
 		http.Error(w, "Error reading existing data", http.StatusInternalServerError)
+		return
+	}
+	var postDatas []ProxyData
+	err = json.Unmarshal(existingData, &postDatas)
+	if err != nil {
+		http.Error(w, "Error unmarshalling existing data", http.StatusInternalServerError)
+		return
+	}
+	filteredData := []ProxyData{}
+	for _, data := range postDatas {
+		if data.WalletID == walletAddr {
+			filteredData = append(filteredData, data)
+		}
+	}
+	existingData, err = json.MarshalIndent(filteredData, "", " ")
+	if err != nil {
+		http.Error(w, "Error marshalling filtered data", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
