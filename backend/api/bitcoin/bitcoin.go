@@ -262,7 +262,7 @@ func (bc *BitcoinClient) UnlockWallet(walletName string, passphrase string) erro
 }
 
 func (bc *BitcoinClient) ListWallets() ([]string, error)   {
-    response, err := bc.call("listwallets", []interface{}{}, "")
+    response, err := bc.call("listwalletdir", []interface{}{}, "")
     if err != nil {
         return nil, fmt.Errorf("failed to list all wallets: %w", err)
     }
