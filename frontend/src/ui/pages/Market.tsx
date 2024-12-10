@@ -19,7 +19,6 @@ import SortIcon from "@mui/icons-material/Sort";
 import DownloadIcon from "@mui/icons-material/Download";
 import { ShoppingCart, ArrowBack } from "@mui/icons-material";
 import { AuthContext } from "../contexts/AuthContext";
-import { set } from "react-hook-form";
 
 interface FileItem {
     walletID: string,
@@ -250,21 +249,24 @@ const Market: React.FC = () => {
     };
 
     const calculateTotalCost = () => {
-        // const total = selectedFiles.reduce((sum, fileId) => {
-        //     const file = allFiles.find((f) => f. === fileId);
-        //     return file ? sum + parseFloat(file.price) : sum;
-        // }, 0);
-        // const discountRate = Math.min(selectedFiles.length * 1, 5); // 1% per file, max 5%
-        // const discountedTotal = total * (1 - discountRate / 100);
-        // return discountedTotal.toFixed(2);
+        const total = selectedFiles.reduce((sum, fileId) => {
+            const file = files.find((f) => f.fileHash === fileId);
+            return file ? sum + (file.price) : sum;
+        }, 0);
+        const discountRate = Math.min(selectedFiles.length * 5, 25); // 1% per file, max 5%
+        const discountedTotal = total * (1 - discountRate / 100);
+        return {
+            total: total.toFixed(2),
+            discountedTotal: discountedTotal.toFixed(2)
+        };
     };
 
     const currentFiles = files.length > 0 ? files.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE) : [];
 
-    // const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
-    //     const file = allFiles.find(f => f.id === fileId);
-    //     return file?.bundlable;
-    // }).length;
+    const bundlableSelectedFilesCount = selectedFiles.filter(fileId => {
+        const file = files.find(f => f.fileHash === fileId);
+        return file?.bundleMode;
+    }).length;
 
     return (
         <Box sx={{ m: 4, width: "100vw" }}>
@@ -402,7 +404,7 @@ const Market: React.FC = () => {
                 color="primary"
                 onClick={handleCheckoutOpen}
                 sx={{ position: "fixed", bottom: 20, right: 20 }}
-                //disabled={bundlableSelectedFilesCount < 2} // Disable if less than 2 bundlable files are selected
+                disabled={bundlableSelectedFilesCount < 2} // Disable if less than 2 bundlable files are selected
             >
                 Checkout
             </Button>
@@ -488,19 +490,19 @@ const Market: React.FC = () => {
                         Selected Files:
                     </Typography>
                     <List>
-                        {/* {selectedFiles.map((fileId) => {
-                            const file = .find((f) => f.id === fileId);
+                        {selectedFiles.map((fileId) => {
+                            const file = files.find((f) => f.fileHash === fileId);
                             return (
                                 file && (
-                                    <ListItem key={file.id}>
+                                    <ListItem key={file.fileHash}>
                                         <ListItemText
-                                            primary={file.name}
+                                            primary={file.fileName}
                                             secondary={`Price: ${file.price} OTTC`}
                                         />
                                     </ListItem>
                                 )
                             );
-                        })} */}
+                        })}
                     </List>
                     <Box>
                         <Box sx={{ display: "flex" }}>
@@ -518,10 +520,18 @@ const Market: React.FC = () => {
                         </Box>
                         <Box sx={{ mt: 2 }}>
                             <Typography sx={{ fontWeight: "bold" }}>
-                                Total Cost (after discount):
+                                Total Cost (before discount):
                             </Typography>
                             <Typography>
-                                {} OTTC
+                                {calculateTotalCost().total} OTTC
+                            </Typography>
+                        </Box>
+                        <Box sx={{ mt: 2 }}>
+                            <Typography sx={{ fontWeight: "bold" }}>
+                                Total Cost (after discount - {Math.min(bundlableSelectedFilesCount * 5, 25)}% off):
+                            </Typography>
+                            <Typography>
+                                {calculateTotalCost().discountedTotal} OTTC
                             </Typography>
                         </Box>
                     </Box>
