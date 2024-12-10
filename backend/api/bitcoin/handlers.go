@@ -193,7 +193,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     validAddress, addressErr := btcClient.ValidateBitcoinAddress(address)
     if !validAddress || addressErr != nil {
         fmt.Printf("Error getting all wallets: %v\n", addressErr)
-        json.NewEncoder(w).Encode(map[string]string{"status": "Incorrect address format"})
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid address"})
         return
     }
 
