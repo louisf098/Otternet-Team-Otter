@@ -9,16 +9,21 @@ import Button from "@mui/material/Button";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
+import DownloadHistoryTable from "../components/DownloadHistoryTable";
 import TabSelector from "../components/TabSelector";
-import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
-import { Snackbar } from "@mui/material";
-import { IconButton } from "@mui/material";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import { SnackbarCloseReason } from "@mui/material";
+import Snackbar from "@mui/material/Snackbar";
+import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, getTransactions } from "../apis/bitcoin-core";
-import DownloadHistoryTable from "../components/DownloadHistoryTable";
+import { getBalance, mineCoins, getTransactions } from "../apis/bitcoin-core";
+import { Transaction } from "../interfaces/Transactions";
+
 interface TransactionData {
   transactionID: string;
   dateTime: number;
@@ -80,11 +85,31 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
-  const [mining, toggleMining] = React.useState(false);
-
   const fetchBalance = async () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
+  };
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const fetchTransactions = async () => {
+    let fetchedTransactions = await getTransactions(walletName);
+    setTransactions(fetchedTransactions);
+  };
+  const [amountToMine, setAmountToMine] = useState<number>(1);
+
+  const handleMineCoins = async () => {
+    const blockHashes = mineCoins(publicKey, amountToMine);
+  };
+
+  const handleSetAmountToMine = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    if (Number(event.target.value) < 1) {
+      setAmountToMine(1);
+      return;
+    }
+    setAmountToMine(Number(event.target.value));
   };
 
   useEffect(() => {
@@ -107,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           Dashboard
         </Typography>
         <Box sx={{ display: "flex" }}>
-          <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
+          <Paper sx={{ p: 1, mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: {publicKey}
@@ -125,12 +150,26 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 p: 1,
               }}
             >
-              <Typography variant="h5">Miner</Typography>
-              <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
-              <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
-              <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
-              <Button variant="contained" onClick={() => toggleMining(!mining)}>
-                {mining ? "Pause Mining" : "Start Mining"}
+              <Typography variant="h5" sx={{ mb: 1 }}>
+                Miner
+              </Typography>
+              {/* <Typography sx={{ mb: 1 }}>
+                Blocks mining in progress:
+                {
+                  (transactions || []).filter(
+                    (tx) => tx.category === "immature"
+                  ).length
+                }
+              </Typography> */}
+              <TextField
+                size="small"
+                sx={{ mb: 1 }}
+                type="number"
+                value={amountToMine}
+                onChange={handleSetAmountToMine}
+              ></TextField>
+              <Button variant="contained" onClick={() => handleMineCoins()}>
+                Mine Coins
               </Button>
             </Box>
           </Grid> */}
@@ -147,7 +186,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         >
           {/* <Box sx={{ display: "flex", width: "250px" }}>
             <Typography variant="body1" sx={{ mt: 1, mr: 1 }}>
-              Filter  
+              Filter
             </Typography>
             <Select fullWidth size="small" value={selectedFilter} onChange={handleFilterChange}>
               <MenuItem value={1}>Date (Latest)</MenuItem>
@@ -218,7 +257,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
           <Tab label="Download History" id="dashboard-tab-download-history" />
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
-          <Tab label="Transaction History" id="dashboard-tab-transaction-history" />
+          <Tab
+            label="Transaction History"
+            id="dashboard-tab-transaction-history"
+          />
         </Tabs>
 
         <TabSelector value={selectedTableTab} index={0}>
@@ -234,7 +276,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
           />
-          </TabSelector>
+        </TabSelector>
         <TabSelector value={selectedTableTab} index={2}>
           <ProxyHistoryTable
             setSnackbarOpen={setSnackbarOpen}

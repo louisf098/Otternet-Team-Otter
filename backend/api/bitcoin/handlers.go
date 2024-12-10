@@ -368,3 +368,40 @@ func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"transactionID": transactionID})
 }
 
+func MineCoinsHandler (w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	address, addressExists := vars["address"]
+	if !addressExists || address == "" {
+		http.Error(w, "address", http.StatusBadRequest)
+		return
+	}
+    amountStr, amountExists := vars["amount"]
+	if !amountExists || amountStr == "" {
+		http.Error(w, "Invalid amount to mine", http.StatusBadRequest)
+		return
+	}
+    amount, err := strconv.Atoi(amountStr)
+    if err != nil || amount <= 0 {
+        http.Error(w, "Amount must be a positive integer", http.StatusBadRequest)
+        return
+    }
+    fmt.Println("MineCoinsHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // get all wallets
+    blockHashes, err := btcClient.MineCoins(address, amount)
+    if err != nil {
+        fmt.Printf("Error mining coins: %v\n", err)
+        http.Error(w, "Failed to mine coins: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Respond with the block hashes
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "status": "success",
+        "blocks": blockHashes,
+    })
+}

@@ -80,6 +80,8 @@ func main() {
 
 	r.HandleFunc("/getbalance/{walletName}", bitcoin.GetBalanceHandler).Methods("GET")
 
+	r.HandleFunc("/minecoins/{address}/{amount}", bitcoin.MineCoinsHandler).Methods("GET")
+
 	// Label from address route
 	r.HandleFunc("/labelfromaddress/{walletName}/{address}", bitcoin.GetLabelFromAddressHandler).Methods("GET")
 
