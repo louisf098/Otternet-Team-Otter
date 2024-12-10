@@ -68,6 +68,21 @@ func (bc *BitcoinClient) call(method string, params []interface{}, walletName st
     return result, nil
 }
 
+func (bc *BitcoinClient) ValidateBitcoinAddress(address string) (bool, error) {
+	response, err := bc.call("validateaddress", []interface{}{address}, "")
+    if err != nil {
+        return false, fmt.Errorf("error validating address: %w", err)
+    }
+
+    result, ok := response["result"].(map[string]interface{})
+    if !ok {
+        return false, fmt.Errorf("unexpected result type: %T", response["result"])
+    }
+
+    isValid, _ := result["isvalid"].(bool)
+    return isValid, nil
+}
+
 func (bc *BitcoinClient) IsMyWallet(addressStr string, walletName string) (bool, error) {
     // Call the "getaddressinfo" RPC method
     response, err := bc.call("getaddressinfo", []interface{}{addressStr}, walletName)
