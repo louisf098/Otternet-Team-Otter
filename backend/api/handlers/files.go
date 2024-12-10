@@ -213,7 +213,7 @@ func HandleOtternetPeersRequests(h host.Host) {
 			}
 			for _, fileData := range files {
 				if fileData.WalletID == walletAddr {
-					returnMessage = "otternet2"
+					returnMessage = "otternet2\n"
 					break
 				}
 			}
