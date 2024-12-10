@@ -15,29 +15,15 @@ interface transactionHistoryTableProps {
   setSnackbarOpen: (open: boolean) => void;
   setSnackbarMessage: (message: string) => void;
   handleCopy: (text: string) => void;
-  walletName: string;
+  transactions: Transaction[];
 }
 
-const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy, walletName }) => {
-  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
-  useEffect(() => {
-    fetchTransactions();
-  }, [])
-  
-
-  const fetchTransactions = async () => {
-    try {
-      const transactions = await getTransactions(walletName);
-      setTransactions(transactions || []); // Default to an empty array if data is undefined
-      if (transactions?.length == 0) {
-        setSnackbarMessage("No transaction history found");
-        setSnackbarOpen(true);
-      }
-    } catch (error) {
-      console.error("Failed to fetch transaction history of the the user:", error);
-    }
-};
-
+const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+  handleCopy,
+  transactions,
+}) => {
   return (
     <TableContainer component={Paper} sx={{ mt: 1 }}>
       <Table sx={{ minWidth: 500 }} aria-label="simple table">
@@ -50,7 +36,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({ setSn
             <TableCell>
               Wallet Address
               <Tooltip title="Click hash to copy to your clipboard" arrow>
-                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
+                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1 }} />
               </Tooltip>
             </TableCell>
           </TableRow>
@@ -62,36 +48,47 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({ setSn
                 You have not downloaded any files yet.
               </TableCell>
             </TableRow>
-          ) : 
-          transactions.map((transaction) => (
-            <TableRow
-              key={transaction.txid}
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                {transaction.timeReceived.toLocaleString()}
-              </TableCell>
-              <TableCell>{transaction.txid}</TableCell>
-              <TableCell  style={{
-                  color: transaction.status === "Pending" ? "yellow" : transaction.status === "Completed" ? "green" : "inherit",
-              }}>{transaction.status}</TableCell>
-              <TableCell>{transaction.amount}</TableCell>
-              <TableCell
-                onClick={() => {
-                  handleCopy(transaction.address);
-                }}
-                sx={{ cursor: "pointer",
-                  maxWidth: "200px",
-                  wordWrap: "break-word",
-                  whiteSpace: "normal",
-                 }}
+          ) : (
+            transactions.map((transaction) => (
+              <TableRow
+                key={transaction.txid}
+                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
               >
-                <Tooltip title="Click to copy" arrow>
-                  <span>{transaction.address}</span>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell component="th" scope="row">
+                  {transaction.timeReceived.toLocaleString()}
+                </TableCell>
+                <TableCell>{transaction.txid}</TableCell>
+                <TableCell
+                  style={{
+                    color:
+                      transaction.status === "Pending"
+                        ? "yellow"
+                        : transaction.status === "Completed"
+                        ? "green"
+                        : "inherit",
+                  }}
+                >
+                  {transaction.status}
+                </TableCell>
+                <TableCell>{transaction.amount}</TableCell>
+                <TableCell
+                  onClick={() => {
+                    handleCopy(transaction.address);
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    maxWidth: "200px",
+                    wordWrap: "break-word",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  <Tooltip title="Click to copy" arrow>
+                    <span>{transaction.address}</span>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </TableContainer>
