@@ -9,15 +9,20 @@ import Button from "@mui/material/Button";
 import UploadHistoryTable from "../components/UploadHistoryTable";
 import TransactionHistoryTable from "../components/TransactionHistoryTable";
 import ProxyHistoryTable from "../components/ProxyHistoryTable";
+import DownloadHistoryTable from "../components/DownloadHistoryTable";
 import TabSelector from "../components/TabSelector";
-import { Tabs, Tab, SnackbarCloseReason } from "@mui/material";
-import { Snackbar } from "@mui/material";
-import { IconButton } from "@mui/material";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import { SnackbarCloseReason } from "@mui/material";
+import Snackbar from "@mui/material/Snackbar";
+import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance } from "../apis/bitcoin-core";
+import { getBalance, mineCoins, getTransactions, getBytesUploaded } from "../apis/bitcoin-core";
+import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
   transactionID: string;
@@ -35,13 +40,20 @@ function createData(
   return { transactionID, dateTime, cost, status };
 }
 
-interface DashboardProps {}
-const Dashboard: React.FC<DashboardProps> = () => {
+interface DashboardProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+const Dashboard: React.FC<DashboardProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const [selectedTableTab, setSelectedTableTab] = useState<number>(0);
   const [selectedInfoTab, setSelectedInfoTab] = useState<number>(0);
   const [selectedFilter, setSelectedFilter] = useState<number>(1);
   const [selectedStats, setSelectedStats] = useState<number>(1);
   const [balance, setBalance] = useState<number>(0);
+  const [bytesUploaded, setBytesUploaded] = useState<number>(0);
 
   const { publicKey, walletName } = React.useContext(AuthContext);
 
@@ -55,18 +67,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setSelectedStats(event.target.value as number);
   };
 
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState("");
-
-  const handleSnackbarClose = (
-    event: React.SyntheticEvent<any, Event> | Event,
-    reason?: SnackbarCloseReason
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
+  // const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  // const [snackbarMessage, setSnackbarMessage] = React.useState("");
 
   const handleCopy = async (text: string) => {
     try {
@@ -80,14 +82,66 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
-  const [mining, toggleMining] = React.useState(false);
-
   const fetchBalance = async () => {
     let fetchedBalance = await getBalance(walletName);
     setBalance(fetchedBalance);
   };
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const fetchTransactions = async () => {
+    try {
+      const transactions = await getTransactions(walletName);
+      setTransactions(transactions || []); // Default to an empty array if data is undefined
+      if (transactions?.length == 0) {
+        setSnackbarMessage("No transaction history found");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch transaction history of the the user:",
+        error
+      );
+    }
+  };
+  const [amountToMine, setAmountToMine] = useState<number>(1);
+
+  const handleMineCoins = async () => {
+    setSnackbarMessage(`${amountToMine} blocks mining initiated`)
+    setSnackbarOpen(true);
+    const blockHashes = mineCoins(publicKey, amountToMine);
+    setSnackbarOpen(false);
+  };
+
+  const handleSetAmountToMine = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    if (Number(event.target.value) < 1) {
+      setAmountToMine(1);
+      return;
+    }
+    setAmountToMine(Number(event.target.value));
+  };
+  // Fetch the number of bytes uploaded
+  const fetchBytesUploaded = async () => {
+    try {
+      const bytes = await getBytesUploaded();
+      setBytesUploaded(bytes.bytesUploaded);
+      if (!bytes?.bytesUploaded) {
+        setSnackbarMessage("The total amount of file bytes uploaded was failed to be retrieved");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch the total bytes uploaded by the user",
+        error
+      );
+    }
+  }
   useEffect(() => {
     fetchBalance();
+    fetchTransactions();
+    fetchBytesUploaded();
   }, []);
 
   return (
@@ -106,13 +160,28 @@ const Dashboard: React.FC<DashboardProps> = () => {
           Dashboard
         </Typography>
         <Box sx={{ display: "flex" }}>
-          <Paper sx={{ p: 1, height: "140px", mr: 2 }}>
+          <Paper sx={{ p: 1, mr: 2 }}>
             <Typography variant="h5">Wallet</Typography>
             <Typography variant="body1" sx={{ wordWrap: "break-word" }}>
               Wallet ID: {publicKey}
               <Typography variant="body1">Balance: {balance}</Typography>
-              <Typography variant="body1">Mining Revenue: 555 OTC</Typography>
-              <Typography variant="body1">Proxy Revenue: 555 OTC</Typography>
+              <Typography variant="body1">
+                Coins Mined:{" "}
+                {transactions
+                  .filter((tx) => tx.category === "generate") // Filter wallet transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
+              <Typography variant="body1">
+                Total Revenue:{" "}
+                {transactions
+                  .filter(
+                    (tx) =>
+                      tx.category !== "generate" && tx.category != "immature"
+                  ) // Filter other transactions
+                  .reduce((total, tx) => total + tx.amount, 0)}{" "}
+                OTC
+              </Typography>
             </Typography>
           </Paper>
           <Grid size={2.4}>
@@ -124,12 +193,26 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 p: 1,
               }}
             >
-              <Typography variant="h5">Miner</Typography>
-              <Typography variant="body1">Time Elapsed: 3h 24m 19s</Typography>
-              <Typography variant="body1">Coins Mined: 219.58 OTTC</Typography>
-              <Typography variant="body1">Mining Rate: 64.5 OTTC/h</Typography>
-              <Button variant="contained" onClick={() => toggleMining(!mining)}>
-                {mining ? "Pause Mining" : "Start Mining"}
+              <Typography variant="h5" sx={{ mb: 1 }}>
+                Miner
+              </Typography>
+              {/* <Typography sx={{ mb: 1 }}>
+                Blocks mining in progress:
+                {
+                  (transactions || []).filter(
+                    (tx) => tx.category === "immature"
+                  ).length
+                }
+              </Typography> */}
+              <TextField
+                size="small"
+                sx={{ mb: 1 }}
+                type="number"
+                value={amountToMine}
+                onChange={handleSetAmountToMine}
+              ></TextField>
+              <Button variant="contained" onClick={() => handleMineCoins()}>
+                Mine Blocks
               </Button>
             </Box>
           </Grid>
@@ -192,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </Box>
             <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
-                Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
+                Bytes Uploaded: {bytesUploaded / 1000} KB
               </Typography>
             </Box>
           </Box>
@@ -215,8 +298,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }
             id="dashboard-tab-upload"
           />
-          <Tab label="Download History" id="dashboard-tab-history" />
+          <Tab label="Download History" id="dashboard-tab-download-history" />
           <Tab label="Proxy History" id="dashboard-tab-proxy" />
+          <Tab
+            label="Transaction History"
+            id="dashboard-tab-transaction-history"
+          />
         </Tabs>
 
         <TabSelector value={selectedTableTab} index={0}>
@@ -227,7 +314,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
         <TabSelector value={selectedTableTab} index={1}>
-          <TransactionHistoryTable
+          <DownloadHistoryTable
             setSnackbarOpen={setSnackbarOpen}
             setSnackbarMessage={setSnackbarMessage}
             handleCopy={handleCopy}
@@ -240,25 +327,15 @@ const Dashboard: React.FC<DashboardProps> = () => {
             handleCopy={handleCopy}
           />
         </TabSelector>
+        <TabSelector value={selectedTableTab} index={3}>
+          <TransactionHistoryTable
+            setSnackbarOpen={setSnackbarOpen}
+            setSnackbarMessage={setSnackbarMessage}
+            handleCopy={handleCopy}
+            transactions={transactions}
+          />
+        </TabSelector>
       </Box>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={handleSnackbarClose}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      />
     </>
   );
 };

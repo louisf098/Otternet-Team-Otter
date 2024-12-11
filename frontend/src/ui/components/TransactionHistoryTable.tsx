@@ -9,114 +9,86 @@ import Paper from "@mui/material/Paper";
 import { FormData } from "../interfaces/File";
 import { Tooltip } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-
-interface transaactionHistoryTableProps {
+import { getTransactions } from "../apis/bitcoin-core";
+import { Transaction } from "../interfaces/Transactions";
+interface transactionHistoryTableProps {
   setSnackbarOpen: (open: boolean) => void;
   setSnackbarMessage: (message: string) => void;
   handleCopy: (text: string) => void;
+  transactions: Transaction[];
 }
 
-const TransactionHistoryTable: React.FC<transaactionHistoryTableProps> = ({ setSnackbarOpen, setSnackbarMessage, handleCopy }) => {
-  const [downloads, setDownloads] = React.useState<FormData[]>([]);
-  useEffect(() => {
-    fetchDownloadData();
-  }, [])
-  
-  const fetchDownloadData = async () => {
-    try {
-      const response = await fetch("http://localhost:9378/getDownloadHistory", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-      if (response.status === 404) {
-        setSnackbarMessage("No download history found");
-        setSnackbarOpen(true);
-      } else {
-        const data = await response.json();
-        setDownloads(data);
-      }
-    } catch (err) {
-      console.error("Error fetching download data: ", err);
-      setSnackbarMessage("Error fetching download data");
-      setSnackbarOpen(true);
-    }
-  }
-
+const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+  handleCopy,
+  transactions,
+}) => {
   return (
     <TableContainer component={Paper} sx={{ mt: 1 }}>
       <Table sx={{ minWidth: 500 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell>Timestamp</TableCell>
-            <TableCell>File Name</TableCell>
-            <TableCell>Size (KB)</TableCell>
-            <TableCell>Cost (OTTC)</TableCell>
+            <TableCell>Transaction ID</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Amount of Coins</TableCell>
             <TableCell>
-              File Hash
+              Wallet Address
               <Tooltip title="Click hash to copy to your clipboard" arrow>
-                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
-              </Tooltip>
-            </TableCell>
-            <TableCell>
-              Uploader Wallet ID
-              <Tooltip title="Click wallet ID to copy to your clipboard" arrow>
-                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
+                <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1 }} />
               </Tooltip>
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {downloads.length === 0 ? (
+          {transactions.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} align="center">
                 You have not downloaded any files yet.
               </TableCell>
             </TableRow>
-          ) : 
-          downloads.map((download) => (
-            <TableRow
-              key={download.timestamp}
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                {download.timestamp}
-              </TableCell>
-              <TableCell>{download.fileName}</TableCell>
-              <TableCell>{download.fileSize}</TableCell>
-              <TableCell>{download.price}</TableCell>
-              <TableCell
-                onClick={() => {
-                  handleCopy(download.fileHash);
-                }}
-                sx={{ cursor: "pointer",
-                  maxWidth: "200px",
-                  wordWrap: "break-word",
-                  whiteSpace: "normal",
-                 }}
+          ) : (
+            transactions.map((transaction) => (
+              <TableRow
+                key={transaction.txid}
+                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
               >
-                <Tooltip title="Click to copy" arrow>
-                  <span>{download.fileHash}</span>
-                </Tooltip>
-              </TableCell>
-              <TableCell
-                onClick={() => {
-                  handleCopy(download.userID);
-                }}
-                sx={{ 
-                  cursor: "pointer",
-                  maxWidth: "200px",
-                  wordWrap: "break-word",
-                  whiteSpace: "normal",
-                }}
-              >
-                <Tooltip title="Click to copy" arrow>
-                  <span>{download.userID}</span>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell component="th" scope="row">
+                  {transaction.timeReceived.toLocaleString()}
+                </TableCell>
+                <TableCell>{transaction.txid}</TableCell>
+                <TableCell
+                  style={{
+                    color:
+                      transaction.status === "Pending"
+                        ? "orange"
+                        : transaction.status === "Completed"
+                        ? "green"
+                        : "inherit",
+                  }}
+                >
+                  {transaction.status}
+                </TableCell>
+                <TableCell>{transaction.amount}</TableCell>
+                <TableCell
+                  onClick={() => {
+                    handleCopy(transaction.address);
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    maxWidth: "200px",
+                    wordWrap: "break-word",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  <Tooltip title="Click to copy" arrow>
+                    <span>{transaction.address}</span>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </TableContainer>

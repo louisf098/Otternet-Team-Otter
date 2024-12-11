@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type FormData struct {
-	UserID     string  `json:"userID"`
+	WalletID   string  `json:"walletID"`
+	SrcID      string  `json:"srcID"`
 	Price      float64 `json:"price"`
 	FileName   string  `json:"fileName"`
 	FilePath   string  `json:"filePath"`
@@ -100,6 +103,12 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletAddr, exists := vars["walletAddr"]
+	if !exists || walletAddr == "" {
+		http.Error(w, "Invalid wallet address", http.StatusBadRequest)
+		return
+	}
 	mutex.Lock()
 	defer mutex.Unlock()
 	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
@@ -111,7 +120,80 @@ func GetDownloadHistory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error reading file data", http.StatusInternalServerError)
 		return
 	}
+	var postDatas []FormData
+	err = json.Unmarshal(fileData, &postDatas)
+	if err != nil {
+		http.Error(w, "Error unmarshalling file data", http.StatusInternalServerError)
+		return
+	}
+	var filteredData []FormData
+	for _, data := range postDatas {
+		fmt.Printf("WalletID: %s\n", data.WalletID)
+		fmt.Printf("WalletAddr: %s\n", walletAddr)
+		fmt.Printf("Data: %v\n", data)
+		if data.WalletID == walletAddr {
+			fmt.Print("HI\n")
+			filteredData = append(filteredData, data)
+		}
+	}
+	if len(filteredData) == 0 {
+		http.Error(w, "No downloads found for the given wallet address", http.StatusNotFound)
+		return
+	}
+	responseData, err := json.MarshalIndent(filteredData, "", " ")
+	if err != nil {
+		http.Error(w, "Error marshalling filtered data", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(fileData)
-	fmt.Println("Get All Downloads API Hit")
+	w.Write(responseData)
+	fmt.Println("Get Download History API Hit")
+}
+
+// Handles adding to download history - used by download file in files.go !!!!!!
+func StoreFile(postData FormData) int {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Holds existing File metadata if JSON file exists
+	var postDatas []FormData
+
+	if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
+		fmt.Println("File does not exist")
+		emptyData := []FormData{}
+		firstData, err := json.MarshalIndent(emptyData, "", " ")
+		if err != nil {
+			fmt.Println("Error marshalling empty data")
+			return -1
+		}
+
+		err = os.WriteFile(jsonFilePath, firstData, 0644)
+		if err != nil {
+			fmt.Println("Error writing to file")
+			return -1
+		}
+	}
+	existingData, err := os.ReadFile(jsonFilePath)
+	if err != nil {
+		fmt.Println("Error reading file")
+		return -1
+	}
+	err = json.Unmarshal(existingData, &postDatas)
+	if err != nil {
+		fmt.Println("Error unmarshalling file")
+		return -1
+	}
+
+	postDatas = append(postDatas, postData)
+	newData, err := json.MarshalIndent(postDatas, "", " ")
+	if err != nil {
+		fmt.Println("Error marshalling data")
+		return -1
+	}
+	err = os.WriteFile(jsonFilePath, newData, 0644)
+	if err != nil {
+		fmt.Println("Error writing to file")
+		return -1
+	}
+	return 0
 }

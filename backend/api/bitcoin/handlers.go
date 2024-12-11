@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -175,11 +176,13 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
 	address, addressExists := vars["address"]
 	if !addressExists || address == "" {
 		http.Error(w, "Invalid bitcoin address", http.StatusBadRequest)
-		return
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid bitcoin address"})
+		return 
 	}
     passphrase, passphraseExists := vars["passphrase"] 
     if !passphraseExists || passphrase == "" {
 		http.Error(w, "Invalid passphrase", http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid passphrase"})
 		return
 	}
     fmt.Println("UnlockWalletHandler triggered")
@@ -187,10 +190,18 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
 
+    validAddress, addressErr := btcClient.ValidateBitcoinAddress(address)
+    if !validAddress || addressErr != nil {
+        fmt.Printf("Error getting all wallets: %v\n", addressErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": "Invalid address"})
+        return
+    }
+
     // get all wallets
     walletNames, listWalletErr := btcClient.ListWallets()
     if listWalletErr != nil {
         fmt.Printf("Error getting all wallets: %v\n", listWalletErr)
+        json.NewEncoder(w).Encode(map[string]string{"status": "error getting all wallets"})
         return
     }
 
@@ -202,6 +213,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
             fmt.Printf("Error check if wallet belongs to user: %v\n", ismywalletErr)
             return
         }
+        fmt.Printf("ismywallet: %v\n", ismywallet)
         if ismywallet {
             walletName = walletNames[i]
             break
@@ -210,6 +222,7 @@ func UnlockWalletHandler(w http.ResponseWriter, r *http.Request) {
 
     if walletName == "" {
         fmt.Printf("Wallet not found.\n")
+        json.NewEncoder(w).Encode(map[string]string{"error": ""})
         return
     }
 
@@ -291,6 +304,106 @@ func LoadAllWalletsHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     json.NewEncoder(w).Encode(map[string]string{"status": "all wallets loaded"})
+}
+
+func GetTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	walletName, exists := vars["walletName"]
+	if !exists || walletName == "" {
+		http.Error(w, "Invalid wallet name", http.StatusBadRequest)
+		return
+	}
+    fmt.Println("GetTransactionsHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // get all wallets
+    transactions, err := btcClient.GetTransactions(walletName)
+    if err != nil {
+        fmt.Printf("Error fetching transactions: %v\n", err)
+        return
+    }
+
+    json.NewEncoder(w).Encode(transactions)
+}
+
+func TransferCoinsHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("TransferCoinsHandler triggered")
+
+    // Parse parameters from path variables
+    vars := mux.Vars(r)
+    walletName := vars["walletName"]
+    toAddress := vars["toAddress"]
+    amountStr := vars["amount"]
+    label := vars["label"]
+
+    // Validate parameters
+    if walletName == "" || toAddress == "" || amountStr == "" || label == "" {
+        http.Error(w, "'walletName', 'toAddress', or 'amount' parameter(s) are missing", http.StatusBadRequest)
+        return
+    }
+
+    // Check if transaction amount is valid
+    amount, err := strconv.ParseFloat(amountStr, 64)
+    if err != nil || amount <= 0 {
+        http.Error(w, "'amount' must be a valid positive number", http.StatusBadRequest)
+        return
+    }
+
+    // Initialize config and Bitcoin client
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // Perform coin transfer using Bitcoin RPC
+    transactionID, err := btcClient.TransferCoins(walletName, toAddress, amount, label)
+    if err != nil {
+        fmt.Printf("Error with coin transaction: %v\n", err)
+        http.Error(w, fmt.Sprintf("Failed to transfer coins: %v\n", err), http.StatusInternalServerError)
+        return
+    }
+
+    // Encode JSON response with transaction ID
+    json.NewEncoder(w).Encode(map[string]string{"transactionID": transactionID})
+}
+
+func MineCoinsHandler (w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	address, addressExists := vars["address"]
+	if !addressExists || address == "" {
+		http.Error(w, "address", http.StatusBadRequest)
+		return
+	}
+    amountStr, amountExists := vars["amount"]
+	if !amountExists || amountStr == "" {
+		http.Error(w, "Invalid amount to mine", http.StatusBadRequest)
+		return
+	}
+    amount, err := strconv.Atoi(amountStr)
+    if err != nil || amount <= 0 {
+        http.Error(w, "Amount must be a positive integer", http.StatusBadRequest)
+        return
+    }
+    fmt.Println("MineCoinsHandler triggered")
+
+    cfg := config.NewConfig()
+    btcClient := NewBitcoinClient(cfg)
+
+    // get all wallets
+    blockHashes, err := btcClient.MineCoins(address, amount)
+    if err != nil {
+        fmt.Printf("Error mining coins: %v\n", err)
+        http.Error(w, "Failed to mine coins: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Respond with the block hashes
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "status": "success",
+        "blocks": blockHashes,
+    })
 }
 
 func BackupWalletsHandler(w http.ResponseWriter, r *http.Request) {
