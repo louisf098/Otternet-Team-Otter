@@ -122,8 +122,25 @@ const Download = () => {
         method: 'POST',
         body: JSON.stringify(postData),
       });
+      if (!response.ok) {
+        throw new Error("Error downloading file");
+      }
+      const responseData = await response.json();
+      const destWalletAddr = responseData.walletAddress;
+      const provider = providers.find((provider) => provider.walletID === phash);
+      console.log("Provider: ", provider);
+      if (!provider) {
+        throw new Error("Provider not found");
+      }
 
-      console.log("Response: ", response);
+      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${provider.price}/File`, {
+        method: 'POST',
+      });
+
+      if (!response2.ok) {
+        throw new Error("Error transferring coins");
+      }
+
       setDownloadModalOpen(false);
       setDownloadLocation("");
 
