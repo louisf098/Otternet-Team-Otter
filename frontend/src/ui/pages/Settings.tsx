@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import { useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { backupWallet, lockWallet } from "../apis/bitcoin-core";
+import path from "path-browserify";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Settings = () => {
     let status = await lockWallet(publicKey);
     if (status !== "locked") {
       return;
-    }
+  }
     const response = await fetch("http://localhost:9378/stopDHT", {
       method: "GET",
       headers: {
@@ -30,7 +31,8 @@ const Settings = () => {
   };
 
   const handleBackupWallet = async () => {
-    console.log(walletName, encodeURIComponent(backupPath));
+    const backupFilePath = path.join(backupPath, "walletbackup");
+    console.log(walletName, encodeURIComponent(backupFilePath));
     await backupWallet(
       walletName,
       encodeURIComponent(backupPath) + "%5Cwalletbackup"
