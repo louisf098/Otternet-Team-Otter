@@ -42,6 +42,7 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 	handlers.HandleOtternetPeersRequests(global.DHTNode.Host)
 	handlers.HandleFileRequests(global.DHTNode.Host)
 	handlers.HandlePriceRequests(global.DHTNode.Host)
+	handlers.HandleWalletAddressRequests(global.DHTNode.Host)
 	go global.DHTNode.HandlePeerExchange()
 
 	if initErr != nil {
