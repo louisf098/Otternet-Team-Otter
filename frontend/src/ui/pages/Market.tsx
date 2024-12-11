@@ -438,6 +438,7 @@ const Market: React.FC<marketProps> = ({
               height: "55px",
               width: "55px",
             }}
+            disabled={!walletId || files.length === 0}
           >
             <SortIcon />
           </Button>
