@@ -23,16 +23,16 @@ import HelpOutline from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
 
 interface FileItem {
-  walletID: string;
-  srcID: string;
-  price: number;
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  fileType: string;
-  timestamp: string;
-  fileHash: string;
-  bundleMode: boolean;
+    walletID: string;
+    srcID: string;
+    price: number;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    fileType: string;
+    timestamp: string;
+    fileHash: string;
+    bundleMode: boolean;
 }
 
 const ITEMS_PER_PAGE = 7;
@@ -195,32 +195,39 @@ const Market: React.FC = () => {
     setSortAnchorEl(null);
   };
 
-    const handleSort = (sortOption: string) => {
-        if (files) {
-            let sorted: FileItem[] = [];
-            switch (sortOption) {
-                case "Alphabetically":
-                    sorted = [...files].sort((a, b) => a.fileName.localeCompare(b.fileName));
-                    break;
-                case "Price":
-                    sorted = [...files].sort((a, b) => (a.price) - (b.price));
-                    break;
-                case "Upload Time":
-                    sorted = [...files].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                    break;
-                case "Size":
-                    sorted = [...files].sort((a, b) => (a.fileSize) - (b.fileSize));
-                    break;
-                case "Type":
-                    sorted = [...files].sort((a, b) => a.fileType.localeCompare(b.fileType));
-                    break;
-                default:
-                    sorted = files;
-            }
-            setFiles(sorted);
-        }
-        handleSortClose();
-    };
+  const handleSort = (sortOption: string) => {
+    if (files) {
+      let sorted: FileItem[] = [];
+      switch (sortOption) {
+        case "Alphabetically":
+          sorted = [...files].sort((a, b) =>
+            a.fileName.localeCompare(b.fileName)
+          );
+          break;
+        case "Price":
+          sorted = [...files].sort((a, b) => a.price - b.price);
+          break;
+        case "Upload Time":
+          sorted = [...files].sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          break;
+        case "Size":
+          sorted = [...files].sort((a, b) => a.fileSize - b.fileSize);
+          break;
+        case "Type":
+          sorted = [...files].sort((a, b) =>
+            a.fileType.localeCompare(b.fileType)
+          );
+          break;
+        default:
+          sorted = files;
+      }
+      setFiles(sorted);
+    }
+    handleSortClose();
+  };
 
   const handleCheckboxChange = (fileId: string) => {
     setSelectedFiles((prevSelected) => {
@@ -241,43 +248,41 @@ const Market: React.FC = () => {
     setDownloadLocation(""); // Clear the download location when closing the checkout modal
   };
 
-    const handleCheckoutConfirm = () => {
-        // Send HTTP request to download selected files
-        console.log("Selected Files: ", selectedFiles);
-        console.log("Download Location: ", downloadLocation);
+  const handleCheckoutConfirm = () => {
+    // Send HTTP request to download selected files
+    console.log("Selected Files: ", selectedFiles);
+    console.log("Download Location: ", downloadLocation);
 
+    selectedFiles.forEach(async (fileId) => {
+      const file = files.find((f) => f.fileHash === fileId);
+      if (file) {
+        const postData = {
+          WalletID: publicKey,
+          ProviderID: walletId,
+          DownloadPath: downloadLocation,
+          FileHash: file.fileHash,
+        };
 
-        selectedFiles.forEach(async (fileId) => {
-            const file = files.find((f) => f.fileHash === fileId);
-            if (file) {
-                const postData = {
-                    WalletID: publicKey,
-                    ProviderID: walletId,
-                    DownloadPath: downloadLocation,
-                    FileHash: file.fileHash,
-                };
+        try {
+          const response = await fetch("http://localhost:9378/download", {
+            method: "POST",
+            body: JSON.stringify(postData),
+          });
 
-                try {
-                    const response = await fetch("http://localhost:9378/download", {
-                        method: "POST",
-                        body: JSON.stringify(postData),
-                    });
+          if (!response.ok) {
+            throw new Error(`Problem downloading the file: ${file.fileName}`);
+          }
+          console.log(`File ${file.fileName} downloaded successfully`);
+        } catch (err: any) {
+          console.error(`Error downloading file ${file.fileName}: `, err);
+        }
+      }
+    });
 
-                    if (!response.ok) {
-                        throw new Error(`Problem downloading the file: ${file.fileName}`);
-                    }
-                    console.log(`File ${file.fileName} downloaded successfully`);
-                } catch (err: any) {
-                    console.error(`Error downloading file ${file.fileName}: `, err);
-                }
-            }
-        });
-
-
-        setCheckoutOpen(false);
-        setSelectedFiles([]);
-        setDownloadLocation("");
-    };
+    setCheckoutOpen(false);
+    setSelectedFiles([]);
+    setDownloadLocation("");
+  };
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
@@ -286,18 +291,18 @@ const Market: React.FC = () => {
     setCurrentPage(page);
   };
 
-    const calculateTotalCost = () => {
-        const total = selectedFiles.reduce((sum, fileId) => {
-            const file = files.find((f) => f.fileHash === fileId);
-            return file ? sum + (file.price) : sum;
-        }, 0);
-        const discountRate = Math.min(selectedFiles.length * 5, 25);
-        const discountedTotal = total * (1 - discountRate / 100);
-        return {
-            total: total.toFixed(2),
-            discountedTotal: discountedTotal.toFixed(2)
-        };
+  const calculateTotalCost = () => {
+    const total = selectedFiles.reduce((sum, fileId) => {
+      const file = files.find((f) => f.fileHash === fileId);
+      return file ? sum + file.price : sum;
+    }, 0);
+    const discountRate = Math.min(selectedFiles.length * 5, 25);
+    const discountedTotal = total * (1 - discountRate / 100);
+    return {
+      total: total.toFixed(2),
+      discountedTotal: discountedTotal.toFixed(2),
     };
+  };
 
   const currentFiles =
     files.length > 0
@@ -345,26 +350,38 @@ const Market: React.FC = () => {
             Search
           </Button>
 
-                    <Button
-                        variant="contained"
-                        onClick={handleSortClick}
-                        sx={{ mr: 2, backgroundColor: "#9e9e9e", color: "#ffffff", height: "55px", width: "55px" }}
-                    >
-                        <SortIcon />
-                    </Button>
-                    <Menu
-                        anchorEl={sortAnchorEl}
-                        open={Boolean(sortAnchorEl)}
-                        onClose={handleSortClose}
-                    >
-                        <MenuItem onClick={() => handleSort("Alphabetically")}>Sort Alphabetically</MenuItem>
-                        <MenuItem onClick={() => handleSort("Price")}>Sort by Price</MenuItem>
-                        <MenuItem onClick={() => handleSort("Upload Time")}>Sort by Upload Time</MenuItem>
-                        <MenuItem onClick={() => handleSort("Size")}>Sort by Size</MenuItem>
-                        <MenuItem onClick={() => handleSort("Type")}>Sort by Type</MenuItem>
-                    </Menu>
-                </Box>
-            </Box>
+          <Button
+            variant="contained"
+            onClick={handleSortClick}
+            sx={{
+              mr: 2,
+              backgroundColor: "#9e9e9e",
+              color: "#ffffff",
+              height: "55px",
+              width: "55px",
+            }}
+          >
+            <SortIcon />
+          </Button>
+          <Menu
+            anchorEl={sortAnchorEl}
+            open={Boolean(sortAnchorEl)}
+            onClose={handleSortClose}
+          >
+            <MenuItem onClick={() => handleSort("Alphabetically")}>
+              Sort Alphabetically
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Price")}>
+              Sort by Price
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Upload Time")}>
+              Sort by Upload Time
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Size")}>Sort by Size</MenuItem>
+            <MenuItem onClick={() => handleSort("Type")}>Sort by Type</MenuItem>
+          </Menu>
+        </Box>
+      </Box>
 
       {error && (
         <Typography
