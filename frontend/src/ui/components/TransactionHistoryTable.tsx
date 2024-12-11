@@ -62,7 +62,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
                   style={{
                     color:
                       transaction.status === "Pending"
-                        ? "yellow"
+                        ? "orange"
                         : transaction.status === "Completed"
                         ? "green"
                         : "inherit",

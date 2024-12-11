@@ -411,7 +411,7 @@ const Market: React.FC<marketProps> = ({
       >
         <Box sx={{ display: "flex", width: "100%" }}>
           <TextField
-            label="Search by Wallet Address"
+            label="Search by Peer Address"
             variant="outlined"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -476,7 +476,7 @@ const Market: React.FC<marketProps> = ({
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
           <Typography variant="h5">
             {walletId
-              ? `Files for Wallet Address: ${walletId}`
+              ? `Files for Peer Address: ${walletId}`
               : searchedProviders.length > 0
               ? "Search Results"
               : "All Providers"}
@@ -529,7 +529,7 @@ const Market: React.FC<marketProps> = ({
             {searchedProviders.map((provider) => (
               <ListItem key={provider.walletID} divider>
                 <ListItemText
-                  primary={`Wallet Address: ${provider.walletID}`}
+                  primary={`Peer Address: ${provider.walletID}`}
                 />
                 <Button
                   variant="contained"
@@ -547,7 +547,7 @@ const Market: React.FC<marketProps> = ({
             {providers.map((provider) => (
               <ListItem key={provider.walletID} divider>
                 <ListItemText
-                  primary={`Wallet Address: ${provider.walletID}`}
+                  primary={`Peer Address: ${provider.walletID}`}
                 />
                 <Button
                   variant="contained"
@@ -575,12 +575,12 @@ const Market: React.FC<marketProps> = ({
             Back to Providers
           </Button>
         )}
-        <Pagination
+        {walletId && <Pagination
           count={Math.ceil((files.length || 0) / ITEMS_PER_PAGE)}
           page={currentPage}
           onChange={handlePageChange}
           sx={{ display: "flex", justifyContent: "center", mt: 2 }}
-        />
+        />}
       </Paper>
       <Button
         variant="contained"

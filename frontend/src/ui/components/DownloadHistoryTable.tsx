@@ -62,7 +62,7 @@ const DownloadHistoryTable: React.FC<downloadHistoryTableProps> = ({ setSnackbar
               </Tooltip>
             </TableCell>
             <TableCell>
-              Uploader Wallet ID
+              Uploader Peer ID
               <Tooltip title="Click wallet ID to copy to your clipboard" arrow>
                 <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
               </Tooltip>
