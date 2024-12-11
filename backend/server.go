@@ -78,19 +78,19 @@ func waitForBitcoind() error {
 }
 
 func main() {
-	// Run bitcoind -daemon -fallbackfee=0.0002 on startup
-	cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
-	err := cmd.Start()
-	if err != nil {
-		log.Fatalf("Failed to start bitcoind: %v", err)
-	}
-	log.Println("bitcoind started successfully")
+	// // Run bitcoind -daemon -fallbackfee=0.0002 on startup
+	// cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
+	// err := cmd.Start()
+	// if err != nil {
+	// 	log.Fatalf("Failed to start bitcoind: %v", err)
+	// }
+	// log.Println("bitcoind started successfully")
 
-	// Wait for bitcoind to be ready
-	err = waitForBitcoind()
-	if err != nil {
-		log.Fatalf("bitcoind did not start: %v", err)
-	}
+	// // Wait for bitcoind to be ready
+	// err = waitForBitcoind()
+	// if err != nil {
+	// 	log.Fatalf("bitcoind did not start: %v", err)
+	// }
 	log.Println("bitcoind is ready")
 
 	r := mux.NewRouter()
@@ -103,6 +103,7 @@ func main() {
 	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
 	r.HandleFunc("/unlockwallet/{address}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
 	r.HandleFunc("/lockwallet/{walletName}", bitcoin.LockWalletHandler).Methods("GET")
+	r.HandleFunc("/backupwallet", bitcoin.BackupWalletsHandler).Methods("POST")
 
 	// Register Bitcoin routes
 	r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")
