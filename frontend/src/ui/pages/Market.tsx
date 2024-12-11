@@ -23,21 +23,29 @@ import HelpOutline from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
 
 interface FileItem {
-    walletID: string;
-    srcID: string;
-    price: number;
-    fileName: string;
-    filePath: string;
-    fileSize: number;
-    fileType: string;
-    timestamp: string;
-    fileHash: string;
-    bundleMode: boolean;
+  walletID: string;
+  srcID: string;
+  price: number;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  fileType: string;
+  timestamp: string;
+  fileHash: string;
+  bundleMode: boolean;
 }
 
 const ITEMS_PER_PAGE = 7;
 
-const Market: React.FC = () => {
+interface marketProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+
+const Market: React.FC<marketProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const [searchInput, setSearchInput] = useState<string>("");
   const [walletId, setWalletId] = useState<string>("");
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -173,6 +181,8 @@ const Market: React.FC = () => {
       if (!response.ok) {
         throw new Error("Problem downloading the file");
       }
+      setSnackbarOpen(true);
+      setSnackbarMessage("File downloaded successfully");
       console.log("File downloaded successfully");
       handleDownloadModalClose();
     } catch (err: any) {
@@ -272,6 +282,8 @@ const Market: React.FC = () => {
           if (!response.ok) {
             throw new Error(`Problem downloading the file: ${file.fileName}`);
           }
+          setSnackbarOpen(true);
+          setSnackbarMessage(`File ${file.fileName} downloaded successfully`);
           console.log(`File ${file.fileName} downloaded successfully`);
         } catch (err: any) {
           console.error(`Error downloading file ${file.fileName}: `, err);
@@ -428,7 +440,11 @@ const Market: React.FC = () => {
                 />
                 <ListItemText
                   primary={file.fileName}
-                  secondary={`Size: ${(file.fileSize / 1000).toFixed(2)} KB | Type: ${file.fileType} | Uploaded: ${file.timestamp} | Price: ${file.price} OTTC`}
+                  secondary={`Size: ${(file.fileSize / 1000).toFixed(
+                    2
+                  )} KB | Type: ${file.fileType} | Uploaded: ${
+                    file.timestamp
+                  } | Price: ${file.price} OTTC`}
                 />
                 <Button
                   variant="contained"
@@ -535,7 +551,8 @@ const Market: React.FC = () => {
             {selectedFile && (
               <>
                 <strong>Name:</strong> {selectedFile.fileName} <br />
-                <strong>Size:</strong> {(selectedFile.fileSize / 1000).toFixed(2)} KB <br />
+                <strong>Size:</strong>{" "}
+                {(selectedFile.fileSize / 1000).toFixed(2)} KB <br />
                 <strong>Type:</strong> {selectedFile.fileType} <br />
                 <strong>Uploaded:</strong> {selectedFile.timestamp} <br />
                 <strong>Price:</strong> {selectedFile.price} OTTC <br />
