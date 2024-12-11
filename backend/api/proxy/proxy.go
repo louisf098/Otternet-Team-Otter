@@ -36,7 +36,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-test3"
+var ProxyProviderHash = "proxy-louis-x2"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 
@@ -51,38 +51,55 @@ type ProxyNode struct {
 
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
-	if global.DHTNode == nil {
-		return fmt.Errorf("DHT node is not initialized")
-	}
+    if global.DHTNode == nil {
+        return fmt.Errorf("DHT node is not initialized")
+    }
 
-	// Hash the ProxyProviderHash to create a CID
-	hash := sha256.Sum256([]byte(ProxyProviderHash))
-	mh, err := multihash.EncodeName(hash[:], "sha2-256")
-	if err != nil {
-		return fmt.Errorf("failed to create multihash: %v", err)
-	}
-	c := cid.NewCidV1(cid.Raw, mh)
+    // Hash the ProxyProviderHash to create a CID
+    hash := sha256.Sum256([]byte(ProxyProviderHash))
+    mh, err := multihash.EncodeName(hash[:], "sha2-256")
+    if err != nil {
+        return fmt.Errorf("failed to create multihash: %v", err)
+    }
+    c := cid.NewCidV1(cid.Raw, mh)
 
-	// Announce this node as a provider for the CID in the DHT
-	err = global.DHTNode.ProvideKey(c.String())
-	if err != nil {
-		return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
-	}
+    // Announce this node as a provider for the CID in the DHT
+    err = global.DHTNode.ProvideKey(c.String())
+    if err != nil {
+        return fmt.Errorf("failed to advertise proxy node in DHT: %v", err)
+    }
 
-	log.Printf("Advertised as a provider for hash: %s (CID: %s)\n", ProxyProviderHash, c)
+    log.Printf("Advertised as a provider for hash: %s (CID: %s)\n", ProxyProviderHash, c)
 
-	// Add the proxy node to the local list with metadata
-	mu.Lock()
-	defer mu.Unlock()
-	proxyNodes = append(proxyNodes, ProxyNode{
-		ID:           global.DHTNode.Host.ID().String(), // Use the libp2p peer ID
-		IP:           ip,
-		Port:         port,
-		PricePerHour: pricePerHour,
-		Status:       "available",
-	})
+    // Add or update the proxy node in the local list
+    mu.Lock()
+    defer mu.Unlock()
 
-	return nil
+    nodeUpdated := false
+    for i, node := range proxyNodes {
+        if node.ID == global.DHTNode.Host.ID().String() {
+            proxyNodes[i].Status = "available"
+            proxyNodes[i].IP = ip
+            proxyNodes[i].Port = port
+            proxyNodes[i].PricePerHour = pricePerHour
+            nodeUpdated = true
+            log.Printf("Updated proxy node %s to available", node.ID)
+            break
+        }
+    }
+
+    if !nodeUpdated {
+        proxyNodes = append(proxyNodes, ProxyNode{
+            ID:           global.DHTNode.Host.ID().String(),
+            IP:           ip,
+            Port:         port,
+            PricePerHour: pricePerHour,
+            Status:       "available",
+        })
+        log.Printf("Added new proxy node %s as available", global.DHTNode.Host.ID().String())
+    }
+
+    return nil
 }
 
 func GetPublicIP() (string, error) {
@@ -169,6 +186,16 @@ func StartProxyServer(port string) error {
         return fmt.Errorf("DHT node is not initialized")
     }
 
+    // Update the proxy node status to "available"
+    mu.Lock()
+    for i, node := range proxyNodes {
+        if node.ID == global.DHTNode.Host.ID().String() {
+            proxyNodes[i].Status = "available"
+            log.Printf("Proxy node %s marked as available", node.ID)
+        }
+    }
+    mu.Unlock()
+
     // Advertise this proxy node on the DHT
     go func() {
         ip, err := GetPublicIP()
@@ -247,12 +274,26 @@ func FetchAvailableProxies(ctx context.Context) ([]ProxyNode, error) {
 				continue
 			}
 
-			proxyList = append(proxyList, ProxyNode{
-				ID:     provider.ID.String(),
-				IP:     ip,
-				Port:   port,
-				Status: "available",
-			})
+			// Check the status of the proxy node
+			mu.Lock()
+			isAvailable := false
+			for _, node := range proxyNodes {
+				if node.ID == provider.ID.String() && node.Status == "available" {
+					isAvailable = true
+					break
+				}
+			}
+			mu.Unlock()
+
+			// Only append nodes marked as "available"
+			if isAvailable {
+				proxyList = append(proxyList, ProxyNode{
+					ID:     provider.ID.String(),
+					IP:     ip,
+					Port:   port,
+					Status: "available",
+				})
+			}
 		}
 	}
 
@@ -268,6 +309,56 @@ func parseMultiAddr(multiAddr string) (string, string, error) {
 	ip := parts[2]
 	port := parts[4]
 	return ip, port, nil
+}
+
+func StopServingAsProxy(ctx context.Context) error {
+    mu.Lock()
+    defer mu.Unlock()
+
+    // Step 1: Stop the proxy server if it's running
+    if proxyServer != nil {
+        log.Println("Stopping the proxy server...")
+        if err := proxyServer.Shutdown(ctx); err != nil {
+            log.Printf("Error while shutting down the proxy server: %v", err)
+            return err
+        }
+        proxyServer = nil
+        log.Println("Proxy server stopped successfully.")
+    } else {
+        log.Println("Proxy server is not running.")
+    }
+
+    // Step 2: Mark the proxy node as unavailable
+    log.Println("Marking proxy node as unavailable...")
+    for i, node := range proxyNodes {
+        if node.ID == global.DHTNode.Host.ID().String() {
+            proxyNodes[i].Status = "unavailable" // Update the status to "unavailable"
+            log.Printf("Proxy node %s marked as unavailable.", node.ID)
+            break
+        }
+    }
+
+    // Step 3: Clear the authorized clients list
+    log.Println("Clearing authorized clients...")
+    authorizedClients = make(map[string]bool)
+    log.Println("Authorized clients cleared.")
+
+    return nil
+}
+
+// endpoint for stop serving as a proxy
+func RegisterHandleStopServingEndpoint(router *mux.Router) {
+	router.HandleFunc("/stopServingAsProxy", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Received request to stop serving as a proxy...")
+		if err := StopServingAsProxy(context.Background()); err != nil {
+			log.Printf("Failed to stop serving as a proxy: %v", err)
+			http.Error(w, "Failed to stop serving as a proxy", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Stopped serving as a proxy successfully"})
+	}).Methods("POST")
 }
 
 // Endpoint function to connect

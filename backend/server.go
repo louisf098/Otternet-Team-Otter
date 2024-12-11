@@ -158,7 +158,8 @@ func main() {
 	}).Methods("GET")		
 
 	proxy.RegisterHandleConnectEndpoint(r)
-	proxy.RegisterHandleDisconnectEndpoint(r)		
+	proxy.RegisterHandleDisconnectEndpoint(r)
+	proxy.RegisterHandleStopServingEndpoint(r)		
 
 	handlerWithCORS := corsOptions(r)
 
