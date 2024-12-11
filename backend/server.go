@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -159,8 +160,67 @@ func main() {
 
 	r.HandleFunc("/getAuthorizedClients", proxy.GetAuthorizedClients).Methods("GET")
 
-	proxy.RegisterHandleConnectEndpoint(r)
-	proxy.RegisterHandleDisconnectEndpoint(r)
+	r.HandleFunc("/proxy/connect", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ClientAddr string `json:"clientAddr"`
+			ServerID   string `json:"serverID"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
+			log.Printf("Invalid connection request: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+	
+		serverID, err := peer.Decode(req.ServerID)
+		if err != nil {
+			log.Printf("Invalid server ID: %v", err)
+			http.Error(w, "Invalid server ID", http.StatusBadRequest)
+			return
+		}
+	
+		log.Printf("Sending connection request to server: %s", serverID)
+		err = proxy.SendConnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
+		if err != nil {
+			log.Printf("Error sending connection request: %v", err)
+			http.Error(w, fmt.Sprintf("Error connecting to proxy: %v", err), http.StatusInternalServerError)
+			return
+		}
+	
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent successfully"})
+	}).Methods("POST")
+	
+	r.HandleFunc("/proxy/disconnect", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ClientAddr string `json:"clientAddr"`
+			ServerID   string `json:"serverID"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
+			log.Printf("Invalid disconnection request: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+	
+		serverID, err := peer.Decode(req.ServerID)
+		if err != nil {
+			log.Printf("Invalid server ID: %v", err)
+			http.Error(w, "Invalid server ID", http.StatusBadRequest)
+			return
+		}
+	
+		log.Printf("Sending disconnection request to server: %s", serverID)
+		err = proxy.SendDisconnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
+		if err != nil {
+			log.Printf("Error sending disconnection request: %v", err)
+			http.Error(w, fmt.Sprintf("Error disconnecting from proxy: %v", err), http.StatusInternalServerError)
+			return
+		}
+	
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Disconnection request sent successfully"})
+	}).Methods("POST")
+	
+
 	proxy.RegisterHandleStopServingEndpoint(r)		
 
 	handlerWithCORS := corsOptions(r)
