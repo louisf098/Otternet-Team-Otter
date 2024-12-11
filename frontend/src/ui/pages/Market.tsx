@@ -36,7 +36,7 @@ interface FileItem {
   bundleMode: boolean;
 }
 
-const ITEMS_PER_PAGE = 7;
+const ITEMS_PER_PAGE = 6;
 
 interface marketProps {
   setSnackbarOpen: (open: boolean) => void;
@@ -492,7 +492,7 @@ const Market: React.FC<marketProps> = ({
 
         {walletId ? (
           <List>
-            {files.map((file) => (
+            {currentFiles.map((file) => (
               <ListItem key={file.fileHash} divider>
                 <Checkbox
                   checked={selectedFiles.includes(file.fileHash)}
