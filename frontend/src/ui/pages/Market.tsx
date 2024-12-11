@@ -53,7 +53,7 @@ const Market: React.FC = () => {
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<string>("");
-  const { publicKey } = React.useContext(AuthContext);
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   useEffect(() => {
     /* Display list of walletIDs (providers) */
@@ -169,9 +169,18 @@ const Market: React.FC = () => {
         body: JSON.stringify(postData),
       });
 
-      console.log("Response: ", response);
       if (!response.ok) {
         throw new Error("Problem downloading the file");
+      }
+      const responseData = await response.json();
+      const destWalletAddr = responseData.walletAddress;
+
+      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${selectedFile?.price}/File`, {
+        method: 'POST',
+      });
+
+      if (!response2.ok) {
+        throw new Error("Transferring coins failed");
       }
       console.log("File downloaded successfully");
       handleDownloadModalClose();
@@ -241,13 +250,17 @@ const Market: React.FC = () => {
     setDownloadLocation(""); // Clear the download location when closing the checkout modal
   };
 
-    const handleCheckoutConfirm = () => {
-        // Send HTTP request to download selected files
+  const handleCheckoutConfirm = async () => {
+    try {
+        // Log selected files and download location
         console.log("Selected Files: ", selectedFiles);
         console.log("Download Location: ", downloadLocation);
 
+        // Array to store individual download responses if needed
+        const downloadResponses: Response[] = [];
 
-        selectedFiles.forEach(async (fileId) => {
+        // Iterate over each selected file and download sequentially
+        for (const fileId of selectedFiles) {
             const file = files.find((f) => f.fileHash === fileId);
             if (file) {
                 const postData = {
@@ -257,27 +270,63 @@ const Market: React.FC = () => {
                     FileHash: file.fileHash,
                 };
 
-                try {
-                    const response = await fetch("http://localhost:9378/download", {
-                        method: "POST",
-                        body: JSON.stringify(postData),
-                    });
+                const response = await fetch("http://localhost:9378/download", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(postData),
+                });
 
-                    if (!response.ok) {
-                        throw new Error(`Problem downloading the file: ${file.fileName}`);
-                    }
-                    console.log(`File ${file.fileName} downloaded successfully`);
-                } catch (err: any) {
-                    console.error(`Error downloading file ${file.fileName}: `, err);
+                if (!response.ok) {
+                    throw new Error(`Problem downloading the file: ${file.fileName}`);
                 }
+
+                console.log(`File ${file.fileName} downloaded successfully`);
+                downloadResponses.push(response);
+            } else {
+                console.warn(`File with ID ${fileId} not found.`);
             }
-        });
+        }
 
+        // Proceed to transfer coins after all downloads are successful
+        if (downloadResponses.length > 0) {
+            // Extract necessary data from one of the responses
+            // Adjust this part based on your actual API response structure
+            const lastResponseData = await downloadResponses[downloadResponses.length - 1].json();
 
+            // Ensure that `walletAddress` exists in the response
+            if (!lastResponseData.walletAddress) {
+                throw new Error("Wallet address not found in the download response.");
+            }
+
+            const price = calculateTotalCost().discountedTotal;
+
+            const transferResponse = await fetch(`http://localhost:9378/transferCoins/${walletName}/${lastResponseData.walletAddress}/${price}/File`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!transferResponse.ok) {
+                throw new Error(`Problem transferring coins.`);
+            }
+
+            console.log("Coins transferred successfully.");
+        } else {
+            console.warn("No files were downloaded, skipping coin transfer.");
+        }
+    } catch (err: any) {
+        console.error("Error during checkout confirmation: ", err);
+        // Optionally, you can display an error message to the user here
+    } finally {
+        // Reset the checkout state regardless of success or failure
         setCheckoutOpen(false);
         setSelectedFiles([]);
         setDownloadLocation("");
-    };
+    }
+};
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
@@ -286,18 +335,18 @@ const Market: React.FC = () => {
     setCurrentPage(page);
   };
 
-    const calculateTotalCost = () => {
-        const total = selectedFiles.reduce((sum, fileId) => {
-            const file = files.find((f) => f.fileHash === fileId);
-            return file ? sum + (file.price) : sum;
-        }, 0);
-        const discountRate = Math.min(selectedFiles.length * 5, 25);
-        const discountedTotal = total * (1 - discountRate / 100);
-        return {
-            total: total.toFixed(2),
-            discountedTotal: discountedTotal.toFixed(2)
-        };
-    };
+  const calculateTotalCost = () => {
+      const total = selectedFiles.reduce((sum, fileId) => {
+          const file = files.find((f) => f.fileHash === fileId);
+          return file ? sum + (file.price) : sum;
+      }, 0);
+      const discountRate = Math.min(selectedFiles.length * 5, 25);
+      const discountedTotal = total * (1 - discountRate / 100);
+      return {
+          total: total.toFixed(2),
+          discountedTotal: discountedTotal.toFixed(2)
+      };
+  };
 
   const currentFiles =
     files.length > 0

@@ -145,7 +145,7 @@ const Download = () => {
       setDownloadLocation("");
 
       if (response.ok) {
-        setSnackbarMessage("Download successful");
+        setSnackbarMessage("Download successful and coins sent to provider!");
         setSnackbarSeverity("success");
       } else {
         const error = await response.json();
