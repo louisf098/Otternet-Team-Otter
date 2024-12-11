@@ -630,7 +630,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, stream)
 	if err != nil {
-		fmt.Printf("Error copying file: %v\n", err)
+		http.Error(w, "Error downloading file", http.StatusInternalServerError)
 		return
 	}
 
