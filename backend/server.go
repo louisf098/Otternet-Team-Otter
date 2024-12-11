@@ -211,6 +211,7 @@ func main() {
 			return
 		}
 	
+		// Decode the provided ServerID
 		serverID, err := peer.Decode(req.ServerID)
 		if err != nil {
 			log.Printf("Invalid server ID: %v", err)
@@ -218,7 +219,16 @@ func main() {
 			return
 		}
 	
-		log.Printf("Sending disconnection request to server: %s", serverID)
+		log.Printf("Disconnection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
+	
+		// Ensure the serverID does not match the local Host ID to prevent self-dial
+		if serverID == global.DHTNode.Host.ID() {
+			log.Printf("Error: Attempted self-disconnection. ServerID: %s", serverID)
+			http.Error(w, "Cannot disconnect from self", http.StatusBadRequest)
+			return
+		}
+	
+		// Perform the disconnection request
 		err = proxy.SendDisconnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
 		if err != nil {
 			log.Printf("Error sending disconnection request: %v", err)
@@ -228,8 +238,7 @@ func main() {
 	
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Disconnection request sent successfully"})
-	}).Methods("POST")
-	
+	}).Methods("POST")	
 
 	proxy.RegisterHandleStopServingEndpoint(r)		
 

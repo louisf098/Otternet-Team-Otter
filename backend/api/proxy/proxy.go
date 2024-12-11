@@ -594,41 +594,41 @@ func HandleProxyConnectRequests(h host.Host) {
 
 // Handles proxy disconnection requests
 func HandleProxyDisconnectRequests(h host.Host) {
-	h.SetStreamHandler(proxyDisconnectProtocol, func(s network.Stream) {
-		defer s.Close()
+    h.SetStreamHandler(proxyDisconnectProtocol, func(s network.Stream) {
+        defer s.Close()
 
-		var req struct {
-			ClientAddr string `json:"clientAddr"`
-		}
+        var req struct {
+            ClientAddr string `json:"clientAddr"`
+        }
 
-		// Decode the disconnection request from the stream
-		if err := json.NewDecoder(s).Decode(&req); err != nil {
-			log.Printf("Failed to decode disconnection request: %v", err)
-			return
-		}
+        // Decode the disconnection request from the stream
+        if err := json.NewDecoder(s).Decode(&req); err != nil {
+            log.Printf("Failed to decode disconnection request: %v", err)
+            return
+        }
 
-		// Validate the client address
-		if req.ClientAddr == "" {
-			log.Println("Received empty client address; ignoring request.")
-			return
-		}
+        // Validate the client address
+        if req.ClientAddr == "" {
+            log.Println("Received empty client address; ignoring request.")
+            return
+        }
 
-		// Remove the client from the authorized clients list
-		mu.Lock()
-		if _, exists := authorizedClients[req.ClientAddr]; exists {
-			delete(authorizedClients, req.ClientAddr)
-			log.Printf("Client %s disconnected and removed from authorized list.", req.ClientAddr)
-		} else {
-			log.Printf("Client %s not found in authorized list; ignoring request.", req.ClientAddr)
-		}
-		mu.Unlock()
+        // Remove the client from the authorized clients list
+        mu.Lock()
+        if _, exists := authorizedClients[req.ClientAddr]; exists {
+            delete(authorizedClients, req.ClientAddr)
+            log.Printf("Client %s disconnected and removed from authorized list.", req.ClientAddr)
+        } else {
+            log.Printf("Client %s not found in authorized list; ignoring request.", req.ClientAddr)
+        }
+        mu.Unlock()
 
-		// Send a response back to the client
-		response := map[string]string{"message": "Client disconnected successfully"}
-		if err := json.NewEncoder(s).Encode(response); err != nil {
-			log.Printf("Failed to send response to client: %v", err)
-		}
-	})
+        // Send a response back to the client
+        response := map[string]string{"message": "Client disconnected successfully"}
+        if err := json.NewEncoder(s).Encode(response); err != nil {
+            log.Printf("Failed to send response to client: %v", err)
+        }
+    })
 }
 
 // CLIENT SIDE
@@ -673,32 +673,44 @@ func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr strin
 }
 
 // Disconnects from the server
+// Disconnects from the server
 func SendDisconnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr string) error {
-	// Open a stream to the server
-	stream, err := h.NewStream(context.Background(), serverID, proxyDisconnectProtocol)
-	if err != nil {
-		return fmt.Errorf("failed to open stream: %w", err)
-	}
-	defer stream.Close()
+    fmt.Printf("\n=== DEBUG INFO (Disconnection) ===\n")
+    fmt.Printf("Server ID (Target): %s\n", serverID)
+    fmt.Printf("Host ID (Self): %s\n", h.ID())
+    fmt.Printf("Are Server ID and Host ID Equal? %v\n", serverID == h.ID())
+    fmt.Printf("Client Address: %s\n", clientAddr)
+    fmt.Printf("===================\n\n")
 
-	// Send the disconnection request
-	req := struct {
-		ClientAddr string `json:"clientAddr"`
-	}{
-		ClientAddr: clientAddr,
-	}
-	if err := json.NewEncoder(stream).Encode(req); err != nil {
-		return fmt.Errorf("failed to send disconnection request: %w", err)
-	}
+    if serverID == h.ID() {
+        return fmt.Errorf("attempted to disconnect from self")
+    }
 
-	// Read the server's response
-	var response map[string]string
-	if err := json.NewDecoder(stream).Decode(&response); err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
+    // Open a stream to the server
+    stream, err := h.NewStream(context.Background(), serverID, proxyDisconnectProtocol)
+    if err != nil {
+        return fmt.Errorf("failed to open stream: %w", err)
+    }
+    defer stream.Close()
 
-	log.Printf("Response from server: %v", response)
-	return nil
+    req := struct {
+        ClientAddr string `json:"clientAddr"`
+    }{
+        ClientAddr: clientAddr,
+    }
+
+    // Send the disconnection request
+    if err := json.NewEncoder(stream).Encode(req); err != nil {
+        return fmt.Errorf("failed to send disconnection request: %w", err)
+    }
+
+    var response map[string]string
+    if err := json.NewDecoder(stream).Decode(&response); err != nil {
+        return fmt.Errorf("failed to read response: %w", err)
+    }
+
+    log.Printf("Response from server: %v", response)
+    return nil
 }
 
  // Export the mu and map, used in server.go
