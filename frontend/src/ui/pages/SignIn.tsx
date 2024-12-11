@@ -107,7 +107,7 @@ const SignIn = () => {
         </Typography>
         <Box>
           <Tooltip
-            title="Make sure to close the frontend and server. Go to where the wallet is stored. Mac: ~/Library/Application\ Support/Bitcoin/wallets Ubuntu: ~/.bitcoin/wallets. Put the wallet backup file in there. Restart frontend and server."
+            title="Make sure to close the frontend and server. Go to where the wallet is stored. Mac: ~/Library/Application\ Support/Bitcoin/wallets Ubuntu: ~/.bitcoin/wallets. Make a folder for the wallet with any name. Put the wallet backup file in there. Restart frontend and server."
             arrow
           >
             <span>
