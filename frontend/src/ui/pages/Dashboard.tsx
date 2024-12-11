@@ -106,8 +106,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
-    const blockHashes = mineCoins(publicKey, amountToMine);
     setSnackbarMessage(`${amountToMine} blocks mining initiated`)
+    setSnackbarOpen(true);
+    const blockHashes = mineCoins(publicKey, amountToMine);
+    setSnackbarOpen(false);
   };
 
   const handleSetAmountToMine = (
