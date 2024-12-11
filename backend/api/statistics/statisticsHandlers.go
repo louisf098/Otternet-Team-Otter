@@ -8,7 +8,7 @@ import (
 
 func GetBytesUploadedHandler(w http.ResponseWriter, r *http.Request) {
 	// Call helper function to get bytes uploaded from file
-	bytesUploaded, err := getBytesUploadedFromFile("bytes_uploaded.txt")
+	bytesUploaded, err := getBytesUploadedFromFile("../backend/api/statistics/statistics.txt")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to retrieve bytes uploaded: %v", err), http.StatusInternalServerError)
 		return

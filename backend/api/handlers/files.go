@@ -79,7 +79,6 @@ func HandleFileRequests(h host.Host) {
 		}
 
 		// Send the wallet address back to the requester
-
 		wallet := WalletAddress{WalletID: global_wallet.WalletAddr + "\n"}
 		var walletBytes []byte
 		walletBytes, err = json.Marshal(wallet)
@@ -97,9 +96,8 @@ func HandleFileRequests(h host.Host) {
 		if err != nil {
 			log.Printf("Error sending file: %v", err)
 		}
-			// Define file paths
-		// bytesFilePath := "../files/bytesuploaded.txt"
-		bytesFilePath := "./api/files/providers.txt"
+			// Define file paths accordingly
+		bytesFilePath := "./api/statistics/statistics.txt"
 
 		// Handle first file
 		bytesFileContent, err := handleFile(bytesFilePath)
@@ -278,6 +276,29 @@ func HandleOtternetPeersRequests(h host.Host) {
 }
 
 // Function to handle file operations
+// func handleFile(filePath string) ([]byte, error) {
+// 	// Ensure the directory exists
+// 	dir := filepath.Dir(filePath)
+// 	if err := os.MkdirAll(dir, 0755); err != nil {
+// 		return nil, fmt.Errorf("failed to create directories: %w", err)
+// 	}
+
+// 	// Open or create the file
+// 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to open or create file: %w", err)
+// 	}
+// 	// Read the file content
+// 	content, err := os.ReadFile(filePath)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to read file: %w", err)
+// 	}
+// 	// Check if there are any numbers there
+// 	file.Close()
+// 	fmt.Printf("File handled successfully: %s\n", file.Name())
+	
+// 	return content, nil
+// }
 func handleFile(filePath string) ([]byte, error) {
 	// Ensure the directory exists
 	dir := filepath.Dir(filePath)
@@ -298,10 +319,20 @@ func handleFile(filePath string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// Check if the file is empty
+	if len(content) == 0 {
+		_, err = file.WriteString("0")
+		if err != nil {
+			return nil, fmt.Errorf("failed to write to file: %w", err)
+		}
+		fmt.Println("File was empty. Appended 0 to the file.")
+		content = []byte("0") // Update the content to reflect the new value
+	}
+
 	fmt.Printf("File handled successfully: %s\n", file.Name())
-	
 	return content, nil
 }
+
 
 // Helper function to update a number based on file content and size
 func updateNumberWithFileSize(fileContent string, fileSize int) (int, error) {
@@ -313,6 +344,5 @@ func updateNumberWithFileSize(fileContent string, fileSize int) (int, error) {
 
 	// Step 2: Increment the number by the file size
 	number += fileSize
-
 	return number, nil
 }

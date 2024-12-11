@@ -275,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </Box>
             <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
-                Bytes Uploaded: {bytesUploaded} KB
+                Bytes Uploaded: {bytesUploaded / 1000} KB
               </Typography>
             </Box>
           </Box>
