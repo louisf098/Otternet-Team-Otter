@@ -12,8 +12,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -62,7 +64,34 @@ func jsonResponse(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(test)
 }
 
+func waitForBitcoind() error {
+	for {
+		cmd := exec.Command("bitcoin-cli", "getblockchaininfo")
+		err := cmd.Run()
+		if err == nil {
+			return nil
+		}
+		log.Println("Waiting for bitcoind to start...")
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func main() {
+	// Run bitcoind -daemon -fallbackfee=0.0002 on startup
+	cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
+	err := cmd.Start()
+	if err != nil {
+		log.Fatalf("Failed to start bitcoind: %v", err)
+	}
+	log.Println("bitcoind started successfully")
+
+	// Wait for bitcoind to be ready
+	err = waitForBitcoind()
+	if err != nil {
+		log.Fatalf("bitcoind did not start: %v", err)
+	}
+	log.Println("bitcoind is ready")
+
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
 	r.HandleFunc("/hello/{name}", nameReader)
