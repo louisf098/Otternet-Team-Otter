@@ -45,7 +45,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
           {transactions.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} align="center">
-                You have not downloaded any files yet.
+                You have not made any transactions yet.
               </TableCell>
             </TableRow>
           ) : (

@@ -318,3 +318,4 @@ func (dhtNode *DHTNode) GetClosestPeers(key string) ([]peer.ID, error) {
 func (dhtNode *DHTNode) Close() error {
 	return dhtNode.Host.Close()
 }
+
