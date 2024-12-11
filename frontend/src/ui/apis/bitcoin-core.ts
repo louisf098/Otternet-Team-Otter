@@ -158,3 +158,22 @@ export const mineCoins = async (address: string, amount: number) => {
     console.error("Error mining coins:", error);
   }
 };
+
+export const getBytesUploaded = async () => {
+  try {
+    const response = await fetch(
+      `http://localhost:9378/getBytesUploaded`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to mine coins");
+    }
+    const data = await response.json();
+    console.log("Bytes uploaded have been retrieved", data);
+    return data;
+  } catch (error) {
+    console.error("Error retrieving the file", error);
+  }
+}
