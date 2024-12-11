@@ -7,7 +7,15 @@ import { AuthContext } from "../contexts/AuthContext";
 import { backupWallet, lockWallet } from "../apis/bitcoin-core";
 import path from "path-browserify";
 
-const Settings = () => {
+interface settingstProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+
+const Settings: React.FC<settingstProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const navigate = useNavigate();
 
   const { publicKey, setPublicKey, walletName } = useContext(AuthContext);
@@ -32,9 +40,15 @@ const Settings = () => {
 
   const handleBackupWallet = async () => {
     const backupFilePath = encodeURIComponent(
-      path.join(backupPath, "walletbackup.dat")
+      path.join(backupPath, "wallet.dat")
     );
-    await backupWallet(walletName, backupFilePath);
+    let status = await backupWallet(walletName, backupFilePath);
+    if (status == "wallet backup successful") {
+      setSnackbarMessage("Wallet backup successful");
+    } else {
+      setSnackbarMessage(status);
+    }
+    setSnackbarOpen(true);
   };
 
   const selectFolder = async () => {

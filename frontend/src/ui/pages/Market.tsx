@@ -176,7 +176,9 @@ const Market: React.FC<marketProps> = ({
         FileHash: selectedFile?.fileHash,
       };
       const price = selectedFile?.price;
-      const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+      const resp = await fetch(
+        `http://localhost:9378/getbalance/${walletName}`
+      );
       const balancejson = await resp.json();
       const balance = balancejson["balance"];
       if (price === undefined || balance < price) {
@@ -194,9 +196,12 @@ const Market: React.FC<marketProps> = ({
       const responseData = await response.json();
       const destWalletAddr = responseData.walletAddress;
 
-      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${selectedFile?.price}/File`, {
-        method: 'POST',
-      });
+      const response2 = await fetch(
+        `http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${selectedFile?.price}/File`,
+        {
+          method: "POST",
+        }
+      );
 
       if (!response2.ok) {
         throw new Error("Transferring coins failed");
@@ -204,11 +209,13 @@ const Market: React.FC<marketProps> = ({
       console.log("File downloaded successfully");
       handleDownloadModalClose();
       setSnackbarOpen(true);
-      setSnackbarMessage(`File downloaded successfully and ${price} coins transferred`);
+      setSnackbarMessage(
+        `File downloaded successfully and ${price} coins transferred`
+      );
     } catch (err: any) {
       console.error("Error downloading file: ", err);
       setSnackbarOpen(true);
-      setSnackbarMessage(`Error downloading file: ${err.message}`);
+      setSnackbarMessage("An error occurred during download");
       handleDownloadModalClose();
     }
   };
@@ -282,88 +289,97 @@ const Market: React.FC<marketProps> = ({
 
   const handleCheckoutConfirm = async () => {
     try {
-        // Log selected files and download location
-        console.log("Selected Files: ", selectedFiles);
-        console.log("Download Location: ", downloadLocation);
+      // Log selected files and download location
+      console.log("Selected Files: ", selectedFiles);
+      console.log("Download Location: ", downloadLocation);
 
-        // Array to store individual download responses if needed
-        const downloadResponses: Response[] = [];
-        const price = calculateTotalCost().discountedTotal;
-        const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
-        const balancejson = await resp.json();
-        const balance = balancejson["balance"];
-        if (balance < price) {
-            throw new Error("Not enough balance to download the files");
-        }
-        // Iterate over each selected file and download sequentially
-        for (const fileId of selectedFiles) {
-            const file = files.find((f) => f.fileHash === fileId);
-            if (file) {
-                const postData = {
-                    WalletID: publicKey,
-                    ProviderID: walletId,
-                    DownloadPath: downloadLocation,
-                    FileHash: file.fileHash,
-                };
+      // Array to store individual download responses if needed
+      const downloadResponses: Response[] = [];
+      const price = calculateTotalCost().discountedTotal;
+      const resp = await fetch(
+        `http://localhost:9378/getbalance/${walletName}`
+      );
+      const balancejson = await resp.json();
+      const balance = balancejson["balance"];
+      if (balance < price) {
+        throw new Error("Not enough balance to download the files");
+      }
+      // Iterate over each selected file and download sequentially
+      for (const fileId of selectedFiles) {
+        const file = files.find((f) => f.fileHash === fileId);
+        if (file) {
+          const postData = {
+            WalletID: publicKey,
+            ProviderID: walletId,
+            DownloadPath: downloadLocation,
+            FileHash: file.fileHash,
+          };
 
-                const response = await fetch("http://localhost:9378/download", {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(postData),
-                });
+          const response = await fetch("http://localhost:9378/download", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(postData),
+          });
 
-                if (!response.ok) {
-                    throw new Error(`Problem downloading the file: ${file.fileName}`);
-                }
+          if (!response.ok) {
+            throw new Error(`Problem downloading the file: ${file.fileName}`);
+          }
 
-                console.log(`File ${file.fileName} downloaded successfully`);
-                downloadResponses.push(response);
-            } else {
-                console.warn(`File with ID ${fileId} not found.`);
-            }
-        }
-
-        // Proceed to transfer coins after all downloads are successful
-        if (downloadResponses.length > 0) {
-            // Extract necessary data from one of the responses
-            // Adjust this part based on your actual API response structure
-            const lastResponseData = await downloadResponses[downloadResponses.length - 1].json();
-
-            // Ensure that `walletAddress` exists in the response
-            if (!lastResponseData.walletAddress) {
-                throw new Error("Wallet address not found in the download response.");
-            }
-
-            const transferResponse = await fetch(`http://localhost:9378/transferCoins/${walletName}/${lastResponseData.walletAddress}/${price}/File`, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!transferResponse.ok) {
-                throw new Error(`Problem transferring coins.`);
-            }
-            setSnackbarOpen(true);
-            setSnackbarMessage(`Files downloaded successfully and ${price} coins transferred.`);
-            console.log("Coins transferred successfully.");
+          console.log(`File ${file.fileName} downloaded successfully`);
+          downloadResponses.push(response);
         } else {
-            console.warn("No files were downloaded, skipping coin transfer.");
+          console.warn(`File with ID ${fileId} not found.`);
         }
-    } catch (err: any) {
-        console.error("Error during checkout confirmation: ", err);
+      }
+
+      // Proceed to transfer coins after all downloads are successful
+      if (downloadResponses.length > 0) {
+        // Extract necessary data from one of the responses
+        // Adjust this part based on your actual API response structure
+        const lastResponseData = await downloadResponses[
+          downloadResponses.length - 1
+        ].json();
+
+        // Ensure that `walletAddress` exists in the response
+        if (!lastResponseData.walletAddress) {
+          throw new Error("Wallet address not found in the download response.");
+        }
+
+        const transferResponse = await fetch(
+          `http://localhost:9378/transferCoins/${walletName}/${lastResponseData.walletAddress}/${price}/File`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!transferResponse.ok) {
+          throw new Error(`Problem transferring coins.`);
+        }
         setSnackbarOpen(true);
-        setSnackbarMessage(`Error during checkout confirmation: ${err.message}`);
-        // Optionally, you can display an error message to the user here
+        setSnackbarMessage(
+          `Files downloaded successfully and ${price} coins transferred.`
+        );
+        console.log("Coins transferred successfully.");
+      } else {
+        console.warn("No files were downloaded, skipping coin transfer.");
+      }
+    } catch (err: any) {
+      console.error("Error during checkout confirmation: ", err);
+      setSnackbarOpen(true);
+      setSnackbarMessage(`Error during checkout confirmation: ${err.message}`);
+      // Optionally, you can display an error message to the user here
     } finally {
-        // Reset the checkout state regardless of success or failure
-        setCheckoutOpen(false);
-        setSelectedFiles([]);
-        setDownloadLocation("");
+      // Reset the checkout state regardless of success or failure
+      setCheckoutOpen(false);
+      setSelectedFiles([]);
+      setDownloadLocation("");
     }
-};
+  };
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
@@ -493,81 +509,81 @@ const Market: React.FC<marketProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
-        <Box sx={{maxHeight: 500, overflowY: "scroll"}}>
-        {walletId ? (
-          <List>
-            {currentFiles.map((file) => (
-              <ListItem key={file.fileHash} divider>
-                <Checkbox
-                  checked={selectedFiles.includes(file.fileHash)}
-                  onChange={() => handleCheckboxChange(file.fileHash)}
-                  disabled={!file.bundleMode}
-                  sx={{
-                    mr: 2,
-                    color: file.bundleMode ? "primary.main" : "grey.500",
-                    "&.Mui-disabled": { color: "grey.400" },
-                  }}
-                />
-                <ListItemText
-                  primary={file.fileName}
-                  secondary={`Size: ${(file.fileSize / 1000).toFixed(
-                    2
-                  )} KB | Type: ${file.fileType} | Uploaded: ${
-                    file.timestamp
-                  } | Price: ${file.price} OTTC`}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<DownloadIcon />}
-                  sx={{ ml: 2 }}
-                  onClick={() => handleDownload(file)}
-                >
-                  Download
-                </Button>
-              </ListItem>
-            ))}
-          </List>
-        ) : searchedProviders.length > 0 ? (
-          <List>
-            {searchedProviders.map((provider) => (
-              <ListItem key={provider.walletID} divider>
-                <ListItemText
-                  primary={`Peer Address: ${provider.walletID}`}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<ShoppingCart />}
-                  sx={{ ml: 2 }}
-                  onClick={() => handleCheckCatalog(provider.walletID)}
-                >
-                  Catalog
-                </Button>
-              </ListItem>
-            ))}
-          </List>
-        ) : providers.length > 0 ? (
-          <List>
-            {providers.map((provider) => (
-              <ListItem key={provider.walletID} divider>
-                <ListItemText
-                  primary={`Peer Address: ${provider.walletID}`}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<ShoppingCart />}
-                  sx={{ ml: 2 }}
-                  onClick={() => handleCheckCatalog(provider.walletID)}
-                >
-                  Catalog
-                </Button>
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography variant="h4">
-            Search for Providers in the Download Page to Display Providers.
-          </Typography>
-        )}
+        <Box sx={{ maxHeight: 500, overflowY: "scroll" }}>
+          {walletId ? (
+            <List>
+              {currentFiles.map((file) => (
+                <ListItem key={file.fileHash} divider>
+                  <Checkbox
+                    checked={selectedFiles.includes(file.fileHash)}
+                    onChange={() => handleCheckboxChange(file.fileHash)}
+                    disabled={!file.bundleMode}
+                    sx={{
+                      mr: 2,
+                      color: file.bundleMode ? "primary.main" : "grey.500",
+                      "&.Mui-disabled": { color: "grey.400" },
+                    }}
+                  />
+                  <ListItemText
+                    primary={file.fileName}
+                    secondary={`Size: ${(file.fileSize / 1000).toFixed(
+                      2
+                    )} KB | Type: ${file.fileType} | Uploaded: ${
+                      file.timestamp
+                    } | Price: ${file.price} OTTC`}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    sx={{ ml: 2 }}
+                    onClick={() => handleDownload(file)}
+                  >
+                    Download
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          ) : searchedProviders.length > 0 ? (
+            <List>
+              {searchedProviders.map((provider) => (
+                <ListItem key={provider.walletID} divider>
+                  <ListItemText
+                    primary={`Peer Address: ${provider.walletID}`}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<ShoppingCart />}
+                    sx={{ ml: 2 }}
+                    onClick={() => handleCheckCatalog(provider.walletID)}
+                  >
+                    Catalog
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          ) : providers.length > 0 ? (
+            <List>
+              {providers.map((provider) => (
+                <ListItem key={provider.walletID} divider>
+                  <ListItemText
+                    primary={`Peer Address: ${provider.walletID}`}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<ShoppingCart />}
+                    sx={{ ml: 2 }}
+                    onClick={() => handleCheckCatalog(provider.walletID)}
+                  >
+                    Catalog
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Typography variant="h4">
+              Search for Providers in the Download Page to Display Providers.
+            </Typography>
+          )}
         </Box>
         {walletId && (
           <Button
@@ -579,12 +595,14 @@ const Market: React.FC<marketProps> = ({
             Back to Providers
           </Button>
         )}
-        {walletId && <Pagination
-          count={Math.ceil((files.length || 0) / ITEMS_PER_PAGE)}
-          page={currentPage}
-          onChange={handlePageChange}
-          sx={{ display: "flex", justifyContent: "center", mt: 2 }}
-        />}
+        {walletId && (
+          <Pagination
+            count={Math.ceil((files.length || 0) / ITEMS_PER_PAGE)}
+            page={currentPage}
+            onChange={handlePageChange}
+            sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+          />
+        )}
       </Paper>
       <Button
         variant="contained"

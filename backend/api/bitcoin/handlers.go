@@ -434,7 +434,7 @@ func BackupWalletsHandler(w http.ResponseWriter, r *http.Request) {
 
 	decodeDestination, err := url.QueryUnescape(requestBody.Destination)
 	if err != nil {
-		http.Error(w, "Invalid destination", http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{"status": "wallet backup failed: " + err.Error()})
 		return
 	}
 
@@ -442,7 +442,7 @@ func BackupWalletsHandler(w http.ResponseWriter, r *http.Request) {
 	btcClient := NewBitcoinClient(cfg)
 
 	if err := btcClient.BackupWallet(requestBody.WalletName, decodeDestination); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(map[string]string{"status": err.Error()})
 		return
 	}
 

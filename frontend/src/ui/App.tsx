@@ -85,7 +85,15 @@ const App: React.FC = () => {
                     />
                   }
                 />
-                <Route path="/settings" element={<Settings />} />
+                <Route
+                  path="/settings"
+                  element={
+                    <Settings
+                      setSnackbarOpen={setSnackbarOpen}
+                      setSnackbarMessage={setSnackbarMessage}
+                    />
+                  }
+                />
               </Route>
             </Routes>
           </Router>
