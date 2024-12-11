@@ -461,11 +461,13 @@ func RegisterHandleConnectEndpoint(router *mux.Router) {
             ProviderID string `json:"providerID"`
         }
         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            log.Printf("Error decoding request body: %v", err)
             http.Error(w, "Invalid request body", http.StatusBadRequest)
             return
         }
 
         if req.ClientAddr == "" || req.ProviderID == "" {
+            log.Println("Missing required fields: clientAddr or providerID")
             http.Error(w, "Both client address and provider ID are required", http.StatusBadRequest)
             return
         }
@@ -473,45 +475,61 @@ func RegisterHandleConnectEndpoint(router *mux.Router) {
         // Decode the provider ID into a libp2p Peer ID
         peerID, err := peer.Decode(req.ProviderID)
         if err != nil {
+            log.Printf("Error decoding providerID '%s': %v", req.ProviderID, err)
             http.Error(w, "Invalid provider ID", http.StatusBadRequest)
             return
         }
 
+        // Debug: Print known peers
+        log.Printf("Known peers before DHT lookup: %v", global.DHTNode.Host.Network().Peers())
+
         // Use the DHT to find the peer information
+        log.Printf("Looking up provider ID '%s' in the DHT...", peerID)
         peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
         if err != nil {
+            log.Printf("Error finding peer in DHT: %v", err)
             http.Error(w, fmt.Sprintf("Failed to find provider in DHT: %v", err), http.StatusInternalServerError)
             return
         }
 
+        // Debug: Print peerInfo result
+        log.Printf("DHT lookup successful. Peer info: ID=%s, Addrs=%v", peerInfo.ID, peerInfo.Addrs)
+
         // Open a stream to the provider using the proxyConnectProtocol
+        log.Printf("Attempting to open a stream to peer ID '%s' using protocol '%s'...", peerInfo.ID, proxyConnectProtocol)
         stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, proxyConnectProtocol)
         if err != nil {
+            log.Printf("Error opening stream to provider: %v", err)
             http.Error(w, fmt.Sprintf("Failed to open stream: %v", err), http.StatusInternalServerError)
             return
         }
         defer stream.Close()
+        log.Printf("Stream opened successfully to peer ID '%s'", peerInfo.ID)
 
         // Send the connection request to the provider
         connectionRequest := map[string]string{
             "clientAddr": req.ClientAddr,
         }
+        log.Printf("Sending connection request to provider: %v", connectionRequest)
         if err := json.NewEncoder(stream).Encode(connectionRequest); err != nil {
+            log.Printf("Error sending connection request: %v", err)
             http.Error(w, fmt.Sprintf("Failed to send connection request: %v", err), http.StatusInternalServerError)
             return
         }
 
         // Read the provider's response
         var response map[string]string
+        log.Println("Waiting for provider's response...")
         if err := json.NewDecoder(stream).Decode(&response); err != nil {
+            log.Printf("Error decoding provider response: %v", err)
             http.Error(w, fmt.Sprintf("Failed to decode response: %v", err), http.StatusInternalServerError)
             return
         }
 
-        log.Printf("Connect Response from Provider: %v", response)
+        log.Printf("Connect response from provider: %v", response)
         w.WriteHeader(http.StatusOK)
         json.NewEncoder(w).Encode(map[string]string{
-            "message": "Client connected to proxy successfully",
+            "message":          "Client connected to proxy successfully",
             "providerResponse": fmt.Sprintf("%v", response),
         })
     }).Methods("POST")
