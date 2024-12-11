@@ -408,22 +408,34 @@ func MineCoinsHandler (w http.ResponseWriter, r *http.Request) {
 
 func BackupWalletsHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-    walletName, walletNameExists := vars["walletName"]
-	if !walletNameExists || walletName == "" {
-		http.Error(w, "Invalid walletName", http.StatusBadRequest)
-		return
-	}
-	destination, destinationExists := vars["destination"]
-	if !destinationExists || destination == "" {
-		http.Error(w, "Invalid destination", http.StatusBadRequest)
-		return
-	}
+
+    // Parse request body
+    var requestBody struct {
+        WalletName  string `json:"walletName"`
+        Destination string `json:"destination"`
+    }
+
+    if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+        http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+        return
+    }
+
+    // Validate fields
+    if requestBody.WalletName == "" {
+        http.Error(w, "Invalid walletName", http.StatusBadRequest)
+        return
+    }
+
+    if requestBody.Destination == "" {
+        http.Error(w, "Invalid destination", http.StatusBadRequest)
+        return
+    }
+
 
     cfg := config.NewConfig()
     btcClient := NewBitcoinClient(cfg)
 
-    if err := btcClient.BackupWallet(walletName, destination); err != nil {
+    if err := btcClient.BackupWallet(requestBody.WalletName, requestBody.Destination); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }

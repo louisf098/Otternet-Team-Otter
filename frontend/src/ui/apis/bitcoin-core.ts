@@ -130,7 +130,7 @@ export const getTransactions = async (walletName: string) => {
       timeReceived: new Date(tx.time * 1000), // Convert UNIX timestamp to Date
       category: tx.category || "",
       blockhash: tx.blockhash,
-      txid: tx.txid
+      txid: tx.txid,
     }));
 
     console.log("Parsed Transactions:", transactions);
@@ -161,12 +161,9 @@ export const mineCoins = async (address: string, amount: number) => {
 
 export const getBytesUploaded = async () => {
   try {
-    const response = await fetch(
-      `http://localhost:9378/getBytesUploaded`,
-      {
-        method: "GET",
-      }
-    );
+    const response = await fetch(`http://localhost:9378/getBytesUploaded`, {
+      method: "GET",
+    });
     if (!response.ok) {
       throw new Error("Failed to mine coins");
     }
@@ -176,19 +173,23 @@ export const getBytesUploaded = async () => {
   } catch (error) {
     console.error("Error retrieving the file", error);
   }
-}
+};
 
 export const backupWallet = async (walletName: string, destination: string) => {
   try {
-    const response = await fetch(
-      `http://localhost:9378/backupwallet/${walletName}/${destination}`,
-      {
-        method: "GET",
-      }
-    );
+    const response = await fetch(`http://localhost:9378/backupwallet`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        walletName,
+        destination,
+      }),
+    });
     if (!response.ok) {
       throw new Error("Failed to backup wallet");
-    } 
+    }
     const data = await response.json();
     console.log("Status:", data.status);
     return data.status;

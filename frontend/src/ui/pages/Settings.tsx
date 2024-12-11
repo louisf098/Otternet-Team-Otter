@@ -18,7 +18,7 @@ const Settings = () => {
     let status = await lockWallet(publicKey);
     if (status !== "locked") {
       return;
-  }
+    }
     const response = await fetch("http://localhost:9378/stopDHT", {
       method: "GET",
       headers: {
@@ -31,11 +31,12 @@ const Settings = () => {
   };
 
   const handleBackupWallet = async () => {
-    const backupFilePath = path.join(backupPath, "walletbackup");
-    console.log(walletName, encodeURIComponent(backupFilePath));
+    const backupFilePath = encodeURIComponent(
+      path.join(backupPath, "walletbackup")
+    );
     await backupWallet(
       walletName,
-      encodeURIComponent(backupPath) + "%5Cwalletbackup"
+      backupFilePath
     );
   };
 
