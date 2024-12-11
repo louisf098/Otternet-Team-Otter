@@ -654,13 +654,11 @@ func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr strin
 
     req := struct {
         ClientAddr string `json:"clientAddr"`
-        HostID     string `json:"hostID"`
     }{
         ClientAddr: clientAddr,
-        HostID:     h.ID().String(), // Include the sender's Host ID
     }
 
-    // Send the connection request with the Host ID
+    // Send the connection request
     if err := json.NewEncoder(stream).Encode(req); err != nil {
         return fmt.Errorf("failed to send connection request: %w", err)
     }

@@ -164,9 +164,8 @@ func main() {
 		var req struct {
 			ClientAddr string `json:"clientAddr"`
 			ServerID   string `json:"serverID"`
-			HostID     string `json:"hostID"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" || req.HostID == "" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
 			log.Printf("Invalid connection request: %v", err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -180,12 +179,11 @@ func main() {
 			return
 		}
 	
-		// Log the received Host ID for debugging
-		log.Printf("Connection request received:\nClient Addr: %s\nServer ID: %s\nHost ID: %s", req.ClientAddr, serverID, req.HostID)
+		log.Printf("Connection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
 	
-		// Ensure the HostID (sender) does not match the ServerID (target)
-		if req.HostID == serverID.String() {
-			log.Printf("Error: Attempted self-connection. HostID: %s, ServerID: %s", req.HostID, serverID)
+		// Ensure the serverID does not match the local Host ID to prevent self-dial
+		if serverID == global.DHTNode.Host.ID() {
+			log.Printf("Error: Attempted self-connection. ServerID: %s", serverID)
 			http.Error(w, "Cannot connect to self", http.StatusBadRequest)
 			return
 		}
