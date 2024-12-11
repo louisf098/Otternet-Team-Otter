@@ -76,22 +76,27 @@ func HandleFileRequests(h host.Host) {
 			log.Printf("Error sending metadata: %v", err)
 		}
 
+		// Send the wallet address back to the requester
+
+		wallet := WalletAddress{WalletID: global_wallet.WalletAddr + "\n"}
+		var walletBytes []byte
+		walletBytes, err = json.Marshal(wallet)
+		if err != nil {
+			log.Printf("Error marshalling wallet address: %v", err)
+		}
+
+		_, err = s.Write(walletBytes)
+		if err != nil {
+			log.Printf("Error sending wallet address: %v", err)
+		}
+
 		//Send the file back to the requester
 		_, err = io.Copy(s, file)
 		if err != nil {
 			log.Printf("Error sending file: %v", err)
 		}
 
-		wallet := WalletAddress{WalletID: global_wallet.WalletAddr}
-		var walletBytes []byte
-		walletBytes, err = json.Marshal(wallet)
-		if err != nil {
-			log.Printf("Error marshalling wallet address: %v", err)
-		}
-		_, err = s.Write(walletBytes)
-		if err != nil {
-			log.Printf("Error sending wallet address: %v", err)
-		}
+		fmt.Printf("Reached end of file request handler\n")
 
 	})
 }
