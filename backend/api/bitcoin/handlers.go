@@ -307,7 +307,7 @@ func LoadAllWalletsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTransactionsHandler(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	walletName, exists := vars["walletName"]
 	if !exists || walletName == "" {

@@ -21,7 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, mineCoins, getTransactions } from "../apis/bitcoin-core";
+import { getBalance, mineCoins, getTransactions, getBytesUploaded } from "../apis/bitcoin-core";
 import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
@@ -53,6 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<number>(1);
   const [selectedStats, setSelectedStats] = useState<number>(1);
   const [balance, setBalance] = useState<number>(0);
+  const [bytesUploaded, setBytesUploaded] = useState<number>(0);
 
   const { publicKey, walletName } = React.useContext(AuthContext);
 
@@ -121,10 +122,26 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
     setAmountToMine(Number(event.target.value));
   };
-
+  // Fetch the number of bytes uploaded
+  const fetchBytesUploaded = async () => {
+    try {
+      const bytes = await getBytesUploaded();
+      setBytesUploaded(bytes.bytesUploaded);
+      if (!bytes?.bytesUploaded) {
+        setSnackbarMessage("The total amount of file bytes uploaded was failed to be retrieved");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch the total bytes uploaded by the user",
+        error
+      );
+    }
+  }
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
+    fetchBytesUploaded();
   }, []);
 
   return (
@@ -258,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </Box>
             <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
-                Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
+                Bytes Uploaded: {bytesUploaded / 1000} KB
               </Typography>
             </Box>
           </Box>
