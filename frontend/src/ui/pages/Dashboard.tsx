@@ -126,11 +126,14 @@ const Dashboard: React.FC<DashboardProps> = ({
   const fetchBytesUploaded = async () => {
     try {
       const bytes = await getBytesUploaded();
-      setBytesUploaded(bytes.bytesUploaded);
       if (!bytes?.bytesUploaded) {
         setSnackbarMessage("The total amount of file bytes uploaded was failed to be retrieved");
         setSnackbarOpen(true);
       }
+      let { bytesUploaded } = bytes;
+      bytesUploaded = bytesUploaded / 1_000_000; // Divide by 1 million
+      bytesUploaded = bytesUploaded.toFixed(2); // Format to 2 decimal places
+      setBytesUploaded(bytesUploaded);
     } catch (error) {
       console.error(
         "Failed to fetch the total bytes uploaded by the user",
@@ -275,7 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </Box>
             <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
-                Bytes Uploaded: {bytesUploaded / 1000} KB
+                Bytes Uploaded: {bytesUploaded} MB
               </Typography>
             </Box>
           </Box>
