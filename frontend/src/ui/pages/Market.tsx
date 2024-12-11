@@ -482,7 +482,7 @@ const Market: React.FC<marketProps> = ({
               : "All Providers"}
           </Typography>{" "}
           <Tooltip
-            title="When you download a file, all providers for that hash will be added to the market."
+            title="When you search for providers of a file hash in the download page, providers for that hash will be added to the market."
             arrow
           >
             <IconButton>
@@ -490,7 +490,7 @@ const Market: React.FC<marketProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
-
+        <Box sx={{maxHeight: 500, overflowY: "scroll"}}>
         {walletId ? (
           <List>
             {currentFiles.map((file) => (
@@ -562,9 +562,10 @@ const Market: React.FC<marketProps> = ({
           </List>
         ) : (
           <Typography variant="h4">
-            Download files to get more providers.
+            Search for Providers in the Download Page to Display Providers.
           </Typography>
         )}
+        </Box>
         {walletId && (
           <Button
             variant="text"
