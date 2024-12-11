@@ -605,6 +605,15 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Received metadata: %v\n", metadata)
 
+	// get destination wallet address
+	var wallet WalletAddress
+	err = decoder.Decode(&wallet)
+	if err != nil {
+		fmt.Printf("Error decoding wallet address: %v\n", err)
+		return
+	}
+	fmt.Printf("Received wallet address: %v\n", wallet)
+
 	// Download file from peer
 
 	fmt.Println("Creating the File in Download Location")
@@ -648,16 +657,7 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	file.Close()
 
-	// get destination wallet address
-	var wallet WalletAddress
-	err = decoder.Decode(&wallet)
-	if err != nil {
-		fmt.Printf("Error decoding wallet address: %v\n", err)
-		return
-	}
-	fmt.Printf("Received wallet address: %v\n", wallet)
-
-	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
+	response := map[string]string{"message": "File downloaded successfully", "status": "success", "walletAddress": wallet.WalletID}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
