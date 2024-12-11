@@ -1,7 +1,7 @@
 package files
 
 import (
-	"Otternet/backend/api/download"
+	// "Otternet/backend/api/download"
 	"Otternet/backend/global"
 	"encoding/json"
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/libp2p/go-libp2p/core/peer"
+	// "github.com/libp2p/go-libp2p/core/peer"
 )
 
 type FormData struct {
@@ -341,107 +341,107 @@ func GetFilePrices(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles downloading file metadata and file
-func DownloadFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Println("File Download API Hit")
+// func DownloadFile(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != "POST" {
+// 		http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	fmt.Println("File Download API Hit")
 
-	// get details from request
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-	var postData = struct {
-		ProviderID   string `json:"providerID"`
-		DownloadPath string `json:"downloadPath"`
-		FileHash     string `json:"fileHash"`
-	}{}
-	err = json.Unmarshal(body, &postData)
-	if err != nil {
-		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
-		return
-	}
+// 	// get details from request
+// 	body, err := io.ReadAll(r.Body)
+// 	if err != nil {
+// 		http.Error(w, "Error reading request body", http.StatusBadRequest)
+// 		return
+// 	}
+// 	defer r.Body.Close()
+// 	var postData = struct {
+// 		ProviderID   string `json:"providerID"`
+// 		DownloadPath string `json:"downloadPath"`
+// 		FileHash     string `json:"fileHash"`
+// 	}{}
+// 	err = json.Unmarshal(body, &postData)
+// 	if err != nil {
+// 		http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
+// 		return
+// 	}
 
-	providerID := postData.ProviderID
-	downloadPath := postData.DownloadPath
-	fileHash := postData.FileHash
+// 	providerID := postData.ProviderID
+// 	downloadPath := postData.DownloadPath
+// 	fileHash := postData.FileHash
 
-	// make sure peerID is valid
-	peerID := peer.ID(providerID)
-	fmt.Printf("Peer ID: %s\n", peerID)
+// 	// make sure peerID is valid
+// 	peerID := peer.ID(providerID)
+// 	fmt.Printf("Peer ID: %s\n", peerID)
 
-	// Obtain peer info from DHT using providerID
-	peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
-	if err != nil {
-		fmt.Printf("Error finding peer: %v\n", err)
-		return
-	}
+// 	// Obtain peer info from DHT using providerID
+// 	peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
+// 	if err != nil {
+// 		fmt.Printf("Error finding peer: %v\n", err)
+// 		return
+// 	}
 
-	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
-	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
-	if err != nil {
-		fmt.Printf("Error opening stream: %v\n", err)
-		return
-	}
-	defer stream.Close()
+// 	// Open connection to peer using fileRequest protocol - consider using connect function from dht.go
+// 	stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, fileRequestProtocol)
+// 	if err != nil {
+// 		fmt.Printf("Error opening stream: %v\n", err)
+// 		return
+// 	}
+// 	defer stream.Close()
 
-	// Send file hash to peer
-	_, err = stream.Write([]byte(fileHash + "\n"))
-	if err != nil {
-		fmt.Printf("Error sending file hash: %v\n", err)
-		return
-	}
+// 	// Send file hash to peer
+// 	_, err = stream.Write([]byte(fileHash + "\n"))
+// 	if err != nil {
+// 		fmt.Printf("Error sending file hash: %v\n", err)
+// 		return
+// 	}
 
-	// Receive file metadata from peer
-	decoder := json.NewDecoder(stream)
-	var metadata FormData
-	err = decoder.Decode(&metadata)
-	if err != nil {
-		fmt.Printf("Error decoding metadata: %v\n", err)
-		return
-	}
+// 	// Receive file metadata from peer
+// 	decoder := json.NewDecoder(stream)
+// 	var metadata FormData
+// 	err = decoder.Decode(&metadata)
+// 	if err != nil {
+// 		fmt.Printf("Error decoding metadata: %v\n", err)
+// 		return
+// 	}
 
-	// Download file from peer
-	file, err := os.Create(downloadPath)
-	if err != nil {
-		fmt.Printf("Error creating file: %v\n", err)
-		return
-	}
+// 	// Download file from peer
+// 	file, err := os.Create(downloadPath)
+// 	if err != nil {
+// 		fmt.Printf("Error creating file: %v\n", err)
+// 		return
+// 	}
 
-	_, err = io.Copy(file, stream)
-	if err != nil {
-		fmt.Printf("Error copying file: %v\n", err)
-		return
-	}
-	file.Close()
-	fmt.Println("File Downloaded Successfully")
+// 	_, err = io.Copy(file, stream)
+// 	if err != nil {
+// 		fmt.Printf("Error copying file: %v\n", err)
+// 		return
+// 	}
+// 	file.Close()
+// 	fmt.Println("File Downloaded Successfully")
 
-	// Save file metadata to local file.json
-	downloadedFile := FormData{
-		UserID:     providerID,
-		Price:      metadata.Price,
-		FileName:   metadata.FileName,
-		FilePath:   downloadPath,
-		FileSize:   metadata.FileSize,
-		FileType:   metadata.FileType,
-		Timestamp:  metadata.Timestamp,
-		FileHash:   fileHash,
-		BundleMode: metadata.BundleMode,
-	}
+// 	// Save file metadata to local file.json
+// 	downloadedFile := FormData{
+// 		UserID:     providerID,
+// 		Price:      metadata.Price,
+// 		FileName:   metadata.FileName,
+// 		FilePath:   downloadPath,
+// 		FileSize:   metadata.FileSize,
+// 		FileType:   metadata.FileType,
+// 		Timestamp:  metadata.Timestamp,
+// 		FileHash:   fileHash,
+// 		BundleMode: metadata.BundleMode,
+// 	}
 
-	res := download.StoreFile(download.FormData(downloadedFile)) // ???!!!
-	if res != 0 {
-		http.Error(w, "Error storing file in downloads.json", http.StatusInternalServerError)
-		return
-	}
+// 	res := download.StoreFile(download.FormData(downloadedFile)) // ???!!!
+// 	if res != 0 {
+// 		http.Error(w, "Error storing file in downloads.json", http.StatusInternalServerError)
+// 		return
+// 	}
 
-	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-	fmt.Println("File Download API Response Sent")
-}
+// 	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
+// 	w.WriteHeader(http.StatusOK)
+// 	json.NewEncoder(w).Encode(response)
+// 	fmt.Println("File Download API Response Sent")
+// }

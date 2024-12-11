@@ -2,25 +2,31 @@ package proxy
 
 import (
 	"Otternet/backend/global"
-	"bufio"
+	// "bufio"
+
 	//"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
 	"io/ioutil"
+	"log"
+
 	//"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/elazarl/goproxy"
-	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p/core/host"
+	// "github.com/libp2p/go-libp2p/core/host"
+	// "github.com/libp2p/go-libp2p/core/network"
+
 	//"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	//"github.com/multiformats/go-multiaddr"
+	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
 )
@@ -37,6 +43,9 @@ var (
 var ProxyProviderHash = "proxy-louis-test1"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
+var proxyHistory = []ProxyHistory{}
+var proxyHistoryMu sync.Mutex
+const proxyHistoryFile = "api/proxy/proxyHistory.json"
 
 // ProxyNode represents a proxy node's details
 type ProxyNode struct {
@@ -45,6 +54,15 @@ type ProxyNode struct {
 	Port         string  `json:"port"`
 	PricePerHour float64 `json:"pricePerHour"`
 	Status       string  `json:"status"` // "available", "busy"
+}
+
+// ProxyHistory stores details of proxy session
+type ProxyHistory struct {
+	ConnectTime      string  `json:"ConnectTime"`
+	DisconnectTime   string  `json:"DisconnectTime"`
+	IPAddr     string  `json:"IPAddr"`
+	Price      float64 `json:"Price"`
+	ProxyWalletID string `json:"ProxyWalletID"`
 }
 
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
@@ -185,58 +203,82 @@ func normalizeAddress(addr string) string {
     return addr
 }
 
-// HandleConnectToProxy adds a client to the authorized list and starts servicing
-func HandleConnectToProxy(h host.Host) {
-	h.SetStreamHandler(proxyConnectProtocol, func(s network.Stream) {
-		defer s.Close()
+// Endpoint function to connect
+func RegisterHandleConnectEndpoint(router *mux.Router) {
+    router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
+        var req struct {
+			Rate 	   float64 `json:"price"`
+			WalletName string `json:"walletName"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            http.Error(w, "Invalid request body", http.StatusBadRequest)
+            return
+        }
 
-		// Read client multiaddress
-		r := bufio.NewReader(s)
-		clientAddr, err := r.ReadString('\n')
-		if err != nil {
-			log.Printf("Error reading from stream: %v", err)
-			return
-		}
-		clientAddr = strings.TrimSpace(clientAddr)
+        if req.Rate < 0 || req.WalletName == "" {
+            http.Error(w, "Missing or invalid 'price', or 'walletName' fields", http.StatusBadRequest)
+            return
+        }
 
-		// Add client to authorized list
-		mu.Lock()
-		authorizedClients[clientAddr] = true
-		mu.Unlock()
+		clientAddr, err := getPublicIP()
+        if err != nil {
+            http.Error(w, "Failed to fetch client IP address", http.StatusInternalServerError)
+            log.Printf("Error fetching client IP: %v", err)
+            return
+        }
 
-		log.Printf("Client %s connected to proxy", clientAddr)
+        // Authorize the client
+        mu.Lock() // Ensure thread-safe access
+        authorizedClients[clientAddr] = true
+        mu.Unlock()
 
-		// Send positive response
-		response := map[string]string{"message": "Connected to proxy"}
-		json.NewEncoder(s).Encode(response)
-	})
+        log.Printf("Client %s connected to proxy via API", clientAddr)
+		RecordProxyHistory(clientAddr, req.Rate, req.WalletName)
+
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{
+			"message": "Client authorized successfully",
+			"ConnectTime": time.Now().Format(time.RFC3339),
+		})
+    }).Methods("POST")
 }
 
-// HandleDisconnectFromProxy removes a client from the authorized list
-func HandleDisconnectFromProxy(h host.Host) {
-	h.SetStreamHandler(proxyDisconnectProtocol, func(s network.Stream) {
-		defer s.Close()
-
-		// Read client multiaddress
-		r := bufio.NewReader(s)
-		clientAddr, err := r.ReadString('\n')
+// endpoint function for disconnect to proxy
+func RegisterHandleDisconnectEndpoint(router *mux.Router) {
+    router.HandleFunc("/disconnectFromProxy", func(w http.ResponseWriter, r *http.Request) {
+		clientAddr, err := getPublicIP()
 		if err != nil {
-			log.Printf("Error reading from stream: %v", err)
-			return
+			http.Error(w, "Failed to fetch client IP address", http.StatusInternalServerError)
+            log.Printf("Error fetching client IP: %v", err)
+            return
 		}
-		clientAddr = strings.TrimSpace(clientAddr)
 
-		// Remove client from authorized list
-		mu.Lock()
-		delete(authorizedClients, clientAddr)
-		mu.Unlock()
+        // Remove client from authorized list
+        mu.Lock()
+        delete(authorizedClients, clientAddr)
+        mu.Unlock()
 
-		log.Printf("Client %s disconnected from proxy", clientAddr)
+		// Update disconnect time for proxy history and save to json
+		proxyHistoryMu.Lock()
+		for i, record := range proxyHistory {
+			if record.IPAddr == clientAddr && record.DisconnectTime == "Still connected" {
+				proxyHistory[i].DisconnectTime = time.Now().Format(time.RFC3339)
+			}
+		}
+		proxyHistoryMu.Unlock()
+		
+		err = SaveProxyHistory()
+		if err != nil {
+			log.Printf("Failed to save proxy history to file: %v", err)
+		}
 
-		// Send positive response
-		response := map[string]string{"message": "Disconnected from proxy"}
-		json.NewEncoder(s).Encode(response)
-	})
+        log.Printf("Client %s disconnected from proxy via API", clientAddr)
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{
+			"message": "Client disconnected successfully",
+			"DisconnectTime": time.Now().Format(time.RFC3339),
+		})
+    }).Methods("POST")
 }
 
 // FetchAvailableProxies retrieves a list of proxy nodes currently providing the ProxyProviderHash
@@ -293,6 +335,77 @@ func parseMultiAddr(multiAddr string) (string, string, error) {
 	ip := parts[2]
 	port := parts[4]
 	return ip, port, nil
+}
+
+// RecordProxyHistory adds a new proxy session to the history
+func RecordProxyHistory(ipAddr string, price float64, srcID string) {
+	proxyHistoryMu.Lock()
+	defer proxyHistoryMu.Unlock()
+
+	proxyHistory = append(proxyHistory, ProxyHistory{
+		ConnectTime:   time.Now().Format(time.RFC3339),
+		DisconnectTime:	"Still connected",
+		IPAddr:      ipAddr,
+		Price:       price,
+		ProxyWalletID: srcID,
+	})
+
+	err := SaveProxyHistory()
+	if err != nil {
+		log.Printf("Failed to save proxy history to file: %v", err)
+	}
+}
+
+// FetchProxyHistoryHandler fetches the proxy history
+func FetchProxyHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	proxyHistoryMu.Lock()
+	defer proxyHistoryMu.Unlock()
+
+	if len(proxyHistory) == 0 {
+		http.Error(w, "No proxy history found", http.StatusNotFound)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(proxyHistory); err != nil {
+		http.Error(w, "Failed to encode proxy history", http.StatusInternalServerError)
+	}
+}
+
+func LoadProxyHistory() error {
+	file, err := os.Open(proxyHistoryFile)
+	if err != nil {
+		// If file doesn't exist, initialize with an empty slice
+		if os.IsNotExist(err) {
+			proxyHistory = []ProxyHistory{}
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewDecoder(file).Decode(&proxyHistory)
+	if err != nil {
+		return err
+	}
+	log.Println("Proxy history loaded from file")
+	return nil
+}
+
+func SaveProxyHistory() error {
+	file, err := os.Create(proxyHistoryFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewEncoder(file).Encode(proxyHistory)
+	if err != nil {
+		return err
+	}
+	log.Println("Proxy history saved to file")
+	return nil
 }
 
  // Export the mu and map, used in server.go

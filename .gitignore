@@ -1,4 +1,5 @@
 /backend/api/files/files.json
 /backend/api/proxy/proxy.json
+/backend/api/proxy/proxyHistory.json
 /backend/api/download/downloads.json
 /backend/api/files/providers.txt

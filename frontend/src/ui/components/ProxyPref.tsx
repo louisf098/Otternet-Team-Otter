@@ -146,6 +146,7 @@ const ProxyPref = () => {
             sx={{ width: "130px" }}
             error={Boolean(rateError)}
             helperText={rateError}
+            disabled={proxyEnabled}
           />
           <Typography variant="body2" sx={{ marginLeft: 1, marginRight: 6 }}>
             OTTC/KB
