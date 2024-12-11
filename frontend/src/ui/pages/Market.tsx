@@ -21,6 +21,7 @@ import SortIcon from "@mui/icons-material/Sort";
 import DownloadIcon from "@mui/icons-material/Download";
 import HelpOutline from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
+import { set } from "react-hook-form";
 
 interface FileItem {
   walletID: string;
@@ -199,8 +200,12 @@ const Market: React.FC<marketProps> = ({
       }
       console.log("File downloaded successfully");
       handleDownloadModalClose();
+      setSnackbarOpen(true);
+      setSnackbarMessage(`File downloaded successfully and ${price} coins transferred`);
     } catch (err: any) {
       console.error("Error downloading file: ", err);
+      setSnackbarOpen(true);
+      setSnackbarMessage(`Error downloading file: ${err.message}`);
       handleDownloadModalClose();
     }
   };
@@ -338,13 +343,16 @@ const Market: React.FC<marketProps> = ({
             if (!transferResponse.ok) {
                 throw new Error(`Problem transferring coins.`);
             }
-
+            setSnackbarOpen(true);
+            setSnackbarMessage(`Files downloaded successfully and ${price} coins transferred.`);
             console.log("Coins transferred successfully.");
         } else {
             console.warn("No files were downloaded, skipping coin transfer.");
         }
     } catch (err: any) {
         console.error("Error during checkout confirmation: ", err);
+        setSnackbarOpen(true);
+        setSnackbarMessage(`Error during checkout confirmation: ${err.message}`);
         // Optionally, you can display an error message to the user here
     } finally {
         // Reset the checkout state regardless of success or failure

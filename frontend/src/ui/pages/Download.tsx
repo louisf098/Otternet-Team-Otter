@@ -140,7 +140,6 @@ const Download: React.FC<downloadHistoryTableProps> = ({
       const balance = balancejson["balance"];
       if (price === undefined || balance < price) {
         setSnackbarMessage("Insufficient balance");
-        setSnackbarSeverity("error");
         setSnackbarOpen(true);
         return;
       }
@@ -172,7 +171,6 @@ const Download: React.FC<downloadHistoryTableProps> = ({
 
       if (response.ok) {
         setSnackbarMessage("Download successful and coins sent to provider!");
-        setSnackbarSeverity("success");
       } else {
         const error = await response.json();
         setSnackbarMessage(
