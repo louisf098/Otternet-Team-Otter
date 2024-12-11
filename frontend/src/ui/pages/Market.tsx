@@ -411,7 +411,7 @@ const Market: React.FC = () => {
                 />
                 <ListItemText
                   primary={file.fileName}
-                  secondary={`Size: ${file.fileSize} | Type: ${file.fileType} | Uploaded: ${file.timestamp} | Price: ${file.price} OTTC`}
+                  secondary={`Size: ${(file.fileSize / 1000).toFixed(2)} KB | Type: ${file.fileType} | Uploaded: ${file.timestamp} | Price: ${file.price} OTTC`}
                 />
                 <Button
                   variant="contained"
@@ -518,7 +518,7 @@ const Market: React.FC = () => {
             {selectedFile && (
               <>
                 <strong>Name:</strong> {selectedFile.fileName} <br />
-                <strong>Size:</strong> {selectedFile.fileSize} <br />
+                <strong>Size:</strong> {(selectedFile.fileSize / 1000).toFixed(2)} KB <br />
                 <strong>Type:</strong> {selectedFile.fileType} <br />
                 <strong>Uploaded:</strong> {selectedFile.timestamp} <br />
                 <strong>Price:</strong> {selectedFile.price} OTTC <br />
