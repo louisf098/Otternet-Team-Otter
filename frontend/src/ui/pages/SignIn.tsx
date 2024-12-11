@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
+import Tooltip from "@mui/material/Tooltip";
 import { AuthContext } from "../contexts/AuthContext";
 import { unlockWallet } from "../apis/bitcoin-core";
 
@@ -25,8 +26,6 @@ const SignIn = () => {
       "passphrase"
     ) as HTMLInputElement;
 
-
-    
     if (!address.value || !passphrase.value) {
       setError("Please fill out both wallet ID and private key");
       return;
@@ -41,12 +40,15 @@ const SignIn = () => {
       setError("");
     }
 
-    const response = await fetch(`http://localhost:9378/startDHT/${address.value}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `http://localhost:9378/startDHT/${address.value}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
     console.log(response);
     setPublicKey(address.value);
 
@@ -103,6 +105,17 @@ const SignIn = () => {
         >
           Sign in
         </Typography>
+        <Box>
+          <Tooltip
+            title="Make sure to close the frontend and server. Go to where the wallet is stored. Mac: ~/Library/Application\ Support/Bitcoin/wallets Ubuntu: ~/.bitcoin/wallets. Put the wallet backup file in there. Restart frontend and server."
+            arrow
+          >
+            <span>
+              <Button disabled>Import Wallet</Button>
+            </span>
+          </Tooltip>
+        </Box>
+
         <Box
           component="form"
           noValidate
