@@ -37,7 +37,15 @@ interface FileItem {
 
 const ITEMS_PER_PAGE = 7;
 
-const Market: React.FC = () => {
+interface marketProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+
+const Market: React.FC<marketProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const [searchInput, setSearchInput] = useState<string>("");
   const [walletId, setWalletId] = useState<string>("");
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -211,32 +219,39 @@ const Market: React.FC = () => {
     setSortAnchorEl(null);
   };
 
-    const handleSort = (sortOption: string) => {
-        if (files) {
-            let sorted: FileItem[] = [];
-            switch (sortOption) {
-                case "Alphabetically":
-                    sorted = [...files].sort((a, b) => a.fileName.localeCompare(b.fileName));
-                    break;
-                case "Price":
-                    sorted = [...files].sort((a, b) => (a.price) - (b.price));
-                    break;
-                case "Upload Time":
-                    sorted = [...files].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                    break;
-                case "Size":
-                    sorted = [...files].sort((a, b) => (a.fileSize) - (b.fileSize));
-                    break;
-                case "Type":
-                    sorted = [...files].sort((a, b) => a.fileType.localeCompare(b.fileType));
-                    break;
-                default:
-                    sorted = files;
-            }
-            setFiles(sorted);
-        }
-        handleSortClose();
-    };
+  const handleSort = (sortOption: string) => {
+    if (files) {
+      let sorted: FileItem[] = [];
+      switch (sortOption) {
+        case "Alphabetically":
+          sorted = [...files].sort((a, b) =>
+            a.fileName.localeCompare(b.fileName)
+          );
+          break;
+        case "Price":
+          sorted = [...files].sort((a, b) => a.price - b.price);
+          break;
+        case "Upload Time":
+          sorted = [...files].sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          break;
+        case "Size":
+          sorted = [...files].sort((a, b) => a.fileSize - b.fileSize);
+          break;
+        case "Type":
+          sorted = [...files].sort((a, b) =>
+            a.fileType.localeCompare(b.fileType)
+          );
+          break;
+        default:
+          sorted = files;
+      }
+      setFiles(sorted);
+    }
+    handleSortClose();
+  };
 
   const handleCheckboxChange = (fileId: string) => {
     setSelectedFiles((prevSelected) => {
@@ -347,16 +362,16 @@ const Market: React.FC = () => {
   };
 
   const calculateTotalCost = () => {
-      const total = selectedFiles.reduce((sum, fileId) => {
-          const file = files.find((f) => f.fileHash === fileId);
-          return file ? sum + (file.price) : sum;
-      }, 0);
-      const discountRate = Math.min(selectedFiles.length * 5, 25);
-      const discountedTotal = total * (1 - discountRate / 100);
-      return {
-          total: total.toFixed(2),
-          discountedTotal: discountedTotal.toFixed(2)
-      };
+    const total = selectedFiles.reduce((sum, fileId) => {
+      const file = files.find((f) => f.fileHash === fileId);
+      return file ? sum + file.price : sum;
+    }, 0);
+    const discountRate = Math.min(selectedFiles.length * 5, 25);
+    const discountedTotal = total * (1 - discountRate / 100);
+    return {
+      total: total.toFixed(2),
+      discountedTotal: discountedTotal.toFixed(2),
+    };
   };
 
   const currentFiles =
@@ -405,26 +420,38 @@ const Market: React.FC = () => {
             Search
           </Button>
 
-                    <Button
-                        variant="contained"
-                        onClick={handleSortClick}
-                        sx={{ mr: 2, backgroundColor: "#9e9e9e", color: "#ffffff", height: "55px", width: "55px" }}
-                    >
-                        <SortIcon />
-                    </Button>
-                    <Menu
-                        anchorEl={sortAnchorEl}
-                        open={Boolean(sortAnchorEl)}
-                        onClose={handleSortClose}
-                    >
-                        <MenuItem onClick={() => handleSort("Alphabetically")}>Sort Alphabetically</MenuItem>
-                        <MenuItem onClick={() => handleSort("Price")}>Sort by Price</MenuItem>
-                        <MenuItem onClick={() => handleSort("Upload Time")}>Sort by Upload Time</MenuItem>
-                        <MenuItem onClick={() => handleSort("Size")}>Sort by Size</MenuItem>
-                        <MenuItem onClick={() => handleSort("Type")}>Sort by Type</MenuItem>
-                    </Menu>
-                </Box>
-            </Box>
+          <Button
+            variant="contained"
+            onClick={handleSortClick}
+            sx={{
+              mr: 2,
+              backgroundColor: "#9e9e9e",
+              color: "#ffffff",
+              height: "55px",
+              width: "55px",
+            }}
+          >
+            <SortIcon />
+          </Button>
+          <Menu
+            anchorEl={sortAnchorEl}
+            open={Boolean(sortAnchorEl)}
+            onClose={handleSortClose}
+          >
+            <MenuItem onClick={() => handleSort("Alphabetically")}>
+              Sort Alphabetically
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Price")}>
+              Sort by Price
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Upload Time")}>
+              Sort by Upload Time
+            </MenuItem>
+            <MenuItem onClick={() => handleSort("Size")}>Sort by Size</MenuItem>
+            <MenuItem onClick={() => handleSort("Type")}>Sort by Type</MenuItem>
+          </Menu>
+        </Box>
+      </Box>
 
       {error && (
         <Typography
@@ -471,7 +498,11 @@ const Market: React.FC = () => {
                 />
                 <ListItemText
                   primary={file.fileName}
-                  secondary={`Size: ${(file.fileSize / 1000).toFixed(2)} KB | Type: ${file.fileType} | Uploaded: ${file.timestamp} | Price: ${file.price} OTTC`}
+                  secondary={`Size: ${(file.fileSize / 1000).toFixed(
+                    2
+                  )} KB | Type: ${file.fileType} | Uploaded: ${
+                    file.timestamp
+                  } | Price: ${file.price} OTTC`}
                 />
                 <Button
                   variant="contained"
@@ -578,7 +609,8 @@ const Market: React.FC = () => {
             {selectedFile && (
               <>
                 <strong>Name:</strong> {selectedFile.fileName} <br />
-                <strong>Size:</strong> {(selectedFile.fileSize / 1000).toFixed(2)} KB <br />
+                <strong>Size:</strong>{" "}
+                {(selectedFile.fileSize / 1000).toFixed(2)} KB <br />
                 <strong>Type:</strong> {selectedFile.fileType} <br />
                 <strong>Uploaded:</strong> {selectedFile.timestamp} <br />
                 <strong>Price:</strong> {selectedFile.price} OTTC <br />
