@@ -163,6 +163,13 @@ const Market: React.FC = () => {
         DownloadPath: downloadLocation,
         FileHash: selectedFile?.fileHash,
       };
+      const price = selectedFile?.price;
+      const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+      const balancejson = await resp.json();
+      const balance = balancejson["balance"];
+      if (price === undefined || balance < price) {
+        throw new Error("Not enough balance to download the file");
+      }
 
       const response = await fetch("http://localhost:9378/download", {
         method: "POST",
@@ -258,7 +265,13 @@ const Market: React.FC = () => {
 
         // Array to store individual download responses if needed
         const downloadResponses: Response[] = [];
-
+        const price = calculateTotalCost().discountedTotal;
+        const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+        const balancejson = await resp.json();
+        const balance = balancejson["balance"];
+        if (balance < price) {
+            throw new Error("Not enough balance to download the files");
+        }
         // Iterate over each selected file and download sequentially
         for (const fileId of selectedFiles) {
             const file = files.find((f) => f.fileHash === fileId);
@@ -299,8 +312,6 @@ const Market: React.FC = () => {
             if (!lastResponseData.walletAddress) {
                 throw new Error("Wallet address not found in the download response.");
             }
-
-            const price = calculateTotalCost().discountedTotal;
 
             const transferResponse = await fetch(`http://localhost:9378/transferCoins/${walletName}/${lastResponseData.walletAddress}/${price}/File`, {
                 method: "POST",

@@ -117,7 +117,18 @@ const Download = () => {
       }
       
       console.log("WalletID: ", phash);
-      
+      const provider = providers.find((provider) => provider.walletID === phash);
+      const price = provider?.price;
+      const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+      const balancejson = await resp.json();
+      const balance = balancejson["balance"];
+      if (price === undefined || balance < price) {
+        setSnackbarMessage("Insufficient balance");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+        return;
+      }
+
       const response = await fetch("http://localhost:9378/download", {
         method: 'POST',
         body: JSON.stringify(postData),
@@ -127,13 +138,12 @@ const Download = () => {
       }
       const responseData = await response.json();
       const destWalletAddr = responseData.walletAddress;
-      const provider = providers.find((provider) => provider.walletID === phash);
       console.log("Provider: ", provider);
       if (!provider) {
         throw new Error("Provider not found");
       }
 
-      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${provider.price}/File`, {
+      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${price}/File`, {
         method: 'POST',
       });
 
