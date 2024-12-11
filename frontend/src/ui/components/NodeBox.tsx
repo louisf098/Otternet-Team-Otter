@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import Typography from "@mui/material/Typography";
-import { Button, CircularProgress } from "@mui/material";
+import { Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import "../stylesheets/NodeBox.css";
 
 export interface ProxyNode {
   id: string;
-  rate: number;
+  pricePerHour: number;
   ip: string;
   port: number;
 }
 
 interface NodeBoxProps {
   node: ProxyNode;
-  isSelected: boolean;
-  onSelect: (node: ProxyNode) => Promise<boolean>; // Adjust to expect a promise that returns success status
-  onDisconnect: (node: ProxyNode) => void;
+  isSelected: boolean; // Add this to the props
+  onSelect: (node: ProxyNode) => Promise<boolean>;
+  onDisconnect: (node: ProxyNode) => Promise<void>; // Ensure async consistency
 }
 
 const NodeBox: React.FC<NodeBoxProps> = ({
@@ -26,20 +26,23 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   const [pConnect, setPConnect] = useState<boolean>(false);
   const [pDisconnect, setPDisconnect] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
+  const [showModal, setShowModal] = useState<boolean>(false); // State for modal
+  const [showDetails, setShowDetails] = useState<boolean>(isSelected); // State to show IP and Port
 
   const handleSelect = () => {
-    setPConnect(true);
+    setShowModal(true); // Open modal on Connect click
   };
 
   const handlePConnect = async () => {
     setIsLoading(true);
-
     try {
       const success = await onSelect(node);
       if (success) {
         setTimeout(() => {
           setPConnect(false);
           setIsLoading(false);
+          setShowDetails(true); // Show IP and Port after connection
+          setShowModal(false); // Close modal after successful connection
         }, 2000);
       } else {
         alert("Failed to connect to proxy. Please check the server.");
@@ -54,24 +57,37 @@ const NodeBox: React.FC<NodeBoxProps> = ({
 
   const handleCancel = () => {
     setPConnect(false);
+    setShowModal(false); // Close modal on Cancel
   };
 
-  const handleDisconnect = (e: React.MouseEvent) => {
+  const handleDisconnect = async () => {
     setPDisconnect(true);
-    setTimeout(() => {
-      console.log("disconnecting");
-      onDisconnect(node);
+    try {
+      await onDisconnect(node);
+      setShowDetails(false); // Hide IP and Port on disconnect
+    } catch (error) {
+      console.error("Error disconnecting from proxy:", error);
+    } finally {
       setPDisconnect(false);
-    }, 1000);
+    }
   };
 
   return (
     <div className={`${isSelected ? "selected" : ""} node-box`}>
       <Typography variant="h6">
-        <span style={{ fontWeight: "bold" }}>{node.id}</span>
+        <span style={{ fontWeight: "bold" }}>{`${node.id.slice(0, 8)}...`}</span>
       </Typography>
-      <Typography variant="body1">Rate: {node.rate} OTTC/KB</Typography>
-      <Typography variant="body1">IP: {node.ip}</Typography>
+      <Typography variant="body1">Rate: {node.pricePerHour} OTTC/KB</Typography>
+      {showDetails && (
+        <>
+          <Typography variant="body1">
+            <strong>Public IP:</strong> {node.ip}
+          </Typography>
+          <Typography variant="body1">
+            <strong>Port:</strong> 8081
+          </Typography>
+        </>
+      )}
       {!isSelected && !pConnect && (
         <Button onClick={handleSelect}>Connect</Button>
       )}
@@ -101,6 +117,24 @@ const NodeBox: React.FC<NodeBoxProps> = ({
           )}
         </>
       )}
+
+      {/* Modal for confirmation */}
+      <Dialog open={showModal} onClose={handleCancel}>
+        <DialogTitle>Confirm Connection</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Are you sure you want to connect to this proxy node?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancel} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handlePConnect} color="primary" disabled={isLoading}>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

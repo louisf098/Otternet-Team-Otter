@@ -1,68 +1,91 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import NodeBox from "./NodeBox";
 import { ProxyContext } from "../contexts/ProxyContext";
-import { proxyNodes } from "../data/proxyNodes";
-import { ProxyData } from "../interfaces/File";
+import { ProxyNode } from "./NodeBox";
 import { IconButton, Snackbar, SnackbarCloseReason } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import "../stylesheets/NodesSection.css";
-import { AuthContext } from "../contexts/AuthContext";
 
 const NodesSection: React.FC = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
+  const [proxyNodes, setProxyNodes] = useState<ProxyNode[]>([]); // Dynamic proxy nodes
+  const [loading, setLoading] = useState<boolean>(true); // Loading state
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const { publicKey } = useContext(AuthContext);
 
-  const handleSelect = async (
-    node: (typeof proxyNodes)[0]
-  ): Promise<boolean> => {
-    try {
-      const proxyData: ProxyData = {
-        walletID: publicKey,
-        srcID: node.id,
-        ipAddr: node.ip,
-        price: node.rate,
-        timestamp: new Date().toISOString(),
-      };
+  useEffect(() => {
+    const fetchProxies = async () => {
+      try {
+        const response = await fetch("http://localhost:9378/fetchAvailableProxies");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch proxies: ${response.statusText}`);
+        }
 
-      const success = await connectToProxy(proxyData);
-      if (success) {
-        await setSelectedNode(node);
-        return true; // Successfully connected
-      } else {
-        return false; // Failed to connect
+        const data: ProxyNode[] = await response.json();
+        // Filter out nodes with IP 127.0.0.1
+        const filteredNodes = data.filter((node) => node.ip !== "127.0.0.1");
+        setProxyNodes(filteredNodes);
+      } catch (error) {
+        console.error("Error fetching proxy nodes:", error);
+        setSnackbarMessage("Failed to load proxy nodes.");
+        setSnackbarOpen(true);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error("Failed to connect to proxy:", e);
-      return false;
-    }
-  };
+    };
 
-  const connectToProxy = async (proxyData: ProxyData): Promise<boolean> => {
+    fetchProxies();
+  }, []);
+
+  const handleSelect = async (node: ProxyNode): Promise<boolean> => {
     try {
       const response = await fetch("http://localhost:9378/connectToProxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(proxyData),
+        body: JSON.stringify({ clientAddr: node.ip }),
       });
 
       if (response.status === 200) {
         setSnackbarMessage("Connected to proxy");
         setSnackbarOpen(true);
-        return true; // Connection succeeded
+        setSelectedNode(node);
+        return true;
       } else {
         setSnackbarMessage("Failed to connect to proxy");
         setSnackbarOpen(true);
-        return false; // Connection failed
+        return false;
       }
-    } catch (err) {
-      console.error("Error connecting to proxy:", err);
+    } catch (error) {
+      console.error("Error connecting to proxy:", error);
       setSnackbarMessage("Error connecting to proxy");
       setSnackbarOpen(true);
-      return false; // Error occurred
+      return false;
+    }
+  };
+
+  const handleDisconnect = async (node: ProxyNode) => {
+    if (selectedNode?.id === node.id) {
+      try {
+        await fetch("http://localhost:9378/disconnectFromProxy", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ clientAddr: node.ip }),
+        });
+
+        setSelectedNode(null);
+        setSnackbarMessage("Disconnected from proxy");
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error("Error disconnecting from proxy:", error);
+        setSnackbarMessage("Failed to disconnect from proxy");
+        setSnackbarOpen(true);
+      }
+    } else {
+      alert("You are not connected to this node");
     }
   };
 
@@ -76,21 +99,11 @@ const NodesSection: React.FC = () => {
     setSnackbarOpen(false);
   };
 
-  const handleDisconnect = async (node: (typeof proxyNodes)[0]) => {
-    if (selectedNode?.id === node.id) {
-      try {
-        setSelectedNode(null);
-      } catch (e) {
-        alert(`Failed to disconnect from ${node.id}`);
-      }
-    } else {
-      alert("You are not connected to this node");
-    }
-  };
+  const sortByRate = (a: ProxyNode, b: ProxyNode) => a.pricePerHour - b.pricePerHour;
 
-  const sortByRate = (a: (typeof proxyNodes)[0], b: (typeof proxyNodes)[0]) => {
-    return a.rate - b.rate;
-  };
+  if (loading) {
+    return <div>Loading proxy nodes...</div>;
+  }
 
   return (
     <>

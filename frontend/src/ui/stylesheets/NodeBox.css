@@ -1,23 +1,27 @@
 .node-box {
-    width: 100%;
-    background-color: #C5C6D0;
-    border: 2px solid transparent;
-    border-radius: 5px;
-    transition: background-color 0.3s, border-color 0.3s;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-
-.node-box button {
-    cursor: pointer;
-}
-/* .node-box:hover {
-    background-color: grey;
-} */
-
-/* For currently chosen proxy node, make it green */
-.node_box.selected {
-    background-color: lightgreen;
-}
+    padding: 16px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    text-align: center;
+    overflow: hidden;
+    width: 100%; /* Adjust width as per design */
+    max-width: 300px; /* Ensure the box width remains consistent */
+    white-space: nowrap; /* Prevent text from wrapping */
+    text-overflow: ellipsis; /* Add ellipsis if text overflows */
+    overflow: hidden; /* Hide the overflow text */
+  }
+  
+  .node-box span {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%; /* Ensure it matches the box width */
+  }
+  
