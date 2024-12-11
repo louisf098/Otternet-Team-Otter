@@ -6,6 +6,7 @@ import (
 	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
+	"Otternet/backend/api/statistics"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -112,6 +113,9 @@ func main() {
 	// DHT Routes
 	r.HandleFunc("/startDHT/{walletAddr}", dhtHandlers.StartDHTHandler).Methods("GET")
 	r.HandleFunc("/stopDHT", dhtHandlers.CloseDHTHandler).Methods("GET")
+
+	// Accessing File for bytes uploaded
+	r.HandleFunc("/getBytesUploaded", statistics.GetBytesUploadedHandler).Methods("GET")
 	handlerWithCORS := corsOptions(r)
 
 	server := &http.Server{
