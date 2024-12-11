@@ -34,6 +34,10 @@ type FormData struct {
 	BundleMode bool    `json:"bundleMode"`
 }
 
+type WalletAddress struct {
+	WalletID string `json:"walletID"`
+}
+
 // Handles incoming file requests using a stream handler
 func HandleFileRequests(h host.Host) {
 	h.SetStreamHandler(FileRequestProtocol, func(s network.Stream) {
@@ -78,8 +82,13 @@ func HandleFileRequests(h host.Host) {
 			log.Printf("Error sending file: %v", err)
 		}
 
-		walletAddr := global_wallet.WalletAddr
-		_, err = s.Write([]byte(walletAddr + "\n"))
+		wallet := WalletAddress{WalletID: global_wallet.WalletAddr}
+		var walletBytes []byte
+		walletBytes, err = json.Marshal(wallet)
+		if err != nil {
+			log.Printf("Error marshalling wallet address: %v", err)
+		}
+		_, err = s.Write(walletBytes)
 		if err != nil {
 			log.Printf("Error sending wallet address: %v", err)
 		}
