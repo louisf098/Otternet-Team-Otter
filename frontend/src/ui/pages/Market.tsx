@@ -102,6 +102,9 @@ const Market: React.FC<marketProps> = ({
       if (searchedProviders.length === 0) {
         setError("No providers found for the provided wallet ID.");
       }
+      else{
+        setError("");
+      }
     }
     setWalletId("");
     setCurrentPage(1);
