@@ -61,12 +61,12 @@ const Settings = () => {
         Settings
       </Typography>
       <Typography variant="body1" sx={{ mb: 1 }}>
-        Wallet ID: {publicKey}
+        Wallet Address: {publicKey}
       </Typography>
       <Button onClick={handleSignOut}>Sign Out</Button>
       <Button onClick={selectFolder}>Select Backup Folder</Button>
       {backupPath && <p>Selected Folder: {backupPath}</p>}
-      <Button onClick={handleBackupWallet}>Backup Wallet</Button>
+      <Button onClick={handleBackupWallet} disabled={!backupPath}>Backup Wallet</Button>
     </Box>
   );
 };
