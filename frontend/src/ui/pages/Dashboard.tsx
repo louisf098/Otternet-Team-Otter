@@ -21,7 +21,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, mineCoins, getTransactions, getBytesUploaded } from "../apis/bitcoin-core";
+import {
+  getBalance,
+  mineCoins,
+  getTransactions,
+  getBytesUploaded,
+} from "../apis/bitcoin-core";
 import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
@@ -107,10 +112,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
-    setSnackbarMessage(`${amountToMine} blocks mining initiated`)
+    setSnackbarMessage(`${amountToMine} blocks mining initiated`);
     setSnackbarOpen(true);
     const blockHashes = mineCoins(publicKey, amountToMine);
-    setSnackbarOpen(false);
   };
 
   const handleSetAmountToMine = (
@@ -128,7 +132,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       const bytes = await getBytesUploaded();
       setBytesUploaded(bytes.bytesUploaded);
       if (!bytes?.bytesUploaded) {
-        setSnackbarMessage("The total amount of file bytes uploaded was failed to be retrieved");
+        setSnackbarMessage(
+          "The total amount of file bytes uploaded was failed to be retrieved"
+        );
         setSnackbarOpen(true);
       }
     } catch (error) {
@@ -137,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         error
       );
     }
-  }
+  };
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
