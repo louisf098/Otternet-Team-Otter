@@ -57,7 +57,15 @@ const App: React.FC = () => {
                     />
                   }
                 />
-                <Route path="/market" element={<Market />} />
+                <Route
+                  path="/market"
+                  element={
+                    <Market
+                      setSnackbarOpen={setSnackbarOpen}
+                      setSnackbarMessage={setSnackbarMessage}
+                    />
+                  }
+                />
                 <Route path="/proxy" element={<Proxy />} />
                 <Route
                   path="/upload"
