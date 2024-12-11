@@ -262,10 +262,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             }}
           >
             <Box sx={{ display: "flex" }}>
-              <Typography variant="body1" sx={{ mr: 1 }}>
-                Statistics
+              <Typography variant="body1" sx={{ mr: 5 }}>
+                Statistics:
               </Typography>
-              <Select
+              <Typography variant="body1">
+                Bytes Uploaded: {bytesUploaded} MB
+              </Typography>
+              {/* <Select
                 fullWidth
                 size="small"
                 variant="standard"
@@ -275,18 +278,18 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <MenuItem value={1}>Past 24 Hours</MenuItem>
                 <MenuItem value={2}>Past Week</MenuItem>
                 <MenuItem value={3}>Past Month</MenuItem>
-              </Select>
+              </Select> */}
             </Box>
-            <Box sx={{ display: "flex" }}>
+            {/* <Box sx={{ display: "flex" }}>
               <Typography variant="body1" sx={{ mr: 1 }}>
                 Recent Revenue: {Math.floor(Math.random() * 256)} OTTC
               </Typography>
-            </Box>
-            <Box sx={{ display: "flex" }}>
+            </Box> */}
+            {/* <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
                 Bytes Uploaded: {bytesUploaded} MB
               </Typography>
-            </Box>
+            </Box> */}
           </Box>
         </Box>
         <Tabs
