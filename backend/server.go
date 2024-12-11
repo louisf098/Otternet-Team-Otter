@@ -164,13 +164,15 @@ func main() {
 		var req struct {
 			ClientAddr string `json:"clientAddr"`
 			ServerID   string `json:"serverID"`
+			HostID     string `json:"hostID"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" || req.HostID == "" {
 			log.Printf("Invalid connection request: %v", err)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 	
+		// Decode the provided ServerID
 		serverID, err := peer.Decode(req.ServerID)
 		if err != nil {
 			log.Printf("Invalid server ID: %v", err)
@@ -178,7 +180,17 @@ func main() {
 			return
 		}
 	
-		log.Printf("Sending connection request to server: %s", serverID)
+		// Log the received Host ID for debugging
+		log.Printf("Connection request received:\nClient Addr: %s\nServer ID: %s\nHost ID: %s", req.ClientAddr, serverID, req.HostID)
+	
+		// Ensure the HostID (sender) does not match the ServerID (target)
+		if req.HostID == serverID.String() {
+			log.Printf("Error: Attempted self-connection. HostID: %s, ServerID: %s", req.HostID, serverID)
+			http.Error(w, "Cannot connect to self", http.StatusBadRequest)
+			return
+		}
+	
+		// Perform the connection request
 		err = proxy.SendConnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
 		if err != nil {
 			log.Printf("Error sending connection request: %v", err)
@@ -188,7 +200,7 @@ func main() {
 	
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent successfully"})
-	}).Methods("POST")
+	}).Methods("POST")	
 	
 	r.HandleFunc("/proxy/disconnect", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {

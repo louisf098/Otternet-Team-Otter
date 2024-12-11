@@ -75,7 +75,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   return (
     <div className={`${isSelected ? "selected" : ""} node-box`}>
       <Typography variant="h6">
-        <span style={{ fontWeight: "bold" }}>{`${node.id.slice(0, 8)}...`}</span>
+        <span style={{ fontWeight: "bold" }}>{`${node.id.slice(0, 20)}...`}</span>
       </Typography>
       <Typography variant="body1">Rate: {node.pricePerHour} OTTC/KB</Typography>
       {showDetails && (

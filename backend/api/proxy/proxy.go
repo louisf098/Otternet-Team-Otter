@@ -35,7 +35,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-x6"
+var ProxyProviderHash = "proxy-louis-x7"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 
@@ -50,6 +50,7 @@ type ProxyNode struct {
 
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
 func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour float64) error {
+    fmt.Printf("Advertising as proxy node. Host ID: %s", global.DHTNode.Host.ID())
     if global.DHTNode == nil {
         return fmt.Errorf("DHT node is not initialized")
     }
@@ -365,132 +366,132 @@ func RegisterHandleStopServingEndpoint(router *mux.Router) {
 }
 
 // Endpoint function to connect
-func RegisterHandleConnectEndpoint(router *mux.Router) {
-    router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-            http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
-            return
-        }
-        w.Header().Set("Content-Type", "application/json")
+// func RegisterHandleConnectEndpoint(router *mux.Router) {
+//     router.HandleFunc("/connectToProxy", func(w http.ResponseWriter, r *http.Request) {
+//         if r.Method != http.MethodPost {
+//             http.Error(w, "Invalid request method. Use POST.", http.StatusMethodNotAllowed)
+//             return
+//         }
+//         w.Header().Set("Content-Type", "application/json")
 
-        // Parse the request body
-        var req struct {
-            ClientAddr string `json:"clientAddr"`
-            ProviderID string `json:"providerID"`
-        }
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-            log.Printf("Error decoding request body: %v", err)
-            http.Error(w, "Invalid request body", http.StatusBadRequest)
-            return
-        }
+//         // Parse the request body
+//         var req struct {
+//             ClientAddr string `json:"clientAddr"`
+//             ProviderID string `json:"providerID"`
+//         }
+//         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+//             log.Printf("Error decoding request body: %v", err)
+//             http.Error(w, "Invalid request body", http.StatusBadRequest)
+//             return
+//         }
 
-        if req.ClientAddr == "" || req.ProviderID == "" {
-            log.Println("Missing required fields: clientAddr or providerID")
-            http.Error(w, "Both client address and provider ID are required", http.StatusBadRequest)
-            return
-        }
+//         if req.ClientAddr == "" || req.ProviderID == "" {
+//             log.Println("Missing required fields: clientAddr or providerID")
+//             http.Error(w, "Both client address and provider ID are required", http.StatusBadRequest)
+//             return
+//         }
 
-        // Decode the provider ID into a libp2p Peer ID
-        peerID, err := peer.Decode(req.ProviderID)
-        if err != nil {
-            log.Printf("Error decoding providerID '%s': %v", req.ProviderID, err)
-            http.Error(w, "Invalid provider ID", http.StatusBadRequest)
-            return
-        }
+//         // Decode the provider ID into a libp2p Peer ID
+//         peerID, err := peer.Decode(req.ProviderID)
+//         if err != nil {
+//             log.Printf("Error decoding providerID '%s': %v", req.ProviderID, err)
+//             http.Error(w, "Invalid provider ID", http.StatusBadRequest)
+//             return
+//         }
 
-        // Debug: Print known peers
-        log.Printf("Known peers before DHT lookup: %v", global.DHTNode.Host.Network().Peers())
+//         // Debug: Print known peers
+//         log.Printf("Known peers before DHT lookup: %v", global.DHTNode.Host.Network().Peers())
 
-        // Use the DHT to find the peer information
-        log.Printf("Looking up provider ID '%s' in the DHT...", peerID)
-        peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
-        if err != nil {
-            log.Printf("Error finding peer in DHT: %v", err)
-            http.Error(w, fmt.Sprintf("Failed to find provider in DHT: %v", err), http.StatusInternalServerError)
-            return
-        }
+//         // Use the DHT to find the peer information
+//         log.Printf("Looking up provider ID '%s' in the DHT...", peerID)
+//         peerInfo, err := global.DHTNode.DHT.FindPeer(global.DHTNode.Ctx, peerID)
+//         if err != nil {
+//             log.Printf("Error finding peer in DHT: %v", err)
+//             http.Error(w, fmt.Sprintf("Failed to find provider in DHT: %v", err), http.StatusInternalServerError)
+//             return
+//         }
 
-        // Debug: Print peerInfo result
-        log.Printf("DHT lookup successful. Peer info: ID=%s, Addrs=%v", peerInfo.ID, peerInfo.Addrs)
+//         // Debug: Print peerInfo result
+//         log.Printf("DHT lookup successful. Peer info: ID=%s, Addrs=%v", peerInfo.ID, peerInfo.Addrs)
 
-        // Open a stream to the provider using the proxyConnectProtocol
-        log.Printf("Attempting to open a stream to peer ID '%s' using protocol '%s'...", peerInfo.ID, proxyConnectProtocol)
-        stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, proxyConnectProtocol)
-        if err != nil {
-            log.Printf("Error opening stream to provider: %v", err)
-            http.Error(w, fmt.Sprintf("Failed to open stream: %v", err), http.StatusInternalServerError)
-            return
-        }
-        defer stream.Close()
-        log.Printf("Stream opened successfully to peer ID '%s'", peerInfo.ID)
+//         // Open a stream to the provider using the proxyConnectProtocol
+//         log.Printf("Attempting to open a stream to peer ID '%s' using protocol '%s'...", peerInfo.ID, proxyConnectProtocol)
+//         stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peerInfo.ID, proxyConnectProtocol)
+//         if err != nil {
+//             log.Printf("Error opening stream to provider: %v", err)
+//             http.Error(w, fmt.Sprintf("Failed to open stream: %v", err), http.StatusInternalServerError)
+//             return
+//         }
+//         defer stream.Close()
+//         log.Printf("Stream opened successfully to peer ID '%s'", peerInfo.ID)
 
-        // Send the connection request to the provider
-        connectionRequest := map[string]string{
-            "clientAddr": req.ClientAddr,
-        }
-        log.Printf("Sending connection request to provider: %v", connectionRequest)
-        if err := json.NewEncoder(stream).Encode(connectionRequest); err != nil {
-            log.Printf("Error sending connection request: %v", err)
-            http.Error(w, fmt.Sprintf("Failed to send connection request: %v", err), http.StatusInternalServerError)
-            return
-        }
+//         // Send the connection request to the provider
+//         connectionRequest := map[string]string{
+//             "clientAddr": req.ClientAddr,
+//         }
+//         log.Printf("Sending connection request to provider: %v", connectionRequest)
+//         if err := json.NewEncoder(stream).Encode(connectionRequest); err != nil {
+//             log.Printf("Error sending connection request: %v", err)
+//             http.Error(w, fmt.Sprintf("Failed to send connection request: %v", err), http.StatusInternalServerError)
+//             return
+//         }
 
-        // Read the provider's response
-        var response map[string]string
-        log.Println("Waiting for provider's response...")
-        if err := json.NewDecoder(stream).Decode(&response); err != nil {
-            log.Printf("Error decoding provider response: %v", err)
-            http.Error(w, fmt.Sprintf("Failed to decode response: %v", err), http.StatusInternalServerError)
-            return
-        }
+//         // Read the provider's response
+//         var response map[string]string
+//         log.Println("Waiting for provider's response...")
+//         if err := json.NewDecoder(stream).Decode(&response); err != nil {
+//             log.Printf("Error decoding provider response: %v", err)
+//             http.Error(w, fmt.Sprintf("Failed to decode response: %v", err), http.StatusInternalServerError)
+//             return
+//         }
 
-        log.Printf("Connect response from provider: %v", response)
-        w.WriteHeader(http.StatusOK)
-        json.NewEncoder(w).Encode(map[string]string{
-            "message":          "Client connected to proxy successfully",
-            "providerResponse": fmt.Sprintf("%v", response),
-        })
-    }).Methods("POST")
-}
+//         log.Printf("Connect response from provider: %v", response)
+//         w.WriteHeader(http.StatusOK)
+//         json.NewEncoder(w).Encode(map[string]string{
+//             "message":          "Client connected to proxy successfully",
+//             "providerResponse": fmt.Sprintf("%v", response),
+//         })
+//     }).Methods("POST")
+// }
 
-// endpoint function for disconnect to proxy
-func RegisterHandleDisconnectEndpoint(router *mux.Router) {
-    router.HandleFunc("/disconnectFromProxy", func(w http.ResponseWriter, r *http.Request) {
-        var req struct {
-            ClientAddr string `json:"clientAddr"`
-        }
+// // endpoint function for disconnect to proxy
+// func RegisterHandleDisconnectEndpoint(router *mux.Router) {
+//     router.HandleFunc("/disconnectFromProxy", func(w http.ResponseWriter, r *http.Request) {
+//         var req struct {
+//             ClientAddr string `json:"clientAddr"`
+//         }
         
-        // Decode the request body
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-            log.Println("Invalid request body for disconnect:", err)
-            http.Error(w, "Invalid request body", http.StatusBadRequest)
-            return
-        }
+//         // Decode the request body
+//         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+//             log.Println("Invalid request body for disconnect:", err)
+//             http.Error(w, "Invalid request body", http.StatusBadRequest)
+//             return
+//         }
 
-        if req.ClientAddr == "" {
-            log.Println("No client address provided for disconnect")
-            http.Error(w, "Client address is required", http.StatusBadRequest)
-            return
-        }
+//         if req.ClientAddr == "" {
+//             log.Println("No client address provided for disconnect")
+//             http.Error(w, "Client address is required", http.StatusBadRequest)
+//             return
+//         }
 
-        // Log current authorized clients for debugging
-        mu.Lock()
-        //log.Printf("Authorized clients map before disconnect: %v", authorizedClients)
-        if _, exists := authorizedClients[req.ClientAddr]; exists {
-            delete(authorizedClients, req.ClientAddr)
-            log.Printf("Client %s successfully disconnected", req.ClientAddr)
-            mu.Unlock()
+//         // Log current authorized clients for debugging
+//         mu.Lock()
+//         //log.Printf("Authorized clients map before disconnect: %v", authorizedClients)
+//         if _, exists := authorizedClients[req.ClientAddr]; exists {
+//             delete(authorizedClients, req.ClientAddr)
+//             log.Printf("Client %s successfully disconnected", req.ClientAddr)
+//             mu.Unlock()
 
-            w.WriteHeader(http.StatusOK)
-            json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
-        } else {
-            log.Printf("Client address not found: %s", req.ClientAddr)
-            mu.Unlock()
+//             w.WriteHeader(http.StatusOK)
+//             json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
+//         } else {
+//             log.Printf("Client address not found: %s", req.ClientAddr)
+//             mu.Unlock()
 
-            http.Error(w, fmt.Sprintf("Client address %s not found", req.ClientAddr), http.StatusNotFound)
-        }
-    }).Methods("POST")
-}
+//             http.Error(w, fmt.Sprintf("Client address %s not found", req.ClientAddr), http.StatusNotFound)
+//         }
+//     }).Methods("POST")
+// }
 
 // GetAuthorizedClients returns the current list of authorized clients.
 func GetAuthorizedClients(w http.ResponseWriter, r *http.Request) {
@@ -634,31 +635,43 @@ func HandleProxyDisconnectRequests(h host.Host) {
 
 // Connects to the server and sends the client's address
 func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr string) error {
-	// Open a stream to the server
-	stream, err := h.NewStream(context.Background(), serverID, proxyConnectProtocol)
-	if err != nil {
-		return fmt.Errorf("failed to open stream: %w", err)
-	}
-	defer stream.Close()
+    fmt.Printf("\n=== DEBUG INFO ===\n")
+    fmt.Printf("Server ID (Target): %s\n", serverID)
+    fmt.Printf("Host ID (Self): %s\n", h.ID())
+    fmt.Printf("Are Server ID and Host ID Equal? %v\n", serverID == h.ID())
+    fmt.Printf("Client Address: %s\n", clientAddr)
+    fmt.Printf("===================\n\n")
 
-	// Send the client's IP address
-	req := struct {
-		ClientAddr string `json:"clientAddr"`
-	}{
-		ClientAddr: clientAddr,
-	}
-	if err := json.NewEncoder(stream).Encode(req); err != nil {
-		return fmt.Errorf("failed to send connection request: %w", err)
-	}
+    if serverID == h.ID() {
+        return fmt.Errorf("attempted to connect to self")
+    }
 
-	// Read the server's response
-	var response map[string]string
-	if err := json.NewDecoder(stream).Decode(&response); err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
+    stream, err := h.NewStream(context.Background(), serverID, proxyConnectProtocol)
+    if err != nil {
+        return fmt.Errorf("failed to open stream: %w", err)
+    }
+    defer stream.Close()
 
-	log.Printf("Response from server: %v", response)
-	return nil
+    req := struct {
+        ClientAddr string `json:"clientAddr"`
+        HostID     string `json:"hostID"`
+    }{
+        ClientAddr: clientAddr,
+        HostID:     h.ID().String(), // Include the sender's Host ID
+    }
+
+    // Send the connection request with the Host ID
+    if err := json.NewEncoder(stream).Encode(req); err != nil {
+        return fmt.Errorf("failed to send connection request: %w", err)
+    }
+
+    var response map[string]string
+    if err := json.NewDecoder(stream).Decode(&response); err != nil {
+        return fmt.Errorf("failed to read response: %w", err)
+    }
+
+    log.Printf("Response from server: %v", response)
+    return nil
 }
 
 // Disconnects from the server
