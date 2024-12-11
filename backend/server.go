@@ -157,6 +157,8 @@ func main() {
 		w.Write([]byte(ip))
 	}).Methods("GET")		
 
+	r.HandleFunc("/getAuthorizedClients", proxy.GetAuthorizedClients).Methods("GET")
+
 	proxy.RegisterHandleConnectEndpoint(r)
 	proxy.RegisterHandleDisconnectEndpoint(r)
 	proxy.RegisterHandleStopServingEndpoint(r)		

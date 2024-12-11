@@ -64,7 +64,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
     setPDisconnect(true);
     try {
       await onDisconnect(node);
-      setShowDetails(false); // Hide IP and Port on disconnect
+      setShowDetails(false); // Hide IP and Port on disconnectf
     } catch (error) {
       console.error("Error disconnecting from proxy:", error);
     } finally {

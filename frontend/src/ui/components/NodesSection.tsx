@@ -10,9 +10,29 @@ const NodesSection: React.FC = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
   const [proxyNodes, setProxyNodes] = useState<ProxyNode[]>([]); // Dynamic proxy nodes
   const [loading, setLoading] = useState<boolean>(true); // Loading state
+  const [userPublicIP, setUserPublicIP] = useState<string>(""); // Client's public IP
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
+  // Fetch user's public IP
+  useEffect(() => {
+    const fetchPublicIP = async () => {
+      try {
+        const response = await fetch("http://localhost:9378/getPublicIP"); // Adjust the endpoint as needed
+        if (!response.ok) throw new Error("Failed to fetch public IP");
+        const ip = await response.text();
+        setUserPublicIP(ip.trim());
+      } catch (error) {
+        console.error("Error fetching public IP:", error);
+        setSnackbarMessage("Failed to fetch public IP.");
+        setSnackbarOpen(true);
+      }
+    };
+
+    fetchPublicIP();
+  }, []);
+
+  // Fetch available proxies
   useEffect(() => {
     const fetchProxies = async () => {
       try {
@@ -38,13 +58,19 @@ const NodesSection: React.FC = () => {
   }, []);
 
   const handleSelect = async (node: ProxyNode): Promise<boolean> => {
+    if (!userPublicIP) {
+      setSnackbarMessage("Failed to retrieve public IP. Cannot connect.");
+      setSnackbarOpen(true);
+      return false;
+    }
+
     try {
       const response = await fetch("http://localhost:9378/connectToProxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ clientAddr: node.ip }),
+        body: JSON.stringify({ clientAddr: userPublicIP }), // Use the client's IP
       });
 
       if (response.status === 200) {
@@ -73,7 +99,7 @@ const NodesSection: React.FC = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ clientAddr: node.ip }),
+          body: JSON.stringify({ clientAddr: userPublicIP }),
         });
 
         setSelectedNode(null);
