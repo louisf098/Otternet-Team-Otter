@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import logo from "../public/assets/icons/logo-no-background.svg";
 import Card from "@mui/material/Card";
 import IconButton from "@mui/material/IconButton";
-import Snackbar from "@mui/material/Snackbar";
 import InputAdornment from "@mui/material/InputAdornment";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import TextField from "@mui/material/TextField";
@@ -18,24 +17,32 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import { createWallet, unlockWallet } from "../apis/bitcoin-core";
 
-const CreateWallet = () => {
+interface createWalletTableProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+
+const CreateWallet: React.FC<createWalletTableProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const navigate = useNavigate();
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [passphrase, setPassphrase] = useState<string>("");
   const [confirmPassphrase, setConfirmPassphrase] = useState<string>("");
-  const [openCopyNotif, setOpenCopyNotif] = useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
 
   const { setPublicKey, setWalletName, walletName } = useContext(AuthContext);
 
   const handleCopy = (text: string) => {
-    setOpenCopyNotif(true);
+    setSnackbarOpen(true);
+    setSnackbarMessage("Copied to clipboard");
     navigator.clipboard.writeText(text);
   };
 
   const checkMatchingPassphrase = () => {
-    if (!passphrase ||!confirmPassphrase) {
+    if (!passphrase || !confirmPassphrase) {
       setError("Please enter a passphrase and confirm your passphrase");
       return false;
     }
@@ -94,12 +101,15 @@ const CreateWallet = () => {
     if (res.status != "unlocked") {
       return;
     }
-    const response = await fetch(`http://localhost:9378/startDHT/${walletAddress}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `http://localhost:9378/startDHT/${walletAddress}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
     console.log(response);
     navigate("/dashboard", { replace: true });
     setPublicKey(walletAddress);
@@ -231,13 +241,6 @@ const CreateWallet = () => {
               <Button fullWidth variant="contained" onClick={handleSignIn}>
                 Sign In
               </Button>
-              <Snackbar
-                message="Copied to clipboard"
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-                autoHideDuration={2000}
-                onClose={() => setOpenCopyNotif(false)}
-                open={openCopyNotif}
-              />
             </>
           ) : (
             <>

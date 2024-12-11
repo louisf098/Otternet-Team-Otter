@@ -40,8 +40,14 @@ function createData(
   return { transactionID, dateTime, cost, status };
 }
 
-interface DashboardProps {}
-const Dashboard: React.FC<DashboardProps> = () => {
+interface DashboardProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+const Dashboard: React.FC<DashboardProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const [selectedTableTab, setSelectedTableTab] = useState<number>(0);
   const [selectedInfoTab, setSelectedInfoTab] = useState<number>(0);
   const [selectedFilter, setSelectedFilter] = useState<number>(1);
@@ -60,18 +66,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setSelectedStats(event.target.value as number);
   };
 
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState("");
-
-  const handleSnackbarClose = (
-    event: React.SyntheticEvent<any, Event> | Event,
-    reason?: SnackbarCloseReason
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
+  // const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  // const [snackbarMessage, setSnackbarMessage] = React.useState("");
 
   const handleCopy = async (text: string) => {
     try {
@@ -320,24 +316,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
       </Box>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={handleSnackbarClose}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      />
     </>
   );
 };
