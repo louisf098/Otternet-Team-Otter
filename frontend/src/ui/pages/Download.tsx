@@ -133,18 +133,44 @@ const Download: React.FC<downloadHistoryTableProps> = ({
       };
 
       console.log("WalletID: ", phash);
+      const provider = providers.find((provider) => provider.walletID === phash);
+      const price = provider?.price;
+      const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+      const balancejson = await resp.json();
+      const balance = balancejson["balance"];
+      if (price === undefined || balance < price) {
+        setSnackbarMessage("Insufficient balance");
+        setSnackbarOpen(true);
+        return;
+      }
 
       const response = await fetch("http://localhost:9378/download", {
         method: "POST",
         body: JSON.stringify(postData),
       });
+      if (!response.ok) {
+        throw new Error("Error downloading file");
+      }
+      const responseData = await response.json();
+      const destWalletAddr = responseData.walletAddress;
+      console.log("Provider: ", provider);
+      if (!provider) {
+        throw new Error("Provider not found");
+      }
 
-      console.log("Response: ", response);
+      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${price}/File`, {
+        method: 'POST',
+      });
+
+      if (!response2.ok) {
+        throw new Error("Error transferring coins");
+      }
+
       setDownloadModalOpen(false);
       setDownloadLocation("");
 
       if (response.ok) {
-        setSnackbarMessage("Download successful");
+        setSnackbarMessage("Download successful and coins sent to provider!");
       } else {
         const error = await response.json();
         setSnackbarMessage(

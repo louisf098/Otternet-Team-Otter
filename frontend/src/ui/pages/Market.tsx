@@ -21,6 +21,7 @@ import SortIcon from "@mui/icons-material/Sort";
 import DownloadIcon from "@mui/icons-material/Download";
 import HelpOutline from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
+import { set } from "react-hook-form";
 
 interface FileItem {
   walletID: string;
@@ -61,7 +62,7 @@ const Market: React.FC<marketProps> = ({
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [downloadLocation, setDownloadLocation] = useState<string>("");
-  const { publicKey } = React.useContext(AuthContext);
+  const { publicKey, walletName } = React.useContext(AuthContext);
 
   useEffect(() => {
     /* Display list of walletIDs (providers) */
@@ -171,22 +172,40 @@ const Market: React.FC<marketProps> = ({
         DownloadPath: downloadLocation,
         FileHash: selectedFile?.fileHash,
       };
+      const price = selectedFile?.price;
+      const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+      const balancejson = await resp.json();
+      const balance = balancejson["balance"];
+      if (price === undefined || balance < price) {
+        throw new Error("Not enough balance to download the file");
+      }
 
       const response = await fetch("http://localhost:9378/download", {
         method: "POST",
         body: JSON.stringify(postData),
       });
 
-      console.log("Response: ", response);
       if (!response.ok) {
         throw new Error("Problem downloading the file");
       }
-      setSnackbarOpen(true);
-      setSnackbarMessage("File downloaded successfully");
+      const responseData = await response.json();
+      const destWalletAddr = responseData.walletAddress;
+
+      const response2 = await fetch(`http://localhost:9378/transferCoins/${walletName}/${destWalletAddr}/${selectedFile?.price}/File`, {
+        method: 'POST',
+      });
+
+      if (!response2.ok) {
+        throw new Error("Transferring coins failed");
+      }
       console.log("File downloaded successfully");
       handleDownloadModalClose();
+      setSnackbarOpen(true);
+      setSnackbarMessage(`File downloaded successfully and ${price} coins transferred`);
     } catch (err: any) {
       console.error("Error downloading file: ", err);
+      setSnackbarOpen(true);
+      setSnackbarMessage(`Error downloading file: ${err.message}`);
       handleDownloadModalClose();
     }
   };
@@ -258,43 +277,90 @@ const Market: React.FC<marketProps> = ({
     setDownloadLocation(""); // Clear the download location when closing the checkout modal
   };
 
-  const handleCheckoutConfirm = () => {
-    // Send HTTP request to download selected files
-    console.log("Selected Files: ", selectedFiles);
-    console.log("Download Location: ", downloadLocation);
+  const handleCheckoutConfirm = async () => {
+    try {
+        // Log selected files and download location
+        console.log("Selected Files: ", selectedFiles);
+        console.log("Download Location: ", downloadLocation);
 
-    selectedFiles.forEach(async (fileId) => {
-      const file = files.find((f) => f.fileHash === fileId);
-      if (file) {
-        const postData = {
-          WalletID: publicKey,
-          ProviderID: walletId,
-          DownloadPath: downloadLocation,
-          FileHash: file.fileHash,
-        };
-
-        try {
-          const response = await fetch("http://localhost:9378/download", {
-            method: "POST",
-            body: JSON.stringify(postData),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Problem downloading the file: ${file.fileName}`);
-          }
-          setSnackbarOpen(true);
-          setSnackbarMessage(`File ${file.fileName} downloaded successfully`);
-          console.log(`File ${file.fileName} downloaded successfully`);
-        } catch (err: any) {
-          console.error(`Error downloading file ${file.fileName}: `, err);
+        // Array to store individual download responses if needed
+        const downloadResponses: Response[] = [];
+        const price = calculateTotalCost().discountedTotal;
+        const resp = await fetch(`http://localhost:9378/getbalance/${walletName}`);
+        const balancejson = await resp.json();
+        const balance = balancejson["balance"];
+        if (balance < price) {
+            throw new Error("Not enough balance to download the files");
         }
-      }
-    });
+        // Iterate over each selected file and download sequentially
+        for (const fileId of selectedFiles) {
+            const file = files.find((f) => f.fileHash === fileId);
+            if (file) {
+                const postData = {
+                    WalletID: publicKey,
+                    ProviderID: walletId,
+                    DownloadPath: downloadLocation,
+                    FileHash: file.fileHash,
+                };
 
-    setCheckoutOpen(false);
-    setSelectedFiles([]);
-    setDownloadLocation("");
-  };
+                const response = await fetch("http://localhost:9378/download", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(postData),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Problem downloading the file: ${file.fileName}`);
+                }
+
+                console.log(`File ${file.fileName} downloaded successfully`);
+                downloadResponses.push(response);
+            } else {
+                console.warn(`File with ID ${fileId} not found.`);
+            }
+        }
+
+        // Proceed to transfer coins after all downloads are successful
+        if (downloadResponses.length > 0) {
+            // Extract necessary data from one of the responses
+            // Adjust this part based on your actual API response structure
+            const lastResponseData = await downloadResponses[downloadResponses.length - 1].json();
+
+            // Ensure that `walletAddress` exists in the response
+            if (!lastResponseData.walletAddress) {
+                throw new Error("Wallet address not found in the download response.");
+            }
+
+            const transferResponse = await fetch(`http://localhost:9378/transferCoins/${walletName}/${lastResponseData.walletAddress}/${price}/File`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!transferResponse.ok) {
+                throw new Error(`Problem transferring coins.`);
+            }
+            setSnackbarOpen(true);
+            setSnackbarMessage(`Files downloaded successfully and ${price} coins transferred.`);
+            console.log("Coins transferred successfully.");
+        } else {
+            console.warn("No files were downloaded, skipping coin transfer.");
+        }
+    } catch (err: any) {
+        console.error("Error during checkout confirmation: ", err);
+        setSnackbarOpen(true);
+        setSnackbarMessage(`Error during checkout confirmation: ${err.message}`);
+        // Optionally, you can display an error message to the user here
+    } finally {
+        // Reset the checkout state regardless of success or failure
+        setCheckoutOpen(false);
+        setSelectedFiles([]);
+        setDownloadLocation("");
+    }
+};
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
