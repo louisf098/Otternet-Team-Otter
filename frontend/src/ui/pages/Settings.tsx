@@ -32,12 +32,9 @@ const Settings = () => {
 
   const handleBackupWallet = async () => {
     const backupFilePath = encodeURIComponent(
-      path.join(backupPath, "walletbackup")
+      path.join(backupPath, "walletbackup.dat")
     );
-    await backupWallet(
-      walletName,
-      backupFilePath
-    );
+    await backupWallet(walletName, backupFilePath);
   };
 
   const selectFolder = async () => {
@@ -66,7 +63,9 @@ const Settings = () => {
       <Button onClick={handleSignOut}>Sign Out</Button>
       <Button onClick={selectFolder}>Select Backup Folder</Button>
       {backupPath && <p>Selected Folder: {backupPath}</p>}
-      <Button onClick={handleBackupWallet} disabled={!backupPath}>Backup Wallet</Button>
+      <Button onClick={handleBackupWallet} disabled={!backupPath}>
+        Backup Wallet
+      </Button>
     </Box>
   );
 };
