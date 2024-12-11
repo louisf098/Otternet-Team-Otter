@@ -85,7 +85,7 @@ func AdvertiseSelfAsNode(ctx context.Context, ip, port string, pricePerHour floa
 	return nil
 }
 
-func getPublicIP() (string, error) {
+func GetPublicIP() (string, error) {
 	resp, err := http.Get("https://api.ipify.org?format=text") // API to fetch public IP
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch public IP: %w", err)
@@ -171,7 +171,7 @@ func StartProxyServer(port string) error {
 
     // Advertise this proxy node on the DHT
     go func() {
-        ip, err := getPublicIP()
+        ip, err := GetPublicIP()
         if err != nil {
             log.Printf("Failed to fetch public IP: %v. Falling back to 127.0.0.1", err)
             ip = "127.0.0.1" // Fallback to localhost if public IP cannot be fetched
@@ -303,24 +303,36 @@ func RegisterHandleDisconnectEndpoint(router *mux.Router) {
         var req struct {
             ClientAddr string `json:"clientAddr"`
         }
+        
+        // Decode the request body
         if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+            log.Println("Invalid request body for disconnect:", err)
             http.Error(w, "Invalid request body", http.StatusBadRequest)
             return
         }
 
         if req.ClientAddr == "" {
+            log.Println("No client address provided for disconnect")
             http.Error(w, "Client address is required", http.StatusBadRequest)
             return
         }
 
-        // Remove client from authorized list
+        // Log current authorized clients for debugging
         mu.Lock()
-        delete(authorizedClients, req.ClientAddr)
-        mu.Unlock()
+        //log.Printf("Authorized clients map before disconnect: %v", authorizedClients)
+        if _, exists := authorizedClients[req.ClientAddr]; exists {
+            delete(authorizedClients, req.ClientAddr)
+            log.Printf("Client %s successfully disconnected", req.ClientAddr)
+            mu.Unlock()
 
-        log.Printf("Client %s disconnected from proxy via API", req.ClientAddr)
-        w.WriteHeader(http.StatusOK)
-        json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
+            w.WriteHeader(http.StatusOK)
+            json.NewEncoder(w).Encode(map[string]string{"message": "Client disconnected successfully"})
+        } else {
+            log.Printf("Client address not found: %s", req.ClientAddr)
+            mu.Unlock()
+
+            http.Error(w, fmt.Sprintf("Client address %s not found", req.ClientAddr), http.StatusNotFound)
+        }
     }).Methods("POST")
 }
 

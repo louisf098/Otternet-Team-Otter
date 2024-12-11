@@ -145,6 +145,18 @@ func main() {
 		json.NewEncoder(w).Encode(proxies)
 	}).Methods("GET")
 
+	r.HandleFunc("/getPublicIP", func(w http.ResponseWriter, r *http.Request) {
+		ip, err := proxy.GetPublicIP()
+		if err != nil {
+			log.Printf("Error fetching public IP: %v", err)
+			http.Error(w, "Failed to retrieve public IP", http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Fetched public IP: %s", ip)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(ip))
+	}).Methods("GET")		
+
 	proxy.RegisterHandleConnectEndpoint(r)
 	proxy.RegisterHandleDisconnectEndpoint(r)		
 
