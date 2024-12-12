@@ -25,8 +25,8 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
   transactions,
 }) => {
   return (
-    <TableContainer component={Paper} sx={{ mt: 1 }}>
-      <Table sx={{ minWidth: 500 }} aria-label="simple table">
+    <TableContainer component={Paper} sx={{ mt: 1, maxHeight: 370, overflowY: "scroll"  }}>
+      <Table stickyHeader sx={{ minWidth: 500 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell>Timestamp</TableCell>
@@ -45,7 +45,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
           {transactions.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} align="center">
-                You have not downloaded any files yet.
+                You have not made any transactions yet.
               </TableCell>
             </TableRow>
           ) : (
@@ -62,7 +62,7 @@ const TransactionHistoryTable: React.FC<transactionHistoryTableProps> = ({
                   style={{
                     color:
                       transaction.status === "Pending"
-                        ? "yellow"
+                        ? "orange"
                         : transaction.status === "Completed"
                         ? "green"
                         : "inherit",

@@ -48,8 +48,8 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({ setSnackbarOpen, 
   }
 
   return (
-    <TableContainer component={Paper} sx={{ mt: 1 }}>
-      <Table sx={{ minWidth: 500 }} aria-label="simple table">
+    <TableContainer component={Paper} sx={{ mt: 1, maxHeight: 370, overflowY: "scroll" }}>
+      <Table stickyHeader sx={{ minWidth: 500 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell>Timestamp</TableCell>

@@ -223,7 +223,7 @@ const UploadHistoryTable: React.FC<UploadHistoryTableProps> = ({ setSnackbarOpen
         component={Paper} 
         sx={{ 
           mt: 1,
-          maxHeight: 600,
+          maxHeight: 370, overflowY: "scroll"
         }}
       >
         <Table 

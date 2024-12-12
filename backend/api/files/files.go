@@ -37,6 +37,10 @@ type ProviderList struct {
 	List []string `json:"list"`
 }
 
+type WalletAddress struct {
+	WalletID string `json:"walletID"`
+}
+
 var mutex = &sync.Mutex{}
 var mutex2 = &sync.Mutex{}
 
@@ -601,6 +605,15 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Received metadata: %v\n", metadata)
 
+	// get destination wallet address
+	var wallet WalletAddress
+	err = decoder.Decode(&wallet)
+	if err != nil {
+		fmt.Printf("Error decoding wallet address: %v\n", err)
+		return
+	}
+	fmt.Printf("Received wallet address: %v\n", wallet)
+
 	// Download file from peer
 
 	fmt.Println("Creating the File in Download Location")
@@ -617,10 +630,9 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, stream)
 	if err != nil {
-		fmt.Printf("Error copying file: %v\n", err)
+		http.Error(w, "Error downloading file", http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
 
 	fmt.Println("File Downloaded Successfully")
 
@@ -643,8 +655,9 @@ func DownloadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error storing file in downloads.json", http.StatusInternalServerError)
 		return
 	}
+	file.Close()
 
-	response := map[string]string{"message": "File downloaded successfully", "status": "success"}
+	response := map[string]string{"message": "File downloaded successfully", "status": "success", "walletAddress": wallet.WalletID}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
