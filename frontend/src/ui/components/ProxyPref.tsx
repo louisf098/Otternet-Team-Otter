@@ -24,8 +24,50 @@ const ProxyPref = () => {
   const [rateError, setRateError] = useState<string | null>(null);
   const [portError, setPortError] = useState<string | null>(null);
 
-  const handleProxyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProxyChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setProxyEnabled(event.target.checked);
+
+    const requestBody = {
+      port: "8081"
+    }
+  
+    if (event.target.checked) {
+      try {
+        const response = await fetch('http://localhost:9378/startProxyServer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to start proxy server: ${response.statusText}`);
+        }
+  
+        console.log('Proxy server started successfully');
+      } catch (error) {
+        console.error('Error starting proxy server:', error);
+      }
+    } else {
+      try {
+        const response = await fetch('http://localhost:9378/stopServingAsProxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to stop proxy server: ${response.statusText}`);
+        }
+  
+        console.log('Proxy server stopped successfully');
+      } catch (error) {
+        console.error('Error stopping proxy server:', error);
+      }
+    }
+  
     console.log(`proxy: ${proxyEnabled}`);
   };
 

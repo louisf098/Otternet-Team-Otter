@@ -44,7 +44,14 @@ const NodesSection: React.FC = () => {
         const data: ProxyNode[] = await response.json();
         // Filter out nodes with IP 127.0.0.1
         const filteredNodes = data.filter((node) => node.ip !== "127.0.0.1");
-        setProxyNodes(filteredNodes);
+        const uniqueNodes = filteredNodes.filter((node, index, self) =>
+          index === self.findIndex((t) => t.ip === node.ip)
+        );
+        
+        uniqueNodes.forEach(node => {
+          console.log(node.ip);
+        });
+        setProxyNodes(uniqueNodes);
       } catch (error) {
         console.error("Error fetching proxy nodes:", error);
         setSnackbarMessage("Failed to load proxy nodes.");
