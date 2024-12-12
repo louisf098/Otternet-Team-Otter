@@ -5,12 +5,13 @@ import (
 	"Otternet/backend/api/handlers"
 	"Otternet/backend/global"
 	"Otternet/backend/global_wallet"
+	"Otternet/backend/api/proxy"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
-
+	
 	"github.com/gorilla/mux"
 )
 
@@ -43,6 +44,7 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 	handlers.HandleOtternetPeersRequests(global.DHTNode.Host)
 	handlers.HandleFileRequests(global.DHTNode.Host)
 	handlers.HandlePriceRequests(global.DHTNode.Host)
+	proxy.HandleActiveProxyRequests(global.DHTNode.Host)
 
 	if initErr != nil {
 		http.Error(w, "Failed to start DHT node", http.StatusInternalServerError)

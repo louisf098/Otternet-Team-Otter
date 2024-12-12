@@ -601,14 +601,15 @@ func HandleProxyConnectRequests(h host.Host) {
 func HandleActiveProxyRequests(h host.Host) {
 	h.SetStreamHandler(activeProxyProtocol, func(s network.Stream) {
 		defer s.Close()
+		fmt.Println("Received Request!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		if !global.ActiveProxy {
-			log.Println("Proxy is not active; ignoring request.")
+			fmt.Println("Proxy is not active; ignoring request.")
 			s.Write([]byte("\n"))
 			return
 		}
 		_, err := s.Write([]byte("Proxy is active\n"))
 		if err != nil {
-			log.Printf("Error sending active proxy response: %v", err)
+			fmt.Printf("Error sending active proxy response: %v", err)
 		}
 	})
 }
