@@ -50,6 +50,18 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <TableContainer component={Paper} sx={{ mt: 1 }}>
       <Table sx={{ minWidth: 500 }} aria-label="simple table">
@@ -85,9 +97,9 @@ const ProxyHistoryTable: React.FC<proxyHistoryTableProps> = ({
                   sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                 >
                   <TableCell component="th" scope="row">
-                    {proxy.ConnectTime}
+                    {formatDate(proxy.ConnectTime)}
                   </TableCell>
-                  <TableCell>{proxy.DisconnectTime}</TableCell>
+                  <TableCell>{formatDate(proxy.DisconnectTime)}</TableCell>
                   <TableCell>{proxy.IPAddr}</TableCell>
                   <TableCell>{proxy.Price}</TableCell>
                   <TableCell
