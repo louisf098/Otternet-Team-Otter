@@ -749,7 +749,11 @@ func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr strin
 	if err := json.NewDecoder(stream).Decode(&response); err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
 	}
-    // RecordProxyHistory(clientAddr, rate, )
+    clientIp, err := GetPublicIP()
+    if err != nil {
+        return fmt.Errorf("Error fetching client IP: %w", err)
+    }
+    RecordProxyHistory(clientIp, req.Rate, req.ClientAddr)
 
 	log.Printf("Response from server: %v", response)
 	return nil
