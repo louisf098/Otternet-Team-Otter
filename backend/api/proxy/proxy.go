@@ -39,7 +39,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-x7"
+var ProxyProviderHash = "proxy-louis-x8"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 var activeProxyProtocol = protocol.ID("/otternet/activeProxy")
@@ -601,6 +601,7 @@ func HandleProxyConnectRequests(h host.Host) {
 func HandleActiveProxyRequests(h host.Host) {
 	h.SetStreamHandler(activeProxyProtocol, func(s network.Stream) {
 		defer s.Close()
+
 		fmt.Println("Received Request!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		if !global.ActiveProxy {
 			fmt.Println("Proxy is not active; ignoring request.")
@@ -668,12 +669,22 @@ func GetActiveProxies(w http.ResponseWriter, r *http.Request) {
 	}
 	activeProxies := []ProxyNode{}
 	for _, proxy := range proxies {
-		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, peer.ID(proxy.ID), activeProxyProtocol)
+		proxyID, err := peer.Decode(proxy.ID)
+		if err != nil {
+			fmt.Printf("Failed to decode peerID\n")
+			continue
+		}
+		stream, err := global.DHTNode.Host.NewStream(global.DHTNode.Ctx, proxyID, activeProxyProtocol)
 		if err != nil {
 			log.Printf("Failed to open stream to %s: %v", proxy.ID, err)
 			continue
 		}
 		defer stream.Close()
+		_, err = stream.Write([]byte("\n"))
+		if err != nil {
+			fmt.Printf("Error sending message: $%v\n", err)
+			continue
+		}
 		r := bufio.NewReader(stream)
 		response, err := r.ReadString('\n')
 		if err != nil {
