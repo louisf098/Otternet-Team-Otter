@@ -38,12 +38,15 @@ const Proxy = () => {
     setPDisconnect(true);
 
     try {
-      const response = await fetch("http://localhost:9378/disconnectFromProxy", {
+      const response = await fetch("http://localhost:9378/proxy/disconnect", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ clientAddr: userPublicIP }),
+        body: JSON.stringify({ 
+          clientAddr: userPublicIP,
+          serverID: selectedNode?.id
+        }),
       });
 
       if (response.ok) {

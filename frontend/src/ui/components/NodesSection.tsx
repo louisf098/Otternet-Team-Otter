@@ -44,7 +44,14 @@ const NodesSection: React.FC = () => {
         const data: ProxyNode[] = await response.json();
         // Filter out nodes with IP 127.0.0.1
         const filteredNodes = data.filter((node) => node.ip !== "127.0.0.1");
-        setProxyNodes(filteredNodes);
+        const uniqueNodes = filteredNodes.filter((node, index, self) =>
+          index === self.findIndex((t) => t.ip === node.ip)
+        );
+        
+        uniqueNodes.forEach(node => {
+          console.log(node.ip);
+        });
+        setProxyNodes(uniqueNodes);
       } catch (error) {
         console.error("Error fetching proxy nodes:", error);
         setSnackbarMessage("Failed to load proxy nodes.");
@@ -65,12 +72,15 @@ const NodesSection: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:9378/connectToProxy", {
+      const response = await fetch("http://localhost:9378/proxy/connect", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ clientAddr: userPublicIP }), // Use the client's IP
+        body: JSON.stringify({ 
+          clientAddr: userPublicIP,
+          serverID: node.id
+        }), // Use the client's IP
       });
 
       if (response.status === 200) {
@@ -94,12 +104,15 @@ const NodesSection: React.FC = () => {
   const handleDisconnect = async (node: ProxyNode) => {
     if (selectedNode?.id === node.id) {
       try {
-        await fetch("http://localhost:9378/disconnectFromProxy", {
+        await fetch("http://localhost:9378/disconnect", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ clientAddr: userPublicIP }),
+          body: JSON.stringify({ 
+            clientAddr: userPublicIP,
+            serverID: node.ip
+          }),
         });
 
         setSelectedNode(null);
