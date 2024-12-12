@@ -72,12 +72,15 @@ const NodesSection: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:9378/connectToProxy", {
+      const response = await fetch("http://localhost:9378/proxy/connect", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ clientAddr: userPublicIP }), // Use the client's IP
+        body: JSON.stringify({ 
+          clientAddr: userPublicIP,
+          serverID: node.id
+        }), // Use the client's IP
       });
 
       if (response.status === 200) {
@@ -101,12 +104,15 @@ const NodesSection: React.FC = () => {
   const handleDisconnect = async (node: ProxyNode) => {
     if (selectedNode?.id === node.id) {
       try {
-        await fetch("http://localhost:9378/disconnectFromProxy", {
+        await fetch("http://localhost:9378/disconnect", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ clientAddr: userPublicIP }),
+          body: JSON.stringify({ 
+            clientAddr: userPublicIP,
+            serverID: node.ip
+          }),
         });
 
         setSelectedNode(null);
