@@ -3,6 +3,8 @@ package proxy
 import (
 	"Otternet/backend/global"
 	"bufio"
+	"os"
+	"time"
 
 	//"bufio"
 	//"bytes"
@@ -36,6 +38,8 @@ var (
 	authorizedClients = make(map[string]bool) // Multiaddress of authorized clients
 	mu                sync.Mutex
 	proxyServer       *http.Server
+    proxyHistory      = []ProxyHistory{}
+    proxyHistoryMu    sync.Mutex
 )
 
 // Constants
@@ -43,6 +47,7 @@ var ProxyProviderHash = "proxy-louis-x8"
 var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
 var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
 var activeProxyProtocol = protocol.ID("/otternet/activeProxy")
+var proxyHistoryFile = "api/proxy/proxyHistory.json"
 
 // ProxyNode represents a proxy node's details
 type ProxyNode struct {
@@ -51,6 +56,15 @@ type ProxyNode struct {
 	Port         string  `json:"port"`
 	PricePerHour float64 `json:"pricePerHour"`
 	Status       string  `json:"status"` // "available", "busy"
+}
+
+// ProxyHistory stores details of proxy session
+type ProxyHistory struct {
+	ConnectTime      string  `json:"ConnectTime"`
+	DisconnectTime   string  `json:"DisconnectTime"`
+	IPAddr     string  `json:"IPAddr"`
+	Price      float64 `json:"Price"`
+	ProxyWalletID string `json:"ProxyWalletID"`
 }
 
 // AdvertiseSelfAsNode advertises the current server as a provider for the ProxyProviderHash
@@ -721,6 +735,7 @@ func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr strin
 
 	req := struct {
 		ClientAddr string `json:"clientAddr"`
+        Rate       float64 `json:"price"`
 	}{
 		ClientAddr: clientAddr,
 	}
@@ -734,6 +749,7 @@ func SendConnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr strin
 	if err := json.NewDecoder(stream).Decode(&response); err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
 	}
+    // RecordProxyHistory(clientAddr, rate, )
 
 	log.Printf("Response from server: %v", response)
 	return nil
@@ -777,6 +793,77 @@ func SendDisconnectionRequestToHost(h host.Host, serverID peer.ID, clientAddr st
 	}
 
 	log.Printf("Response from server: %v", response)
+	return nil
+}
+
+// FetchProxyHistoryHandler fetches the proxy history
+func FetchProxyHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	proxyHistoryMu.Lock()
+	defer proxyHistoryMu.Unlock()
+
+	if len(proxyHistory) == 0 {
+		http.Error(w, "No proxy history found", http.StatusNotFound)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(proxyHistory); err != nil {
+		http.Error(w, "Failed to encode proxy history", http.StatusInternalServerError)
+	}
+}
+
+// RecordProxyHistory adds a new proxy session to the history
+func RecordProxyHistory(ipAddr string, price float64, srcID string) {
+	proxyHistoryMu.Lock()
+	defer proxyHistoryMu.Unlock()
+
+	proxyHistory = append(proxyHistory, ProxyHistory{
+		ConnectTime:   time.Now().Format(time.RFC3339),
+		DisconnectTime:	"Still connected",
+		IPAddr:      ipAddr,
+		Price:       price,
+		ProxyWalletID: srcID,
+	})
+
+	err := SaveProxyHistory()
+	if err != nil {
+		log.Printf("Failed to save proxy history to file: %v", err)
+	}
+}
+
+func LoadProxyHistory() error {
+	file, err := os.Open(proxyHistoryFile)
+	if err != nil {
+		// If file doesn't exist, initialize with an empty slice
+		if os.IsNotExist(err) {
+			proxyHistory = []ProxyHistory{}
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewDecoder(file).Decode(&proxyHistory)
+	if err != nil {
+		return err
+	}
+	log.Println("Proxy history loaded from file")
+	return nil
+}
+
+func SaveProxyHistory() error {
+	file, err := os.Create(proxyHistoryFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewEncoder(file).Encode(proxyHistory)
+	if err != nil {
+		return err
+	}
+	log.Println("Proxy history saved to file")
 	return nil
 }
 
