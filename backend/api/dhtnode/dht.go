@@ -30,7 +30,7 @@ import (
 var RelayNodeAddr = "/ip4/130.245.173.221/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN"
 
 // var BootstrapNodeAddr = "/ip4/130.245.68.45/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
-var BootstrapNodeAddr = "/ip4/130.245.68.45/tcp/61000/p2p/12D3KooWEvuQNnyfjF8iwofVuLJLzDnZDHdQfWofNjVeZeDpEaKT"
+var BootstrapNodeAddr = "/ip4/130.245.173.222/tcp/61020/p2p/12D3KooWM8uovScE5NPihSCKhXe8sbgdJAi88i2aXT2MmwjGWoSX"
 
 // Encapsulates the host and DHT for easy access
 type DHTNode struct {
@@ -318,4 +318,3 @@ func (dhtNode *DHTNode) GetClosestPeers(key string) ([]peer.ID, error) {
 func (dhtNode *DHTNode) Close() error {
 	return dhtNode.Host.Close()
 }
-
