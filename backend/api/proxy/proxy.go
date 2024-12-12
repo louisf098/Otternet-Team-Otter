@@ -40,8 +40,8 @@ var (
 
 // Constants
 var ProxyProviderHash = "proxy-louis-x8"
-var proxyConnectProtocol = protocol.ID("/proxy/connect/1.0.0")
-var proxyDisconnectProtocol = protocol.ID("/proxy/disconnect/1.0.0")
+var proxyConnectProtocol = protocol.ID("otternet/proxy/connect")
+var proxyDisconnectProtocol = protocol.ID("otternet/proxy/disconnect")
 var activeProxyProtocol = protocol.ID("/otternet/activeProxy")
 
 // ProxyNode represents a proxy node's details

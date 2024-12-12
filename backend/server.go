@@ -86,19 +86,19 @@ func waitForBitcoind() error {
 
 func main() {
 	// Run bitcoind -daemon -fallbackfee=0.0002 on startup
-	cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
-	err := cmd.Start()
-	if err != nil {
-		log.Fatalf("Failed to start bitcoind: %v", err)
-	}
-	log.Println("bitcoind started successfully")
+	// cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
+	// err := cmd.Start()
+	// if err != nil {
+	// 	log.Printf("Failed to start bitcoind: %v", err)
+	// }
+	// log.Println("bitcoind started successfully")
 
-	// Wait for bitcoind to be ready
-	err = waitForBitcoind()
-	if err != nil {
-		log.Fatalf("bitcoind did not start: %v", err)
-	}
-	log.Println("bitcoind is ready")
+	// // Wait for bitcoind to be ready
+	// err = waitForBitcoind()
+	// if err != nil {
+	// 	log.Println("bitcoind did not start: %v", err)
+	// }
+	// log.Println("bitcoind is ready")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
