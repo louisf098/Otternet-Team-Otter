@@ -26,6 +26,26 @@ const Proxy = () => {
     fetchPublicIP();
   }, []);
 
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (selectedNode) {
+        navigator.sendBeacon("http://localhost:9378/proxy/disconnect", JSON.stringify({
+          clientAddr: userPublicIP,
+          serverID: selectedNode.id
+        }));
+        setSelectedNode(null);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [selectedNode, userPublicIP]);
+
+  
+
   const handleDisconnect = async () => {
     console.log("Disconnect initiated. Public IP:", userPublicIP);
 
@@ -57,7 +77,7 @@ const Proxy = () => {
       } else {
         const errorText = await response.text();
         console.error("Failed to disconnect. Server response:", errorText);
-        setSnackbarMessage(`Failed to disconnect: ${errorText}`);
+        setSnackbarMessage(`Failed to disconnect: ${errorText}. Will Forcefully Disconnect.`);
         setSnackbarOpen(true);
       }
     } catch (error) {

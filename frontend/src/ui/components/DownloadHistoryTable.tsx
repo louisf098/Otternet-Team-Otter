@@ -47,8 +47,8 @@ const DownloadHistoryTable: React.FC<downloadHistoryTableProps> = ({ setSnackbar
   }
 
   return (
-    <TableContainer component={Paper} sx={{ mt: 1 }}>
-      <Table sx={{ minWidth: 500 }} aria-label="simple table">
+    <TableContainer component={Paper} sx={{ mt: 1, maxHeight: 370, overflowY: "scroll" }}>
+      <Table stickyHeader sx={{ minWidth: 500 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell>Timestamp</TableCell>
@@ -62,7 +62,7 @@ const DownloadHistoryTable: React.FC<downloadHistoryTableProps> = ({ setSnackbar
               </Tooltip>
             </TableCell>
             <TableCell>
-              Uploader Wallet ID
+              Uploader Peer ID
               <Tooltip title="Click wallet ID to copy to your clipboard" arrow>
                 <HelpOutlineIcon sx={{ fontSize: 16, paddingLeft: 1}} />
               </Tooltip>

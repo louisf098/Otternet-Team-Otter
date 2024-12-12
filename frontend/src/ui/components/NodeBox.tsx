@@ -77,7 +77,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
       <Typography variant="h6">
         <span style={{ fontWeight: "bold" }}>{`${node.id}`}</span>
       </Typography>
-      <Typography variant="body1">Rate: {node.pricePerHour} OTTC/KB</Typography>
+      <Typography variant="body1">----------------------------------------------------------------------------</Typography>
       {showDetails && (
         <>
           <Typography variant="body1">

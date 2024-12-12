@@ -6,6 +6,7 @@ import (
 	"Otternet/backend/api/download"
 	files "Otternet/backend/api/files"
 	"Otternet/backend/api/proxy"
+	"Otternet/backend/api/statistics"
 	"Otternet/backend/global"
 	"context"
 	"encoding/json"
@@ -13,8 +14,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 
@@ -69,7 +72,34 @@ func jsonResponse(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(test)
 }
 
+func waitForBitcoind() error {
+	for {
+		cmd := exec.Command("bitcoin-cli", "getblockchaininfo")
+		err := cmd.Run()
+		if err == nil {
+			return nil
+		}
+		log.Println("Waiting for bitcoind to start...")
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func main() {
+	// Run bitcoind -daemon -fallbackfee=0.0002 on startup
+	// cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
+	// err := cmd.Start()
+	// if err != nil {
+	// 	log.Printf("Failed to start bitcoind: %v", err)
+	// }
+	// log.Println("bitcoind started successfully")
+
+	// // Wait for bitcoind to be ready
+	// err = waitForBitcoind()
+	// if err != nil {
+	// 	log.Println("bitcoind did not start: %v", err)
+	// }
+	// log.Println("bitcoind is ready")
+
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
 	r.HandleFunc("/hello/{name}", nameReader)
@@ -80,6 +110,7 @@ func main() {
 	r.HandleFunc("/createwalletandaddress/{walletName}/{passphrase}", bitcoin.CreateWalletAndAddressHandler).Methods("GET")
 	r.HandleFunc("/unlockwallet/{address}/{passphrase}", bitcoin.UnlockWalletHandler).Methods("GET")
 	r.HandleFunc("/lockwallet/{walletName}", bitcoin.LockWalletHandler).Methods("GET")
+	r.HandleFunc("/backupwallet", bitcoin.BackupWalletsHandler).Methods("POST")
 
 	// Register Bitcoin routes
 	r.HandleFunc("/newaddress/{walletName}", bitcoin.GenerateAddressHandler).Methods("GET")
@@ -117,8 +148,11 @@ func main() {
 	r.HandleFunc("/startDHT/{walletAddr}", dhtHandlers.StartDHTHandler).Methods("GET")
 	r.HandleFunc("/stopDHT", dhtHandlers.CloseDHTHandler).Methods("GET")
 
+	// Accessing File for bytes uploaded
+	r.HandleFunc("/getBytesUploaded", statistics.GetBytesUploadedHandler).Methods("GET")
 	// Proxy-related routes
 	r.HandleFunc("/getActiveProxies", proxy.GetActiveProxies).Methods("GET")
+	r.HandleFunc("/getClientCount", proxy.GetClientCount).Methods("GET")
 
 	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
 		type StartRequest struct {

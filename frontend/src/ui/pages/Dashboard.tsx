@@ -21,7 +21,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import Tooltip from "@mui/material/Tooltip";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { AuthContext } from "../contexts/AuthContext";
-import { getBalance, mineCoins, getTransactions } from "../apis/bitcoin-core";
+import {
+  getBalance,
+  mineCoins,
+  getTransactions,
+  getBytesUploaded,
+} from "../apis/bitcoin-core";
 import { Transaction } from "../interfaces/Transactions";
 
 interface TransactionData {
@@ -40,13 +45,20 @@ function createData(
   return { transactionID, dateTime, cost, status };
 }
 
-interface DashboardProps {}
-const Dashboard: React.FC<DashboardProps> = () => {
+interface DashboardProps {
+  setSnackbarOpen: (open: boolean) => void;
+  setSnackbarMessage: (message: string) => void;
+}
+const Dashboard: React.FC<DashboardProps> = ({
+  setSnackbarOpen,
+  setSnackbarMessage,
+}) => {
   const [selectedTableTab, setSelectedTableTab] = useState<number>(0);
   const [selectedInfoTab, setSelectedInfoTab] = useState<number>(0);
   const [selectedFilter, setSelectedFilter] = useState<number>(1);
   const [selectedStats, setSelectedStats] = useState<number>(1);
   const [balance, setBalance] = useState<number>(0);
+  const [bytesUploaded, setBytesUploaded] = useState<number>(0);
 
   const { publicKey, walletName } = React.useContext(AuthContext);
 
@@ -60,18 +72,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setSelectedStats(event.target.value as number);
   };
 
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState("");
-
-  const handleSnackbarClose = (
-    event: React.SyntheticEvent<any, Event> | Event,
-    reason?: SnackbarCloseReason
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
+  // const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  // const [snackbarMessage, setSnackbarMessage] = React.useState("");
 
   const handleCopy = async (text: string) => {
     try {
@@ -110,6 +112,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [amountToMine, setAmountToMine] = useState<number>(1);
 
   const handleMineCoins = async () => {
+    setSnackbarMessage(`${amountToMine} blocks mining initiated`);
+    setSnackbarOpen(true);
     const blockHashes = mineCoins(publicKey, amountToMine);
   };
 
@@ -122,10 +126,31 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
     setAmountToMine(Number(event.target.value));
   };
-
+  // Fetch the number of bytes uploaded
+  const fetchBytesUploaded = async () => {
+    try {
+      const bytes = await getBytesUploaded();
+      if (!bytes?.bytesUploaded) {
+        setSnackbarMessage(
+          "The total amount of file bytes uploaded was failed to be retrieved"
+        );
+        setSnackbarOpen(true);
+      }
+      let { bytesUploaded } = bytes;
+      bytesUploaded = bytesUploaded / 1_000_000; // Divide by 1 million
+      bytesUploaded = bytesUploaded.toFixed(2); // Format to 2 decimal places
+      setBytesUploaded(bytesUploaded);
+    } catch (error) {
+      console.error(
+        "Failed to fetch the total bytes uploaded by the user",
+        error
+      );
+    }
+  };
   useEffect(() => {
     fetchBalance();
     fetchTransactions();
+    fetchBytesUploaded();
   }, []);
 
   return (
@@ -196,7 +221,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 onChange={handleSetAmountToMine}
               ></TextField>
               <Button variant="contained" onClick={() => handleMineCoins()}>
-                Mine Coins
+                Mine Blocks
               </Button>
             </Box>
           </Grid>
@@ -237,10 +262,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }}
           >
             <Box sx={{ display: "flex" }}>
-              <Typography variant="body1" sx={{ mr: 1 }}>
-                Statistics
+              <Typography variant="body1" sx={{ mr: 5 }}>
+                Statistics:
               </Typography>
-              <Select
+              <Typography variant="body1">
+                Bytes Uploaded: {bytesUploaded} MB
+              </Typography>
+              {/* <Select
                 fullWidth
                 size="small"
                 variant="standard"
@@ -250,18 +278,18 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 <MenuItem value={1}>Past 24 Hours</MenuItem>
                 <MenuItem value={2}>Past Week</MenuItem>
                 <MenuItem value={3}>Past Month</MenuItem>
-              </Select>
+              </Select> */}
             </Box>
-            <Box sx={{ display: "flex" }}>
+            {/* <Box sx={{ display: "flex" }}>
               <Typography variant="body1" sx={{ mr: 1 }}>
                 Recent Revenue: {Math.floor(Math.random() * 256)} OTTC
               </Typography>
-            </Box>
-            <Box sx={{ display: "flex" }}>
+            </Box> */}
+            {/* <Box sx={{ display: "flex" }}>
               <Typography variant="body1">
-                Bytes Uploaded: {Math.floor(Math.random() * 5100)} KB
+                Bytes Uploaded: {bytesUploaded} MB
               </Typography>
-            </Box>
+            </Box> */}
           </Box>
         </Box>
         <Tabs
@@ -320,24 +348,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
           />
         </TabSelector>
       </Box>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={handleSnackbarClose}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      />
     </>
   );
 };

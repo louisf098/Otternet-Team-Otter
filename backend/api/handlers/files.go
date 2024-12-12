@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"strings"
+	"path/filepath"
+	"strconv"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -32,6 +34,10 @@ type FormData struct {
 	Timestamp  string  `json:"timestamp"`
 	FileHash   string  `json:"fileHash"`
 	BundleMode bool    `json:"bundleMode"`
+}
+
+type WalletAddress struct {
+	WalletID string `json:"walletID"`
 }
 
 // Handles incoming file requests using a stream handler
@@ -72,11 +78,50 @@ func HandleFileRequests(h host.Host) {
 			log.Printf("Error sending metadata: %v", err)
 		}
 
+		// Send the wallet address back to the requester
+		wallet := WalletAddress{WalletID: global_wallet.WalletAddr + "\n"}
+		var walletBytes []byte
+		walletBytes, err = json.Marshal(wallet)
+		if err != nil {
+			log.Printf("Error marshalling wallet address: %v", err)
+		}
+
+		_, err = s.Write(walletBytes)
+		if err != nil {
+			log.Printf("Error sending wallet address: %v", err)
+		}
+
 		//Send the file back to the requester
 		_, err = io.Copy(s, file)
 		if err != nil {
 			log.Printf("Error sending file: %v", err)
 		}
+			// Define file paths accordingly
+		bytesFilePath := "./api/statistics/statistics.txt"
+
+		// Handle first file
+		bytesFileContent, err := handleFile(bytesFilePath)
+		if err != nil {
+			fmt.Printf("Error handling bytes file: %v\n", err)
+			return
+		}
+		fmt.Printf("Bytes file content: %s\n", string(bytesFileContent))
+		intFileSize := int(metadata.FileSize)
+		// Retrieve the values in the text file, increment those values accordingly
+		newBytesUploaded, err := updateNumberWithFileSize(string(bytesFileContent), intFileSize)
+		if err != nil {
+			fmt.Printf("Error handling bytes file: %v\n", err)
+			return
+		}
+		// Write the updated number back to the file
+		// Overwrite the values from the integer back to the file
+		err = os.WriteFile(bytesFilePath, []byte(strconv.Itoa(newBytesUploaded)), 0644)
+		if err != nil {
+			fmt.Printf("Error writing to file: %v\n", err)
+			return
+		}
+		fmt.Printf("File updated successfully. New number: %d\n", newBytesUploaded)
+		fmt.Printf("Reached end of file request handler\n")
 	})
 }
 
@@ -228,4 +273,76 @@ func HandleOtternetPeersRequests(h host.Host) {
 		}
 		fmt.Printf("Sent return message: %v\n", returnMessage)
 	})
+}
+
+// Function to handle file operations
+// func handleFile(filePath string) ([]byte, error) {
+// 	// Ensure the directory exists
+// 	dir := filepath.Dir(filePath)
+// 	if err := os.MkdirAll(dir, 0755); err != nil {
+// 		return nil, fmt.Errorf("failed to create directories: %w", err)
+// 	}
+
+// 	// Open or create the file
+// 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to open or create file: %w", err)
+// 	}
+// 	// Read the file content
+// 	content, err := os.ReadFile(filePath)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to read file: %w", err)
+// 	}
+// 	// Check if there are any numbers there
+// 	file.Close()
+// 	fmt.Printf("File handled successfully: %s\n", file.Name())
+	
+// 	return content, nil
+// }
+func handleFile(filePath string) ([]byte, error) {
+	// Ensure the directory exists
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	// Open or create the file
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open or create file: %w", err)
+	}
+	defer file.Close()
+
+	// Read the file content
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Check if the file is empty
+	if len(content) == 0 {
+		_, err = file.WriteString("0")
+		if err != nil {
+			return nil, fmt.Errorf("failed to write to file: %w", err)
+		}
+		fmt.Println("File was empty. Appended 0 to the file.")
+		content = []byte("0") // Update the content to reflect the new value
+	}
+
+	fmt.Printf("File handled successfully: %s\n", file.Name())
+	return content, nil
+}
+
+
+// Helper function to update a number based on file content and size
+func updateNumberWithFileSize(fileContent string, fileSize int) (int, error) {
+	// Step 1: Convert the file content to an integer
+	number, err := strconv.Atoi(fileContent)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert file content to integer: %w", err)
+	}
+
+	// Step 2: Increment the number by the file size
+	number += fileSize
+	return number, nil
 }
