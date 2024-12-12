@@ -152,6 +152,7 @@ func main() {
 	r.HandleFunc("/getBytesUploaded", statistics.GetBytesUploadedHandler).Methods("GET")
 	// Proxy-related routes
 	r.HandleFunc("/getActiveProxies", proxy.GetActiveProxies).Methods("GET")
+	r.HandleFunc("/getClientCount", proxy.GetClientCount).Methods("GET")
 
 	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
 		type StartRequest struct {

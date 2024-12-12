@@ -39,7 +39,7 @@ var (
 )
 
 // Constants
-var ProxyProviderHash = "proxy-louis-x8"
+var ProxyProviderHash = "proxy-louis-x9"
 var proxyConnectProtocol = protocol.ID("otternet/proxy/connect")
 var proxyDisconnectProtocol = protocol.ID("otternet/proxy/disconnect")
 var activeProxyProtocol = protocol.ID("/otternet/activeProxy")
@@ -516,6 +516,13 @@ func GetAuthorizedClients(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to encode authorized clients: %v", err)
 		http.Error(w, "Failed to retrieve authorized clients", http.StatusInternalServerError)
 	}
+}
+
+func GetClientCount(w http.ResponseWriter, r *http.Request) {
+	clientCount := len(authorizedClients)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{"clientCount": clientCount})
 }
 
 // LIBP2P SECTION
