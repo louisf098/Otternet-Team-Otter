@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -84,19 +86,19 @@ func waitForBitcoind() error {
 
 func main() {
 	// Run bitcoind -daemon -fallbackfee=0.0002 on startup
-	cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
-	err := cmd.Start()
-	if err != nil {
-		log.Fatalf("Failed to start bitcoind: %v", err)
-	}
-	log.Println("bitcoind started successfully")
+	// cmd := exec.Command("bitcoind", "-daemon", "-fallbackfee=0.0002")
+	// err := cmd.Start()
+	// if err != nil {
+	// 	log.Printf("Failed to start bitcoind: %v", err)
+	// }
+	// log.Println("bitcoind started successfully")
 
-	// Wait for bitcoind to be ready
-	err = waitForBitcoind()
-	if err != nil {
-		log.Fatalf("bitcoind did not start: %v", err)
-	}
-	log.Println("bitcoind is ready")
+	// // Wait for bitcoind to be ready
+	// err = waitForBitcoind()
+	// if err != nil {
+	// 	log.Println("bitcoind did not start: %v", err)
+	// }
+	// log.Println("bitcoind is ready")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/test", testOutput)
@@ -149,6 +151,9 @@ func main() {
 	// Accessing File for bytes uploaded
 	r.HandleFunc("/getBytesUploaded", statistics.GetBytesUploadedHandler).Methods("GET")
 	// Proxy-related routes
+	r.HandleFunc("/getActiveProxies", proxy.GetActiveProxies).Methods("GET")
+	r.HandleFunc("/getClientCount", proxy.GetClientCount).Methods("GET")
+
 	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
 		type StartRequest struct {
 			Port string `json:"port"`
@@ -188,11 +193,91 @@ func main() {
 		log.Printf("Fetched public IP: %s", ip)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(ip))
-	}).Methods("GET")		
+	}).Methods("GET")
 
-	proxy.RegisterHandleConnectEndpoint(r)
-	proxy.RegisterHandleDisconnectEndpoint(r)
-	proxy.RegisterHandleStopServingEndpoint(r)		
+	r.HandleFunc("/getAuthorizedClients", proxy.GetAuthorizedClients).Methods("GET")
+
+	r.HandleFunc("/proxy/connect", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ClientAddr string `json:"clientAddr"`
+			ServerID   string `json:"serverID"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
+			log.Printf("Invalid connection request: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Decode the provided ServerID
+		serverID, err := peer.Decode(req.ServerID)
+		if err != nil {
+			log.Printf("Invalid server ID: %v", err)
+			http.Error(w, "Invalid server ID", http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Connection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
+
+		// Ensure the serverID does not match the local Host ID to prevent self-dial
+		if serverID == global.DHTNode.Host.ID() {
+			log.Printf("Error: Attempted self-connection. ServerID: %s", serverID)
+			http.Error(w, "Cannot connect to self", http.StatusBadRequest)
+			return
+		}
+
+		// Perform the connection request
+		err = proxy.SendConnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
+		if err != nil {
+			log.Printf("Error sending connection request: %v", err)
+			http.Error(w, fmt.Sprintf("Error connecting to proxy: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent successfully"})
+	}).Methods("POST")
+
+	r.HandleFunc("/proxy/disconnect", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ClientAddr string `json:"clientAddr"`
+			ServerID   string `json:"serverID"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ClientAddr == "" || req.ServerID == "" {
+			log.Printf("Invalid disconnection request: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Decode the provided ServerID
+		serverID, err := peer.Decode(req.ServerID)
+		if err != nil {
+			log.Printf("Invalid server ID: %v", err)
+			http.Error(w, "Invalid server ID", http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Disconnection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
+
+		// Ensure the serverID does not match the local Host ID to prevent self-dial
+		if serverID == global.DHTNode.Host.ID() {
+			log.Printf("Error: Attempted self-disconnection. ServerID: %s", serverID)
+			http.Error(w, "Cannot disconnect from self", http.StatusBadRequest)
+			return
+		}
+
+		// Perform the disconnection request
+		err = proxy.SendDisconnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
+		if err != nil {
+			log.Printf("Error sending disconnection request: %v", err)
+			http.Error(w, fmt.Sprintf("Error disconnecting from proxy: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Disconnection request sent successfully"})
+	}).Methods("POST")
+
+	proxy.RegisterHandleStopServingEndpoint(r)
 
 	handlerWithCORS := corsOptions(r)
 

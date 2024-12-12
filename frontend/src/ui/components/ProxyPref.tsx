@@ -23,9 +23,52 @@ const ProxyPref = () => {
 
   const [rateError, setRateError] = useState<string | null>(null);
   const [portError, setPortError] = useState<string | null>(null);
+  const [clientCount, setClientCount] = useState<Number | null>(null);
 
-  const handleProxyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProxyChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setProxyEnabled(event.target.checked);
+
+    const requestBody = {
+      port: "8081"
+    }
+  
+    if (event.target.checked) {
+      try {
+        const response = await fetch('http://localhost:9378/startProxyServer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to start proxy server: ${response.statusText}`);
+        }
+  
+        console.log('Proxy server started successfully');
+      } catch (error) {
+        console.error('Error starting proxy server:', error);
+      }
+    } else {
+      try {
+        const response = await fetch('http://localhost:9378/stopServingAsProxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to stop proxy server: ${response.statusText}`);
+        }
+  
+        console.log('Proxy server stopped successfully');
+      } catch (error) {
+        console.error('Error stopping proxy server:', error);
+      }
+    }
+  
     console.log(`proxy: ${proxyEnabled}`);
   };
 
@@ -46,6 +89,27 @@ const ProxyPref = () => {
       setPortError(null);
     } else {
       setPortError("Invalid port.");
+    }
+  };
+
+  const fetchClientCount = async () => {
+    try {
+      const response = await fetch('http://localhost:9378/getClientCount', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch client count: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setClientCount(data.clientCount)
+    } catch (error) {
+      console.error('Error fetching client count:', error);
+      return 0;
     }
   };
 
@@ -88,7 +152,7 @@ const ProxyPref = () => {
             disabled={Boolean(rateError) || rate === ""}
           />
           <Tooltip
-            title="Enable this option to allow others to use your node as a proxy. Set the rate for how others will connect through your node below."
+            title="Enable this option to allow others to use your node as a proxy."
             arrow
           >
             <IconButton>
@@ -132,7 +196,7 @@ const ProxyPref = () => {
             alignItems: "center",
           }}
         >
-          <Typography variant="body1" sx={{ marginRight: 1 }}>
+          {/* <Typography variant="body1" sx={{ marginRight: 1 }}>
             Rate:
           </Typography>
           <TextField
@@ -146,10 +210,10 @@ const ProxyPref = () => {
             sx={{ width: "130px" }}
             error={Boolean(rateError)}
             helperText={rateError}
-          />
-          <Typography variant="body2" sx={{ marginLeft: 1, marginRight: 6 }}>
+          /> */}
+          {/* <Typography variant="body2" sx={{ marginLeft: 1, marginRight: 6 }}>
             OTTC/KB
-          </Typography>
+          </Typography> */}
 
           {/* <Typography variant="body1" sx={{ marginRight: 1 }}>
             Port:
@@ -168,8 +232,14 @@ const ProxyPref = () => {
           /> */}
         </Box>
         <Typography>
-          Nodes connected to Your Proxy:{" "}
-          <span style={{ fontWeight: "bold", color: "blue" }}>0 </span>
+        <span style={{ fontWeight: "bold", color: "blue" }}>Clients Connected: </span>
+          {proxyEnabled ? (
+            <span style={{ fontWeight: "bold", color: "blue" }}>
+              {clientCount !== null ? clientCount.toString() : "0"}
+            </span>
+          ) : (
+            <span style={{ fontWeight: "bold", color: "blue" }}>0 </span>
+          )}
         </Typography>
       </Box>
     </Box>

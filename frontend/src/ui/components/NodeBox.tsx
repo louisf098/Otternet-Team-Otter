@@ -64,7 +64,7 @@ const NodeBox: React.FC<NodeBoxProps> = ({
     setPDisconnect(true);
     try {
       await onDisconnect(node);
-      setShowDetails(false); // Hide IP and Port on disconnect
+      setShowDetails(false); // Hide IP and Port on disconnectf
     } catch (error) {
       console.error("Error disconnecting from proxy:", error);
     } finally {
@@ -75,9 +75,9 @@ const NodeBox: React.FC<NodeBoxProps> = ({
   return (
     <div className={`${isSelected ? "selected" : ""} node-box`}>
       <Typography variant="h6">
-        <span style={{ fontWeight: "bold" }}>{`${node.id.slice(0, 8)}...`}</span>
+        <span style={{ fontWeight: "bold" }}>{`${node.id}`}</span>
       </Typography>
-      <Typography variant="body1">Rate: {node.pricePerHour} OTTC/KB</Typography>
+      <Typography variant="body1">----------------------------------------------------------------------------</Typography>
       {showDetails && (
         <>
           <Typography variant="body1">

@@ -10,13 +10,33 @@ const NodesSection: React.FC = () => {
   const { selectedNode, setSelectedNode } = useContext(ProxyContext);
   const [proxyNodes, setProxyNodes] = useState<ProxyNode[]>([]); // Dynamic proxy nodes
   const [loading, setLoading] = useState<boolean>(true); // Loading state
+  const [userPublicIP, setUserPublicIP] = useState<string>(""); // Client's public IP
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
 
+  // Fetch user's public IP
+  useEffect(() => {
+    const fetchPublicIP = async () => {
+      try {
+        const response = await fetch("http://localhost:9378/getPublicIP"); // Adjust the endpoint as needed
+        if (!response.ok) throw new Error("Failed to fetch public IP");
+        const ip = await response.text();
+        setUserPublicIP(ip.trim());
+      } catch (error) {
+        console.error("Error fetching public IP:", error);
+        setSnackbarMessage("Failed to fetch public IP.");
+        setSnackbarOpen(true);
+      }
+    };
+
+    fetchPublicIP();
+  }, []);
+
+  // Fetch available proxies
   useEffect(() => {
     const fetchProxies = async () => {
       try {
-        const response = await fetch("http://localhost:9378/fetchAvailableProxies");
+        const response = await fetch("http://localhost:9378/getActiveProxies"); // Adjust the endpoint as needed
         if (!response.ok) {
           throw new Error(`Failed to fetch proxies: ${response.statusText}`);
         }
@@ -24,7 +44,14 @@ const NodesSection: React.FC = () => {
         const data: ProxyNode[] = await response.json();
         // Filter out nodes with IP 127.0.0.1
         const filteredNodes = data.filter((node) => node.ip !== "127.0.0.1");
-        setProxyNodes(filteredNodes);
+        const uniqueNodes = filteredNodes.filter((node, index, self) =>
+          index === self.findIndex((t) => t.ip === node.ip)
+        );
+        
+        uniqueNodes.forEach(node => {
+          console.log(node.ip);
+        });
+        setProxyNodes(uniqueNodes);
       } catch (error) {
         console.error("Error fetching proxy nodes:", error);
         setSnackbarMessage("Failed to load proxy nodes.");
@@ -38,13 +65,22 @@ const NodesSection: React.FC = () => {
   }, []);
 
   const handleSelect = async (node: ProxyNode): Promise<boolean> => {
+    if (!userPublicIP) {
+      setSnackbarMessage("Failed to retrieve public IP. Cannot connect.");
+      setSnackbarOpen(true);
+      return false;
+    }
+
     try {
-      const response = await fetch("http://localhost:9378/connectToProxy", {
+      const response = await fetch("http://localhost:9378/proxy/connect", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ clientAddr: node.ip }),
+        body: JSON.stringify({ 
+          clientAddr: userPublicIP,
+          serverID: node.id
+        }), // Use the client's IP
       });
 
       if (response.status === 200) {
@@ -68,12 +104,15 @@ const NodesSection: React.FC = () => {
   const handleDisconnect = async (node: ProxyNode) => {
     if (selectedNode?.id === node.id) {
       try {
-        await fetch("http://localhost:9378/disconnectFromProxy", {
+        await fetch("http://localhost:9378/disconnect", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ clientAddr: node.ip }),
+          body: JSON.stringify({ 
+            clientAddr: userPublicIP,
+            serverID: node.ip
+          }),
         });
 
         setSelectedNode(null);

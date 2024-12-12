@@ -5,12 +5,13 @@ import (
 	"Otternet/backend/api/handlers"
 	"Otternet/backend/global"
 	"Otternet/backend/global_wallet"
+	"Otternet/backend/api/proxy"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
-
+	
 	"github.com/gorilla/mux"
 )
 
@@ -38,12 +39,13 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
 	global.DHTNode.MakeReservation()
 	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
+	global.DHTNode.HandlePeerExchange()
 	handlers.HandleCatalogRequests(global.DHTNode.Host)
 	handlers.HandleOtternetPeersRequests(global.DHTNode.Host)
 	handlers.HandleFileRequests(global.DHTNode.Host)
 	handlers.HandlePriceRequests(global.DHTNode.Host)
 	handlers.HandleWalletAddressRequests(global.DHTNode.Host)
-	go global.DHTNode.HandlePeerExchange()
+	proxy.HandleActiveProxyRequests(global.DHTNode.Host)
 
 	if initErr != nil {
 		http.Error(w, "Failed to start DHT node", http.StatusInternalServerError)
@@ -56,6 +58,7 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Printf("DHT node started successfully\n")
 	fmt.Printf("Global.DHTNode: %v\n", global.DHTNode)
+	fmt.Printf("My PeerID: %s\n", global.DHTNode.Host.ID())
 	json.NewEncoder(w).Encode(map[string]string{"message": "DHT node started successfully"})
 }
 
