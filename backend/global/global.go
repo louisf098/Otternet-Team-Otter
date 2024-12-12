@@ -7,3 +7,4 @@ import (
 )
 
 var DHTNode *dhtnode.DHTNode
+var ActiveProxy bool

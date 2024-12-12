@@ -38,11 +38,11 @@ func StartDHTHandler(w http.ResponseWriter, r *http.Request) {
 	global.DHTNode.ConnectToPeer(dhtnode.RelayNodeAddr)
 	global.DHTNode.MakeReservation()
 	global.DHTNode.ConnectToPeer(dhtnode.BootstrapNodeAddr)
+	global.DHTNode.HandlePeerExchange()
 	handlers.HandleCatalogRequests(global.DHTNode.Host)
 	handlers.HandleOtternetPeersRequests(global.DHTNode.Host)
 	handlers.HandleFileRequests(global.DHTNode.Host)
 	handlers.HandlePriceRequests(global.DHTNode.Host)
-	go global.DHTNode.HandlePeerExchange()
 
 	if initErr != nil {
 		http.Error(w, "Failed to start DHT node", http.StatusInternalServerError)

@@ -36,7 +36,7 @@ const NodesSection: React.FC = () => {
   useEffect(() => {
     const fetchProxies = async () => {
       try {
-        const response = await fetch("http://localhost:9378/fetchAvailableProxies");
+        const response = await fetch("http://localhost:9378/getActiveProxies"); // Adjust the endpoint as needed
         if (!response.ok) {
           throw new Error(`Failed to fetch proxies: ${response.statusText}`);
         }

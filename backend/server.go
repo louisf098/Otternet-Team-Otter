@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/gorilla/handlers"
@@ -117,6 +118,8 @@ func main() {
 	r.HandleFunc("/stopDHT", dhtHandlers.CloseDHTHandler).Methods("GET")
 
 	// Proxy-related routes
+	r.HandleFunc("/getActiveProxies", proxy.GetActiveProxies).Methods("GET")
+
 	r.HandleFunc("/startProxyServer", func(w http.ResponseWriter, r *http.Request) {
 		type StartRequest struct {
 			Port string `json:"port"`
@@ -156,7 +159,7 @@ func main() {
 		log.Printf("Fetched public IP: %s", ip)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(ip))
-	}).Methods("GET")		
+	}).Methods("GET")
 
 	r.HandleFunc("/getAuthorizedClients", proxy.GetAuthorizedClients).Methods("GET")
 
@@ -170,7 +173,7 @@ func main() {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-	
+
 		// Decode the provided ServerID
 		serverID, err := peer.Decode(req.ServerID)
 		if err != nil {
@@ -178,16 +181,16 @@ func main() {
 			http.Error(w, "Invalid server ID", http.StatusBadRequest)
 			return
 		}
-	
+
 		log.Printf("Connection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
-	
+
 		// Ensure the serverID does not match the local Host ID to prevent self-dial
 		if serverID == global.DHTNode.Host.ID() {
 			log.Printf("Error: Attempted self-connection. ServerID: %s", serverID)
 			http.Error(w, "Cannot connect to self", http.StatusBadRequest)
 			return
 		}
-	
+
 		// Perform the connection request
 		err = proxy.SendConnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
 		if err != nil {
@@ -195,11 +198,11 @@ func main() {
 			http.Error(w, fmt.Sprintf("Error connecting to proxy: %v", err), http.StatusInternalServerError)
 			return
 		}
-	
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Connection request sent successfully"})
-	}).Methods("POST")	
-	
+	}).Methods("POST")
+
 	r.HandleFunc("/proxy/disconnect", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ClientAddr string `json:"clientAddr"`
@@ -210,7 +213,7 @@ func main() {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-	
+
 		// Decode the provided ServerID
 		serverID, err := peer.Decode(req.ServerID)
 		if err != nil {
@@ -218,16 +221,16 @@ func main() {
 			http.Error(w, "Invalid server ID", http.StatusBadRequest)
 			return
 		}
-	
+
 		log.Printf("Disconnection request received:\nClient Addr: %s\nServer ID: %s", req.ClientAddr, serverID)
-	
+
 		// Ensure the serverID does not match the local Host ID to prevent self-dial
 		if serverID == global.DHTNode.Host.ID() {
 			log.Printf("Error: Attempted self-disconnection. ServerID: %s", serverID)
 			http.Error(w, "Cannot disconnect from self", http.StatusBadRequest)
 			return
 		}
-	
+
 		// Perform the disconnection request
 		err = proxy.SendDisconnectionRequestToHost(global.DHTNode.Host, serverID, req.ClientAddr)
 		if err != nil {
@@ -235,12 +238,12 @@ func main() {
 			http.Error(w, fmt.Sprintf("Error disconnecting from proxy: %v", err), http.StatusInternalServerError)
 			return
 		}
-	
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Disconnection request sent successfully"})
-	}).Methods("POST")	
+	}).Methods("POST")
 
-	proxy.RegisterHandleStopServingEndpoint(r)		
+	proxy.RegisterHandleStopServingEndpoint(r)
 
 	handlerWithCORS := corsOptions(r)
 
